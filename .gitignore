@@ -1,0 +1,31 @@
+# Credenciais e servidores MCP — nunca commitar
+.mcp.json
+*.yaml
+*.yml
+.env
+.env.*
+*secret*
+*credentials*
+client_secret*.json
+
+# Claude Code — estado local da sessão
+.claude/settings.local.json
+
+# Dependências
+node_modules/
+
+# Dados exportados e arquivos de banco de dados
+scratch/*.json
+dashboard/goals.db
+outputs/
+
+# Runtime state
+.superpowers/**/state/
+
+# Sistema
+.DS_Store
+__pycache__/
+*.pyc
+*.db
+*.pid
+*.log

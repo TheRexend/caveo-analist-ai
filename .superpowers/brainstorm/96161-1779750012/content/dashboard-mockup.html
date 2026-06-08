@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Mockup — Caveo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f7; color: #1a1a2e; min-height: 100vh; padding: 24px; }
+
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-radius: 12px; padding: 14px 20px;
+    margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .filter-group { display: flex; align-items: center; gap: 10px; }
+  .filter-label { font-size: 14px; font-weight: 600; color: #555; margin-right: 4px; }
+  .filter-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: 8px; border: 1.5px solid #e0e0e0;
+    font-size: 14px; font-weight: 500; cursor: pointer; background: #fff;
+    color: #555; transition: all 0.15s;
+  }
+  .filter-btn.active { background: #3b5bdb; color: #fff; border-color: #3b5bdb; }
+  .filter-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-google { background: #34a853; }
+  .dot-meta { background: #1877F2; }
+
+  .date-selector {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; color: #777;
+    padding: 7px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; background: #fff;
+    cursor: pointer;
+  }
+
+  .section-title {
+    text-align: center; margin-bottom: 16px;
+  }
+  .section-title h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .section-title p { font-size: 13px; color: #888; margin-top: 3px; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+
+  .card {
+    background: #fff; border-radius: 12px; padding: 18px 18px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-label { font-size: 12px; color: #888; font-weight: 500; line-height: 1.3; }
+  .card-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .icon-invest { background: #fff3e0; }
+  .icon-leads  { background: #e8f5e9; }
+  .icon-cpl    { background: #fce4ec; }
+  .icon-oport  { background: #e3f2fd; }
+  .icon-cpo    { background: #f3e5f5; }
+  .icon-txconv { background: #e0f7fa; }
+  .icon-ganho  { background: #e8f5e9; }
+  .icon-cpf    { background: #fff8e1; }
+  .icon-perdida{ background: #ffebee; }
+
+  .card-value { font-size: 26px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+  .card-sub {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .tag {
+    font-size: 11px; padding: 3px 8px; border-radius: 5px;
+    background: #f5f5f5; color: #555; font-weight: 500;
+  }
+  .tag.green { background: #e8f5e9; color: #2e7d32; }
+  .tag.yellow { background: #fff8e1; color: #f57f17; }
+  .tag.red { background: #ffebee; color: #c62828; }
+
+  .goal-section { margin-top: 2px; }
+  .goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .goal-label { font-size: 10px; color: #aaa; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .goal-pct { font-size: 12px; font-weight: 700; }
+  .pct-green  { color: #2e7d32; }
+  .pct-yellow { color: #f57f17; }
+  .pct-red    { color: #c62828; }
+
+  .progress-bar { height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; }
+  .fill-green  { background: #4caf50; }
+  .fill-yellow { background: #ff9800; }
+  .fill-red    { background: #f44336; }
+
+  .goal-values { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: #bbb; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="filter-group">
+    <span class="filter-label">Filtrar por Plataforma</span>
+    <button class="filter-btn active">Todas</button>
+    <button class="filter-btn">
+      <span class="dot dot-google"></span> Google Ads
+    </button>
+    <button class="filter-btn">
+      <span class="dot dot-meta"></span> Meta Ads
+    </button>
+  </div>
+  <div class="date-selector">
+    📅 Maio 2026 &nbsp;▾
+  </div>
+</div>
+
+<!-- SECTION HEADER -->
+<div class="section-title">
+  <h2>🎯 Funil de Performance</h2>
+  <p>Do investimento ao resultado · Progresso vs meta de Maio/2026</p>
+</div>
+
+<!-- 3x3 GRID -->
+<div class="grid">
+
+  <!-- 1: Investimento Total -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Investimento Total de Mídia</div>
+      <div class="card-icon icon-invest">💰</div>
+    </div>
+    <div class="card-value">R$ 18.400</div>
+    <div class="card-sub">
+      <span class="tag">Meta: R$12.850</span>
+      <span class="tag">Google: R$5.550</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês</span>
+        <span class="goal-pct pct-green">74%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:74%"></div></div>
+      <div class="goal-values"><span>R$ 0</span><span>Meta: R$ 25.000</span></div>
+    </div>
+  </div>
+
+  <!-- 2: Volume de Leads -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Volume de Leads / Conversões</div>
+      <div class="card-icon icon-leads">👥</div>
+    </div>
+    <div class="card-value">342</div>
+    <div class="card-sub">
+      <span class="tag">Meta: 234</span>
+      <span class="tag">Google: 108</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês</span>
+        <span class="goal-pct pct-yellow">68%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-yellow" style="width:68%"></div></div>
+      <div class="goal-values"><span>0</span><span>Meta: 500</span></div>
+    </div>
+  </div>
+
+  <!-- 3: Custo por Lead -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Custo por Lead / Conversão</div>
+      <div class="card-icon icon-cpl">📉</div>
+    </div>
+    <div class="card-value">R$ 53,80</div>
+    <div class="card-sub">
+      <span class="tag green">🟢 Dentro da meta</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês (máx.)</span>
+        <span class="goal-pct pct-green">✓ R$ 60,00</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:90%"></div></div>
+      <div class="goal-values"><span>Meta ≤ R$ 60</span><span>Atual R$ 53,80</span></div>
+    </div>
+  </div>
+
+  <!-- 4: Oportunidades -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Oportunidades</div>
+      <div class="card-icon icon-oport">🎯</div>
+    </div>
+    <div class="card-value">8</div>
+    <div class="card-sub">
+      <span class="tag">Meta: 5</span>
+      <span class="tag">Google: 3</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês</span>
+        <span class="goal-pct pct-red">32%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-red" style="width:32%"></div></div>
+      <div class="goal-values"><span>0</span><span>Meta: 25</span></div>
+    </div>
+  </div>
+
+  <!-- 5: Custo por Oportunidade -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Custo por Oportunidade</div>
+      <div class="card-icon icon-cpo">💎</div>
+    </div>
+    <div class="card-value">R$ 2.300</div>
+    <div class="card-sub">
+      <span class="tag yellow">🟡 Atenção</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês (máx.)</span>
+        <span class="goal-pct pct-yellow">R$ 2.000</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-yellow" style="width:60%"></div></div>
+      <div class="goal-values"><span>Meta ≤ R$ 2.000</span><span>Atual R$ 2.300</span></div>
+    </div>
+  </div>
+
+  <!-- 6: Tx Conv Oportunidade -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Tx de Conv. Oportunidade → Ganho</div>
+      <div class="card-icon icon-txconv">📊</div>
+    </div>
+    <div class="card-value">25%</div>
+    <div class="card-sub">
+      <span class="tag green">🟢 Benchmark: 15–30%</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês (mín.)</span>
+        <span class="goal-pct pct-green">✓ 20%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:83%"></div></div>
+      <div class="goal-values"><span>Meta ≥ 20%</span><span>Atual 25%</span></div>
+    </div>
+  </div>
+
+  <!-- 7: Fechamentos -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Fechamentos (Ganho)</div>
+      <div class="card-icon icon-ganho">🏆</div>
+    </div>
+    <div class="card-value">2</div>
+    <div class="card-sub">
+      <span class="tag">Meta: 1</span>
+      <span class="tag">Google: 1</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês</span>
+        <span class="goal-pct pct-red">33%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-red" style="width:33%"></div></div>
+      <div class="goal-values"><span>0</span><span>Meta: 6</span></div>
+    </div>
+  </div>
+
+  <!-- 8: Custo por Fechamento -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Custo por Fechamento</div>
+      <div class="card-icon icon-cpf">💵</div>
+    </div>
+    <div class="card-value">R$ 9.200</div>
+    <div class="card-sub">
+      <span class="tag yellow">🟡 Atenção</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês (máx.)</span>
+        <span class="goal-pct pct-yellow">R$ 8.000</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-yellow" style="width:55%"></div></div>
+      <div class="goal-values"><span>Meta ≤ R$ 8.000</span><span>Atual R$ 9.200</span></div>
+    </div>
+  </div>
+
+  <!-- 9: Oportunidades Perdidas -->
+  <div class="card">
+    <div class="card-top">
+      <div class="card-label">Oportunidades Perdidas</div>
+      <div class="card-icon icon-perdida">❌</div>
+    </div>
+    <div class="card-value">3</div>
+    <div class="card-sub">
+      <span class="tag red">🔴 Meta: máx. 2</span>
+    </div>
+    <div class="goal-section">
+      <div class="goal-header">
+        <span class="goal-label">Meta do Mês (máx.)</span>
+        <span class="goal-pct pct-red">Acima da meta</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-red" style="width:100%"></div></div>
+      <div class="goal-values"><span>Meta ≤ 2</span><span>Atual: 3</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:14px 18px;background:#fff;border-radius:10px;font-size:12px;color:#aaa;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+  Mockup estático — dados de exemplo. Clique nos filtros de plataforma para ver a interação.
+</div>
+
+<script>
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<h2>Quais métricas terão metas mensais?</h2>
+<p class="subtitle">Selecione todas que você quer configurar todo mês. Cada uma mostrará progresso em tempo real vs meta.</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="leads" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Volume de Leads</h3>
+      <p>Total de leads gerados no mês (todos os canais). Ex: meta de 400 leads → hoje 234 (58%).</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="oportunidades" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Oportunidades Abertas</h3>
+      <p>Leads que chegaram ao estágio Oportunidade no Salesforce. Ex: meta de 20 oport. → hoje 8 (40%).</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="ganho" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Fechamentos (Ganho)</h3>
+      <p>Negócios fechados no mês. Ex: meta de 5 vendas → hoje 2 (40%).</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="investimento" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Investimento em Mídia</h3>
+      <p>Budget total alocado para Meta + Google. Mostra quanto já foi gasto vs budget mensal aprovado.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="cpl" onclick="toggleSelect(this)">
+    <div class="letter">E</div>
+    <div class="content">
+      <h3>CPL-alvo (Custo por Lead)</h3>
+      <p>Meta de CPL máximo aceitável. Ex: meta ≤ R$60 → hoje R$53 (dentro da meta 🟢).</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="custo_oport" onclick="toggleSelect(this)">
+    <div class="letter">F</div>
+    <div class="content">
+      <h3>Custo por Oportunidade</h3>
+      <p>Meta de custo máximo por oportunidade gerada. Métrica mais importante do funil pago.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 14px; background: var(--surface-2); border-radius: 8px;">
+  <p style="margin:0; color: var(--text-secondary); font-size: 13px;">Selecione quantas quiser e me diga no terminal. Você também pode sugerir uma métrica diferente que não aparece aqui.</p>
+</div>

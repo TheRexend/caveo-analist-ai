@@ -1,0 +1,52 @@
+<h2>Onde o dashboard vai rodar?</h2>
+<p class="subtitle">Cada plataforma tem trade-offs diferentes para quem usa no dia a dia operacional.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Google Looker Studio</h3>
+      <p>Conecta nativamente com Google Ads e Google Sheets. Meta via conector de terceiro. Sem código, visual drag-and-drop. Compartilhável por link.</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Prós</h4><ul><li>Zero infraestrutura</li><li>Google Ads nativo</li><li>Fácil de atualizar</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Salesforce via conector pago</li><li>Limitado em lógica customizada</li><li>Meta Ads menos confiável</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Web App local (HTML + JS)</h3>
+      <p>Página HTML servida localmente que chama as MCPs via Claude Code. Totalmente customizável. Você roda com um comando e abre no browser.</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Prós</h4><ul><li>Integração direta com MCPs</li><li>Lógica 100% customizada</li><li>Sem custo de conector</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Precisa rodar localmente</li><li>Mais trabalho para manter</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Streamlit (Python)</h3>
+      <p>App Python que conecta às APIs diretamente. Roda local ou faz deploy na nuvem. Gráficos interativos nativos (Plotly, Altair).</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Prós</h4><ul><li>Python = fácil de integrar APIs</li><li>Gráficos ricos out-of-the-box</li><li>Deploy simples na nuvem</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Precisa de Python no ambiente</li><li>Mais setup inicial</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="d" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Skill Claude Code (/dashboard)</h3>
+      <p>Uma nova skill que monta o relatório estruturado no terminal do Claude Code, com tabelas e métricas formatadas. Sem UI gráfica — tudo em texto rico.</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Prós</h4><ul><li>Integração perfeita com MCPs</li><li>Sem infraestrutura nenhuma</li><li>Já no fluxo atual de trabalho</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Sem gráficos visuais</li><li>Menos "dashboard" e mais "reporte"</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

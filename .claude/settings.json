@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(~/.claude/skills/**)",
+      "Read(~/.claude/settings.json)",
+      "Write(.claude/skills/**)",
+      "Write(.claude/agents/**)",
+      "Bash(ls *)",
+      "Bash(find * -name *.md)",
+      "Bash(grep *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(./*.py)"
+    ]
+  }
+}
