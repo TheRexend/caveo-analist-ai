@@ -31,7 +31,10 @@ let _sqlite: SqliteDb | null = null;
 async function sqlite(): Promise<SqliteDb> {
   if (_sqlite) return _sqlite;
   const Database = (await import("better-sqlite3")).default;
-  const dbPath = path.join(process.cwd(), "data", "goals.db");
+  // Vercel: filesystem read-only exceto /tmp (efêmero). Local: data/goals.db.
+  const dbPath = process.env.VERCEL
+    ? path.join("/tmp", "goals.db")
+    : path.join(process.cwd(), "data", "goals.db");
   const db = new Database(dbPath);
   db.exec(`
     CREATE TABLE IF NOT EXISTS monthly_goals (
