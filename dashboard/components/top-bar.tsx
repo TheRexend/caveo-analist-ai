@@ -1,6 +1,7 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Calendar, RefreshCw, Settings2 } from "lucide-react";
+import { RefreshCw, Settings2 } from "lucide-react";
+import { DateRangePicker } from "@/components/date-range-picker";
 import type { Platform } from "@/lib/types";
 
 type DataMode = "live" | "mock" | "loading";
@@ -69,12 +70,7 @@ export function TopBar({
           </button>
         </div>
 
-        <div className="date-range">
-          <Calendar size={14} style={{ color: "var(--c-text-faint)", marginLeft: 6 }} />
-          <input className="date-input" type="date" value={dateFrom} onChange={(e) => onDates(e.target.value, dateTo)} />
-          <span className="date-sep">→</span>
-          <input className="date-input" type="date" value={dateTo} onChange={(e) => onDates(dateFrom, e.target.value)} />
-        </div>
+        <DateRangePicker dateFrom={dateFrom} dateTo={dateTo} onDates={onDates} />
 
         <button className="btn" onClick={onOpenGoals}>
           <Settings2 size={14} />

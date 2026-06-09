@@ -92,15 +92,73 @@ body {
 }
 .seg-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
-.date-range {
-  display: inline-flex; align-items: center; gap: 0; background: var(--c-surface);
-  border: 1px solid var(--c-border); border-radius: 10px; padding: 2px; font-size: 13px;
+/* === Date Range Picker === */
+.drp-trigger {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-md); padding: 6px 12px; font-size: 13px;
+  cursor: pointer; color: var(--c-text); transition: all 0.15s var(--c-ease);
 }
-.date-input {
-  border: 0; outline: 0; background: transparent; padding: 6px 10px; font-size: 13px;
-  color: var(--c-text); font-variant-numeric: tabular-nums; width: 124px;
+.drp-trigger:hover { border-color: var(--c-border-strong); background: var(--c-surface-muted); }
+.drp-trigger-icon { color: var(--c-text-faint); flex-shrink: 0; }
+.drp-trigger-label { font-weight: 500; white-space: nowrap; }
+.drp-trigger-range {
+  color: var(--c-text-muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.date-sep { color: var(--c-text-faint); padding: 0 2px; font-size: 12px; }
+.drp-trigger-chevron { color: var(--c-text-faint); flex-shrink: 0; }
+
+/* Popup container */
+.drp-popup {
+  border-color: var(--c-border) !important;
+  box-shadow: var(--c-shadow-lg) !important;
+  border-radius: var(--c-radius-lg) !important;
+  background: var(--c-surface) !important;
+}
+.drp-popup-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 11px 16px; border-bottom: 1px solid var(--c-border);
+}
+.drp-popup-title { font-size: 13px; font-weight: 600; color: var(--c-text); }
+.drp-popup-range {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--c-text-muted); font-variant-numeric: tabular-nums;
+  background: var(--c-surface-muted); border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-md); padding: 4px 10px;
+}
+.drp-popup-body { display: flex; align-items: stretch; }
+.drp-popup-presets {
+  display: flex; flex-direction: column;
+  padding: 8px; gap: 2px; width: 156px; flex-shrink: 0;
+  border-right: 1px solid var(--c-border);
+}
+.drp-preset-btn {
+  text-align: left; padding: 8px 12px; border-radius: var(--c-radius-sm);
+  font-size: 13px; color: var(--c-text-muted); background: transparent; border: 0;
+  cursor: pointer; transition: all 0.15s var(--c-ease); white-space: nowrap;
+}
+.drp-preset-btn:hover { background: var(--c-surface-muted); color: var(--c-text); }
+.drp-preset-btn.is-active {
+  background: var(--c-accent-soft); color: var(--c-accent-text); font-weight: 500;
+}
+.drp-popup-cal { padding: 8px 4px; }
+.drp-popup-footer {
+  padding: 8px 16px; border-top: 1px solid var(--c-border);
+  font-size: 11px; color: var(--c-text-faint); text-align: right;
+  letter-spacing: 0.01em;
+}
+
+/* Calendar Caveo theme overrides (range colors) */
+.drp-popup [data-range-start="true"],
+.drp-popup [data-range-end="true"],
+.drp-popup [data-selected-single="true"] {
+  background-color: var(--c-accent) !important;
+  color: #fff !important;
+}
+.drp-popup [data-range-middle="true"] {
+  background-color: var(--c-accent-soft) !important;
+  color: var(--c-accent-text) !important;
+}
 
 .btn {
   border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text);
