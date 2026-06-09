@@ -1,9 +1,0 @@
-allowBuilds:
-  better-sqlite3: true
-  msw: false
-  sharp: true
-  unrs-resolver: true
-onlyBuiltDependencies:
-  - sharp
-  - unrs-resolver
-  - better-sqlite3
