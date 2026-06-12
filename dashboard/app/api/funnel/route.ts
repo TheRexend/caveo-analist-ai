@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultRange } from "@/lib/dates";
-import { META, GOOGLE } from "@/lib/env";
+import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
 import { metaInsights, leadsFromActions } from "@/lib/integrations/meta";
 import { googleCampaigns } from "@/lib/integrations/google";
 import { sfFunnel } from "@/lib/integrations/salesforce";
@@ -34,9 +34,8 @@ export async function GET(req: NextRequest) {
   else if (platform === "meta") leadNovo = metaLeads;
   else leadNovo = gadsLeads;
 
-  const sf = await sfFunnel(dateFrom, dateTo, platform);
-
-  if (!sf && metaRows.length === 0 && !gadsResp) {
+  // Mock só sem credenciais.
+  if (!HAS_ANY_CREDS()) {
     const s = aggMock(mockDays(dateFrom, dateTo), platform);
     const lv = s.leads;
     const out: FunnelData = {
@@ -46,10 +45,13 @@ export async function GET(req: NextRequest) {
       proposta: Math.max(0, Math.round(s.oport * 0.2)),
       ganho: s.ganho,
       perdido: Math.max(0, Math.round(s.oport * 0.3)),
+      ganho_breakdown: { Fechado: s.ganho },
       _mock: true,
     };
     return NextResponse.json(out);
   }
+
+  const sf = await sfFunnel(dateFrom, dateTo, platform);
 
   const out: FunnelData = {
     lead_novo: leadNovo,
@@ -58,6 +60,7 @@ export async function GET(req: NextRequest) {
     proposta: sf?.proposta ?? 0,
     ganho: sf?.ganho ?? 0,
     perdido: sf?.perdido ?? 0,
+    ganho_breakdown: sf?.ganho_breakdown ?? {},
     _mock: false,
   };
   return NextResponse.json(out);

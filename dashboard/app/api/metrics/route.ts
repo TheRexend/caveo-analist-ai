@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultRange } from "@/lib/dates";
-import { META, GOOGLE } from "@/lib/env";
+import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
 import { metaInsights, leadsFromActions } from "@/lib/integrations/meta";
 import { googleCampaigns } from "@/lib/integrations/google";
 import { sfFunnel } from "@/lib/integrations/salesforce";
@@ -48,7 +48,9 @@ export async function GET(req: NextRequest) {
   const ganho = sf?.ganho ?? 0;
   const lost = sf?.perdido ?? 0;
 
-  const usingMock = metaRows.length === 0 && !gadsResp && !sf;
+  // Mock só quando NÃO há nenhuma credencial configurada. Com credenciais
+  // presentes, períodos sem atividade exibem zeros reais (não números mock).
+  const usingMock = !HAS_ANY_CREDS();
   if (usingMock) {
     const s = aggMock(mockDays(dateFrom, dateTo), platform);
     const m: Metrics = {

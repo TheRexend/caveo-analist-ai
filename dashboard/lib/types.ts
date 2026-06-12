@@ -41,6 +41,8 @@ export interface FunnelData {
   proposta: number;
   ganho: number;
   perdido: number;
+  /** Composição do "Ganho" por estágio (ex.: Fechado, Ganho não Identificado). */
+  ganho_breakdown?: Record<string, number>;
   _mock?: boolean;
 }
 

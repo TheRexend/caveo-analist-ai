@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { defaultRange } from "@/lib/dates";
-import { META, GOOGLE } from "@/lib/env";
+import { defaultRange, eachDay } from "@/lib/dates";
+import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
 import { metaInsightsDaily, metaDailyToSource } from "@/lib/integrations/meta";
 import { googleDaily } from "@/lib/integrations/google";
 import { mockDays } from "@/lib/mock";
-import type { DaySource, TimelineDay } from "@/lib/types";
+import type { DaySource, Platform, TimelineDay } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,14 +16,21 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
+  const platform = (sp.get("platform") ?? "all") as Platform;
 
-  const metaDaily = META.token ? await metaInsightsDaily(dateFrom, dateTo) : [];
-  const gadsByDate = GOOGLE.devToken ? await googleDaily(dateFrom, dateTo) : {};
-
-  const usingMock = metaDaily.length === 0 && Object.keys(gadsByDate).length === 0;
-  if (usingMock) {
+  // Sem credenciais → mock (já cobre todos os dias do período).
+  if (!HAS_ANY_CREDS()) {
     return NextResponse.json(mockDays(dateFrom, dateTo));
   }
+
+  // Busca apenas a fonte necessária para a plataforma selecionada.
+  const wantMeta = !!META.token && (platform === "all" || platform === "meta");
+  const wantGoogle = !!GOOGLE.devToken && (platform === "all" || platform === "google");
+
+  const [metaDaily, gadsByDate] = await Promise.all([
+    wantMeta ? metaInsightsDaily(dateFrom, dateTo) : Promise.resolve([]),
+    wantGoogle ? googleDaily(dateFrom, dateTo) : Promise.resolve({} as Record<string, DaySource>),
+  ]);
 
   const metaByDate: Record<string, DaySource> = {};
   for (const r of metaDaily) {
@@ -32,19 +39,13 @@ export async function GET(req: NextRequest) {
     metaByDate[d] = metaDailyToSource(r);
   }
 
-  const allDates = Array.from(
-    new Set([...Object.keys(metaByDate), ...Object.keys(gadsByDate)]),
-  ).sort();
-
-  const days: TimelineDay[] = [];
-  for (const d of allDates) {
-    if (d < dateFrom || d > dateTo) continue;
-    days.push({
-      date: d,
-      google: gadsByDate[d] ?? { ...EMPTY },
-      meta: metaByDate[d] ?? { ...EMPTY },
-    });
-  }
+  // Intervalo CONTÍNUO: todos os dias do período aparecem, mesmo zerados,
+  // para o eixo X não comprimir e o "dias selecionados" ficar correto.
+  const days: TimelineDay[] = eachDay(dateFrom, dateTo).map((d) => ({
+    date: d,
+    google: gadsByDate[d] ?? { ...EMPTY },
+    meta: metaByDate[d] ?? { ...EMPTY },
+  }));
 
   return NextResponse.json(days);
 }

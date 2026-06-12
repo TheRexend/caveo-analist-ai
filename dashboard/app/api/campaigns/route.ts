@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultRange } from "@/lib/dates";
-import { META, GOOGLE } from "@/lib/env";
+import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
 import { metaAllCampaigns } from "@/lib/integrations/meta";
 import { googleCampaigns } from "@/lib/integrations/google";
 import { buildMetaCampaigns, buildGoogleCampaigns } from "@/lib/build";
@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
       ? await googleCampaigns(dateFrom, dateTo)
       : null;
 
-  const usingMock = metaRows.length === 0 && !gadsResp;
-  if (usingMock) {
+  // Mock só sem credenciais. Com credenciais, lista real (mesmo vazia).
+  if (!HAS_ANY_CREDS()) {
     return NextResponse.json(mockCampaigns(platform));
   }
 

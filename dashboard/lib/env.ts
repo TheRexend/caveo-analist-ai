@@ -141,3 +141,12 @@ export const GOOGLE = {
     return cfg("GOOGLE_APPLICATION_CREDENTIALS");
   },
 };
+
+// ── Presença de credenciais ───────────────────────────────────────────
+// Distingue "sem credenciais" (→ mock) de "credenciais OK porém zero
+// atividade no período" (→ mostrar zeros reais). É a chave para os dados
+// baterem com os filtros aplicados.
+export const HAS_META = (): boolean => !!META.token;
+export const HAS_GOOGLE = (): boolean => !!(GOOGLE.devToken && GOOGLE.creds.refresh_token);
+export const HAS_SF = (): boolean => !!(SF.refreshToken || SF.accessToken);
+export const HAS_ANY_CREDS = (): boolean => HAS_META() || HAS_GOOGLE() || HAS_SF();

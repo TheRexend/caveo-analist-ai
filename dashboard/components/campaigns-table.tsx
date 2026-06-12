@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, memo, useMemo, useState } from "react";
 import { ChevronRight, Download, Filter, Search } from "lucide-react";
 import { fmtBRL, fmtNum, fmtPct } from "@/lib/format";
 import type { Campaign, Platform } from "@/lib/types";
@@ -26,7 +26,7 @@ const COLS: Col[] = [
   { key: "ganho", label: "Fechamentos" },
 ];
 
-export function CampaignsTable({
+function CampaignsTableBase({
   rows, platform, search, onSearch, dayCount,
 }: {
   rows: Campaign[];
@@ -116,6 +116,8 @@ export function CampaignsTable({
                   key={c.key}
                   className={`${c.first ? "first" : ""} ${sort.col === c.key ? "sorted" : ""}`}
                   onClick={() => toggleSort(c.key)}
+                  aria-sort={sort.col === c.key ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
+                  scope="col"
                 >
                   {c.label}
                   <span className="sort-ind">{sort.dir === "asc" ? "↑" : "↓"}</span>
@@ -199,3 +201,5 @@ export function CampaignsTable({
     </section>
   );
 }
+
+export const CampaignsTable = memo(CampaignsTableBase);

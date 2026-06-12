@@ -43,6 +43,59 @@ export const fmtMonth = (ym: string): string => {
 
 export const monthKey = (iso: string): string => iso.slice(0, 7);
 
+// Dias no mês civil de uma data ISO (YYYY-MM-DD).
+function daysInMonth(iso: string): number {
+  const [y, m] = iso.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+/**
+ * Pró-rateia uma meta MENSAL pelos dias do período selecionado, somando a
+ * fração de cada mês tocado pelo intervalo. Usar apenas em metas de VOLUME
+ * (invest, leads, oport, ganho, oport_perdidas); metas de taxa/custo (cpl,
+ * cpo, cpf, tx_conv) não devem ser pró-rateadas.
+ *
+ * `goalForMonth(ym)` devolve a meta mensal do mês "YYYY-MM" (ou undefined).
+ * Retorna undefined se nenhum mês do intervalo tiver meta definida.
+ */
+export function prorateGoal(
+  from: string,
+  to: string,
+  goalForMonth: (ym: string) => number | undefined,
+): number | undefined {
+  const start = new Date(from + "T00:00:00");
+  const end = new Date(to + "T00:00:00");
+  let total = 0;
+  let anyGoal = false;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const ym = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`;
+    const g = goalForMonth(ym);
+    // limite superior do mês corrente dentro do intervalo
+    const monthEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+    const segEnd = monthEnd < end ? monthEnd : end;
+    const daysInSeg =
+      Math.round((segEnd.getTime() - cur.getTime()) / 86_400_000) + 1;
+    if (g != null && !isNaN(g)) {
+      anyGoal = true;
+      total += g * (daysInSeg / daysInMonth(`${ym}-01`));
+    }
+    // avança para o 1º dia do próximo mês
+    cur.setFullYear(cur.getFullYear(), cur.getMonth() + 1, 1);
+    cur.setHours(0, 0, 0, 0);
+  }
+  return anyGoal ? total : undefined;
+}
+
+/** Verdadeiro quando o intervalo cobre exatamente um mês civil inteiro. */
+export function isFullMonth(from: string, to: string): boolean {
+  if (from.slice(0, 7) !== to.slice(0, 7)) return false;
+  const [y, m] = from.split("-").map(Number);
+  const firstDay = from.endsWith("-01");
+  const lastDay = Number(to.slice(8, 10)) === new Date(y, m, 0).getDate();
+  return firstDay && lastDay;
+}
+
 export type Status = "good" | "warn" | "bad" | "neutral";
 
 // type "min" → quanto maior melhor; "max" → quanto menor melhor

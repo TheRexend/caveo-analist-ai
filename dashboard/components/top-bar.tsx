@@ -1,7 +1,8 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
-import { RefreshCw, Settings2 } from "lucide-react";
+import { Moon, RefreshCw, Settings2, Sun } from "lucide-react";
 import { DateRangePicker } from "@/components/date-range-picker";
+import type { Theme } from "@/lib/use-theme";
 import type { Platform } from "@/lib/types";
 
 type DataMode = "live" | "mock" | "loading";
@@ -16,6 +17,8 @@ interface TopBarProps {
   onRefresh: () => void;
   currentMonthLabel: string;
   dataMode: DataMode;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
 const STATUS_TEXT: Record<DataMode, string> = {
@@ -26,7 +29,7 @@ const STATUS_TEXT: Record<DataMode, string> = {
 
 export function TopBar({
   platform, onPlatform, dateFrom, dateTo, onDates,
-  onOpenGoals, onRefresh, currentMonthLabel, dataMode,
+  onOpenGoals, onRefresh, currentMonthLabel, dataMode, theme, onToggleTheme,
 }: TopBarProps) {
   const segRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -57,14 +60,14 @@ export function TopBar({
       <div className="topbar-controls">
         <div className="seg" ref={segRef} role="tablist" aria-label="Filtro de plataforma">
           <span className="seg-indicator" style={{ left: indicator.left, width: indicator.width }} />
-          <button className="seg-btn" data-val="all" aria-pressed={platform === "all"} onClick={() => onPlatform("all")}>
+          <button className="seg-btn" data-val="all" role="tab" aria-label="Todas as plataformas" aria-selected={platform === "all"} aria-pressed={platform === "all"} onClick={() => onPlatform("all")}>
             Todas
           </button>
-          <button className="seg-btn" data-val="google" aria-pressed={platform === "google"} onClick={() => onPlatform("google")}>
+          <button className="seg-btn" data-val="google" role="tab" aria-label="Google Ads" aria-selected={platform === "google"} aria-pressed={platform === "google"} onClick={() => onPlatform("google")}>
             <span className="seg-dot" style={{ background: "var(--c-google)" }} />
             Google Ads
           </button>
-          <button className="seg-btn" data-val="meta" aria-pressed={platform === "meta"} onClick={() => onPlatform("meta")}>
+          <button className="seg-btn" data-val="meta" role="tab" aria-label="Meta Ads" aria-selected={platform === "meta"} aria-pressed={platform === "meta"} onClick={() => onPlatform("meta")}>
             <span className="seg-dot" style={{ background: "var(--c-meta)" }} />
             Meta Ads
           </button>
@@ -77,7 +80,16 @@ export function TopBar({
           Metas de {currentMonthLabel}
         </button>
 
-        <button className="btn-icon" title="Atualizar dados" onClick={onRefresh}>
+        <button
+          className="btn-icon"
+          title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+          aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+          onClick={onToggleTheme}
+        >
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+
+        <button className="btn-icon" title="Atualizar dados" aria-label="Atualizar dados" onClick={onRefresh}>
           <RefreshCw size={15} className={dataMode === "loading" ? "animate-spin" : ""} />
         </button>
       </div>

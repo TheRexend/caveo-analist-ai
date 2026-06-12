@@ -1,5 +1,5 @@
 "use client";
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import { TrendingDown } from "lucide-react";
 import { fmtBRL, fmtNum, fmtPct, type Status } from "@/lib/format";
 
@@ -12,9 +12,13 @@ export interface FunnelStage {
   convStatus?: Status | null;
   convLabel?: string;
   goal?: number;
+  /** Composição do estágio (ex.: Fechado vs Ganho não Identificado). */
+  breakdown?: Record<string, number>;
+  /** Nota curta sob o estágio (ex.: "fechados no período"). */
+  note?: string;
 }
 
-export function Funnel({
+function FunnelBase({
   stages, lost, totalInvest,
 }: {
   stages: FunnelStage[];
@@ -34,6 +38,16 @@ export function Funnel({
               <div className="stage-label">{s.label}</div>
               <div className="stage-value num">{fmtNum(s.count)}</div>
               <div className="stage-sub">{s.unit ? fmtBRL(s.unit, { digits: 0 }) + " / un." : " "}</div>
+              {s.breakdown && Object.keys(s.breakdown).length > 0 && (
+                <div className="stage-breakdown">
+                  {Object.entries(s.breakdown).map(([name, n]) => (
+                    <span key={name} className="stage-chip" title={name}>
+                      {name} <span className="num">{fmtNum(n)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {s.note && <div className="stage-note">{s.note}</div>}
               <div className="stage-bar" style={{ width: ((s.count / max) * 100).toFixed(1) + "%" }} />
             </div>
             {i < stages.length - 1 && (
@@ -71,3 +85,5 @@ export function Funnel({
     </div>
   );
 }
+
+export const Funnel = memo(FunnelBase);

@@ -1,5 +1,6 @@
 "use client";
-import type { LucideIcon } from "lucide-react";
+import { memo } from "react";
+import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from "lucide-react";
 import { fmtBRL, fmtNum, fmtPct, statusFromGoal } from "@/lib/format";
 import { useCountUp } from "@/lib/use-count-up";
 
@@ -20,10 +21,17 @@ interface KpiCardProps {
   goalType?: "min" | "max";
   hasProgress?: boolean;
   fullBrl?: boolean;
+  /** Valor no período anterior equivalente (para delta). */
+  previous?: number;
+  /** "period" → meta pró-rateada pelo intervalo; "month" → meta mensal cheia. */
+  goalScope?: "period" | "month";
+  /** Linha auxiliar (ex.: composição do fechamento). */
+  footnote?: string;
 }
 
-export function KpiCard({
+function KpiCardBase({
   label, value, format, icon: Icon, goal, goalType = "min", hasProgress, fullBrl,
+  previous, goalScope = "month", footnote,
 }: KpiCardProps) {
   const animated = useCountUp(value);
   const status = goal != null ? statusFromGoal(value, goal, goalType) : "neutral";
@@ -37,6 +45,16 @@ export function KpiCard({
 
   const goalText =
     goal == null ? "" : format === "brl" ? fmtBRL(goal, { compact: !fullBrl }) : format === "pct" ? fmtPct(goal, 0) : fmtNum(goal);
+  const metaWord = goalScope === "period" ? "meta (período)" : "meta";
+
+  // ── Delta vs. período anterior ──────────────────────────────────────
+  const hasPrev = previous != null && isFinite(previous) && previous > 0;
+  const deltaRatio = hasPrev ? (value - previous!) / previous! : null;
+  const flat = deltaRatio != null && Math.abs(deltaRatio) < 0.0005;
+  // "max" (quanto menor melhor) → queda é boa; "min" → alta é boa.
+  const improving = deltaRatio == null ? null : goalType === "max" ? deltaRatio < 0 : deltaRatio > 0;
+  const deltaCls = deltaRatio == null ? "" : flat ? "flat" : improving ? "good" : "bad";
+  const DeltaIcon = deltaRatio == null || flat ? Minus : deltaRatio > 0 ? ArrowUpRight : ArrowDownRight;
 
   return (
     <div className="kpi-card fade-up">
@@ -44,7 +62,18 @@ export function KpiCard({
         <span>{label}</span>
         <span className="kpi-icon"><Icon size={13} strokeWidth={1.6} /></span>
       </div>
-      <div className="kpi-value num">{formatted}</div>
+
+      <div className="kpi-value-row">
+        <div className="kpi-value num">{formatted}</div>
+        {deltaRatio != null && (
+          <span className={`kpi-delta ${deltaCls}`} title="vs. período anterior">
+            <DeltaIcon size={12} strokeWidth={2} />
+            <span className="num">{flat ? "0%" : fmtPct(Math.abs(deltaRatio), 0)}</span>
+          </span>
+        )}
+      </div>
+
+      {footnote && <div className="kpi-footnote">{footnote}</div>}
 
       {hasProgress && goal != null ? (
         <div className="kpi-progress">
@@ -52,7 +81,7 @@ export function KpiCard({
             <div className={`kpi-progress-fill ${status}`} style={{ width: fillWidth + "%" }} />
           </div>
           <div className="kpi-progress-meta">
-            <span><span className="num">{Math.round(pct * 100)}%</span> da meta</span>
+            <span><span className="num">{Math.round(pct * 100)}%</span> da {metaWord}</span>
             <span className="num">{goalText}</span>
           </div>
         </div>
@@ -60,7 +89,7 @@ export function KpiCard({
         <div className="kpi-meta">
           <span className={`status-tag status-${status}`}>
             <span className="dot" />
-            {STATUS_LABEL[status]} · meta {goalText}
+            {STATUS_LABEL[status]} · {metaWord} {goalText}
           </span>
         </div>
       ) : (
@@ -69,3 +98,5 @@ export function KpiCard({
     </div>
   );
 }
+
+export const KpiCard = memo(KpiCardBase);

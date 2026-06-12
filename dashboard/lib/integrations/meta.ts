@@ -81,12 +81,13 @@ export function metaInsights(dateFrom: string, dateTo: string): Promise<MetaInsi
   });
 }
 
-/** Todas as campanhas (sem filtro de nome) — usada na tabela. */
+/** Campanhas [LEADS] para a tabela — mesmo escopo dos KPIs/timeline. */
 export function metaAllCampaigns(dateFrom: string, dateTo: string): Promise<MetaInsightRow[]> {
   return metaPaginate(`/${META.account}/insights`, {
     level: "campaign",
     fields: "campaign_id,campaign_name,spend,impressions,clicks,ctr,cpc,actions",
     time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
+    filtering: LEADS_FILTER,
     limit: "200",
   });
 }

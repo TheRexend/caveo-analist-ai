@@ -1,6 +1,7 @@
 // === Salesforce via REST/SOQL (port de _sf_* do server.py) ===
 import "server-only";
 import { SF } from "@/lib/env";
+import { TZ_OFFSET } from "@/lib/dates";
 import type { Platform } from "@/lib/types";
 
 let _token = "";
@@ -66,8 +67,7 @@ const UTM_FILTER: Record<Platform, string> = {
 };
 
 // Estágios reais do Salesforce da Caveo
-const WON_STAGES = new Set(["Fechado", "Ganho não Identificado"]);
-const LOST_STAGES = new Set(["Perdido"]);
+const LOST_STAGE = "Perdido";
 const EM_TRATAMENTO_STAGES = new Set([
   "Nova", "Contato Realizado", "Aguardando Resposta",
   "Reunião Agendada", "Standy-By", "Stand By", "Transferido para humano",
@@ -80,36 +80,83 @@ export interface SfFunnel {
   proposta: number;
   ganho: number;
   perdido: number;
+  /** Composição do ganho por estágio (ex.: { "Fechado": n, "Ganho não Identificado": m }). */
+  ganho_breakdown: Record<string, number>;
 }
 
+/**
+ * Funil do Salesforce com MODELO DE DUAS DATAS:
+ *  - Entrada do funil (no_crm/em_tratamento/proposta) → oportunidades CRIADAS
+ *    no período (CreatedDate).
+ *  - Fechamentos e perdas (ganho/perdido) → oportunidades cuja MUDANÇA DE FASE
+ *    ocorreu no período (LastStageChangeDate), mesmo que criadas antes.
+ * Datas alinhadas ao fuso da operação (TZ_OFFSET) para casar com Meta/Google.
+ */
 export async function sfFunnel(
   dateFrom: string,
   dateTo: string,
   platform: Platform,
 ): Promise<SfFunnel | null> {
   const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
-  const soql =
+  const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
+  const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
+
+  // (1) Oportunidades CRIADAS no período → topo/meio do funil.
+  const soqlCreated =
     `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
-    `WHERE CreatedDate >= ${dateFrom}T00:00:00Z ` +
-    `AND CreatedDate <= ${dateTo}T23:59:59Z ${utmf} GROUP BY StageName`;
+    `WHERE CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} ${utmf} ` +
+    `GROUP BY StageName`;
 
-  const res = await sfQuery(soql);
-  if (!res || !res.records || res.records.length === 0) return null;
+  // (2) Fechamentos (IsWon) e perdas (Perdido) cuja FASE mudou no período.
+  const soqlClosed =
+    `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
+    `WHERE (IsWon = true OR StageName = '${LOST_STAGE}') ` +
+    `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ` +
+    `GROUP BY StageName`;
 
-  const byStage: Record<string, number> = {};
-  for (const r of res.records) {
-    if (r.StageName) byStage[r.StageName] = Number(r.cnt ?? 0);
+  const [resCreated, resClosed] = await Promise.all([
+    sfQuery(soqlCreated),
+    sfQuery(soqlClosed),
+  ]);
+
+  // Só consideramos "falha de fonte" quando AMBAS as queries falham (null).
+  // Resultado vazio com credenciais OK = zeros reais (não fallback p/ mock).
+  if (resCreated === null && resClosed === null) return null;
+
+  const byStage = (res: SfQueryResult | null): Record<string, number> => {
+    const m: Record<string, number> = {};
+    for (const r of res?.records ?? []) {
+      if (r.StageName) m[r.StageName] = Number(r.cnt ?? 0);
+    }
+    return m;
+  };
+
+  const created = byStage(resCreated);
+  const closed = byStage(resClosed);
+
+  const sumIn = (src: Record<string, number>, set: Set<string>) =>
+    Object.entries(src).reduce((acc, [k, v]) => (set.has(k) ? acc + v : acc), 0);
+
+  // Ganho = tudo da query (2) que não é Perdido (já restrita a IsWon OR Perdido).
+  const ganho_breakdown: Record<string, number> = {};
+  let ganho = 0;
+  let perdido = 0;
+  for (const [stage, n] of Object.entries(closed)) {
+    if (stage === LOST_STAGE) {
+      perdido += n;
+    } else {
+      ganho_breakdown[stage] = n;
+      ganho += n;
+    }
   }
 
-  const sumIn = (set: Set<string>) =>
-    Object.entries(byStage).reduce((acc, [k, v]) => (set.has(k) ? acc + v : acc), 0);
-
   return {
-    no_crm: Object.values(byStage).reduce((a, b) => a + b, 0),
-    em_tratamento: sumIn(EM_TRATAMENTO_STAGES),
-    proposta: sumIn(PROPOSTA_STAGES),
-    ganho: sumIn(WON_STAGES),
-    perdido: sumIn(LOST_STAGES),
+    no_crm: Object.values(created).reduce((a, b) => a + b, 0),
+    em_tratamento: sumIn(created, EM_TRATAMENTO_STAGES),
+    proposta: sumIn(created, PROPOSTA_STAGES),
+    ganho,
+    perdido,
+    ganho_breakdown,
   };
 }
 

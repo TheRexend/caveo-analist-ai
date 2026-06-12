@@ -123,6 +123,7 @@ export async function googleCampaigns(
     FROM campaign
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
       AND metrics.cost_micros > 0
+      AND campaign.name LIKE '%[LEADS]%'
   `.trim();
   const rows = await gaqlSearchStream(gaql);
   return {
@@ -152,6 +153,7 @@ export async function googleDaily(
            metrics.clicks, metrics.conversions
     FROM campaign
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
+      AND campaign.name LIKE '%[LEADS]%'
   `.trim();
   const rows = await gaqlSearchStream(gaql);
   const byDate: Record<string, DaySource> = {};
