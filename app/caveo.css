@@ -463,6 +463,84 @@ tr:hover .expander { color: var(--c-text); }
 .stage-chip .num { color: var(--c-text); font-weight: 600; }
 .stage-note { font-size: 10px; color: var(--c-text-faint); margin-top: 5px; font-style: italic; }
 
+/* === Cruzamento (click ID, UtmMed__c ≠ cpc) — badges KPI/funil/tabela === */
+.kpi-cross { margin-top: 5px; }
+.stage-cross { margin-top: 5px; }
+.cross-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+  color: oklch(0.48 0.16 300);
+  background: oklch(0.96 0.05 300);
+  border: 1px solid oklch(0.85 0.10 300);
+  border-radius: 6px; padding: 2px 6px;
+}
+.dark .cross-badge {
+  color: oklch(0.82 0.13 300);
+  background: oklch(0.30 0.08 300);
+  border-color: oklch(0.42 0.10 300);
+}
+.cross-badge-zero {
+  color: var(--c-text-faint);
+  background: var(--c-surface-muted);
+  border-color: var(--c-border);
+}
+.dark .cross-badge-zero {
+  color: var(--c-text-faint);
+  background: transparent;
+  border-color: var(--c-border);
+}
+
+/* Toggle "Cruzamento" na topbar */
+.toggle-cruzamento.on .toggle-switch { background: oklch(0.52 0.15 300); }
+
+/* Filtros na tabela de oportunidades */
+.opp-filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 0 0 12px;
+}
+.opp-search { flex: 1 1 200px; max-width: 280px; }
+.opp-search input {
+  border: 1px solid var(--c-border); background: var(--c-surface);
+  padding: 6px 10px 6px 30px; border-radius: 8px;
+  font-size: 12px; width: 100%; outline: 0; color: var(--c-text);
+  transition: border-color 0.15s var(--c-ease), box-shadow 0.15s var(--c-ease);
+}
+.opp-search input:focus { border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-soft); }
+.opp-filter-chips { display: flex; gap: 4px; }
+.opp-chip {
+  border: 1px solid var(--c-border); background: var(--c-surface-muted);
+  color: var(--c-text-muted); font-size: 11px; font-weight: 500;
+  padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  transition: all 0.15s var(--c-ease);
+}
+.opp-chip:hover { color: var(--c-text); border-color: var(--c-border-strong); }
+.opp-chip.active { background: var(--c-text); color: #fff; border-color: var(--c-text); }
+.opp-chip.active.chip-cruzamento {
+  background: oklch(0.52 0.15 300); border-color: oklch(0.52 0.15 300);
+}
+.opp-fase-select {
+  border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text);
+  font-size: 12px; padding: 4px 8px; border-radius: 8px; outline: 0; cursor: pointer;
+  transition: border-color 0.15s var(--c-ease), box-shadow 0.15s var(--c-ease);
+}
+.opp-fase-select:focus { border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-soft); }
+.dark .opp-fase-select { background: var(--c-surface-muted); }
+.dark .opp-chip.active { background: oklch(0.75 0.005 260); color: var(--c-bg); }
+/* Badge da coluna "Atribuição" na tabela de oportunidades */
+.origem-badge {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  border-radius: 6px; padding: 2px 7px; white-space: nowrap;
+}
+.origem-badge.origem-cpc {
+  color: var(--c-text-muted); background: var(--c-surface-muted); border: 1px solid var(--c-border);
+}
+.origem-badge.origem-cruzamento {
+  color: oklch(0.48 0.16 300); background: oklch(0.96 0.05 300); border: 1px solid oklch(0.85 0.10 300);
+}
+.dark .origem-badge.origem-cruzamento {
+  color: oklch(0.82 0.13 300); background: oklch(0.30 0.08 300); border-color: oklch(0.42 0.10 300);
+}
+
 /* === Comparativo Meta × Google === */
 .cmp-legend { display: flex; gap: 14px; font-size: 12px; color: var(--c-text-muted); }
 .cmp-legend span { display: inline-flex; align-items: center; gap: 6px; }

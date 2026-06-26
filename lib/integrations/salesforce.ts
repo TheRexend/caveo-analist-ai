@@ -55,15 +55,37 @@ async function sfQuery(soql: string, retry = true): Promise<SfQueryResult | null
   }
 }
 
-// ── Filtros de plataforma por UTM medium (cpc) ──────────────────────────
-// meta   = cpc e source não-google (Instagram_*/Facebook_*/facebook/{{placement}})
-// google = cpc e source google
-// all    = cpc (= união exata de meta + google)
-const UTM_FILTER: Record<Platform, string> = {
-  all: "AND UtmMed__c LIKE '%cpc%'",
-  meta: "AND UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%')",
-  google: "AND UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%'",
+// ── Atribuição de plataforma: cpc (medium) + cruzamento (click ID) ───────
+// (A) cpc — atribuição "direta" por UTM medium=cpc (mantida como sempre):
+//     meta   = cpc e source não-google (Instagram_*/Facebook_*/facebook/{{placement}})
+//     google = cpc e source google
+//     all    = cpc
+const CPC_EXPR: Record<Platform, string> = {
+  all: "UtmMed__c LIKE '%cpc%'",
+  meta: "(UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%'))",
+  google: "(UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%')",
 };
+
+// (B) cruzamento — oportunidades cujo UtmMed__c é DIFERENTE de cpc (inclui nulo)
+//     mas que tiveram interferência de mídia paga via click ID:
+//     meta   = não-cpc e (fbc__c OU fbclid__c)
+//     google = não-cpc e (gclid__c OU gbraid__c) e SEM fbc/fbclid (Meta tem prioridade no conflito)
+//     all    = não-cpc e qualquer click ID (meta ∪ google, sem sobreposição)
+const NON_CPC = "(UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%'))";
+const CRUZ_EXPR: Record<Platform, string> = {
+  all: `(${NON_CPC} AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null))`,
+  meta: `(${NON_CPC} AND (fbc__c != null OR fbclid__c != null))`,
+  google: `(${NON_CPC} AND (gclid__c != null OR gbraid__c != null) AND fbc__c = null AND fbclid__c = null)`,
+};
+
+// Cláusulas SOQL prontas (com o "AND " inicial p/ concatenar ao WHERE):
+//  - cpcOnlyFilter  → só atribuição direta (cpc); usado quando cruzamento está desativado
+//  - cruzFilter     → só cruzamento (subconjunto p/ o badge)
+//  - combinedFilter → cpc OU cruzamento (= TOTAL exibido nos KPIs/funil; modelo "somar")
+const cpcOnlyFilter = (p: Platform) => `AND ${CPC_EXPR[p] ?? CPC_EXPR.all}`;
+const cruzFilter = (p: Platform) => `AND ${CRUZ_EXPR[p] ?? CRUZ_EXPR.all}`;
+const combinedFilter = (p: Platform) =>
+  `AND (${CPC_EXPR[p] ?? CPC_EXPR.all} OR ${CRUZ_EXPR[p] ?? CRUZ_EXPR.all})`;
 
 // ── Filtro de contratante por TipCte__c ─────────────────────────────────
 // all = Ambos (RF + MM; exclui Revalida e sem classificação)
@@ -94,6 +116,9 @@ export interface SfFunnel {
   perdido: number;
   /** Composição do ganho por estágio (ex.: { "Fechado": n, "Ganho não Identificado": m }). */
   ganho_breakdown: Record<string, number>;
+  /** Subconjunto dos counts acima atribuído via CRUZAMENTO (click ID, não cpc).
+   *  undefined quando o toggle de cruzamento está desativado. */
+  cruzamento?: { no_crm: number; em_tratamento: number; proposta: number; ganho: number; perdido: number };
 }
 
 const byStage = (res: SfQueryResult | null): Record<string, number> => {
@@ -119,10 +144,11 @@ export async function sfFunnel(
   platform: Platform,
   contratante: Contratante = "all",
   fresh = false,
+  includeCruzamento = true,
 ): Promise<SfFunnel | null> {
   return cached(
-    `sfFunnel:${platform}:${contratante}:${dateFrom}:${dateTo}`,
-    () => sfFunnelUncached(dateFrom, dateTo, platform, contratante),
+    `sfFunnel:${platform}:${contratante}:${dateFrom}:${dateTo}:${includeCruzamento ? "c1" : "c0"}`,
+    () => sfFunnelUncached(dateFrom, dateTo, platform, contratante, includeCruzamento),
     { fresh },
   );
 }
@@ -132,58 +158,89 @@ async function sfFunnelUncached(
   dateTo: string,
   platform: Platform,
   contratante: Contratante,
+  includeCruzamento: boolean,
 ): Promise<SfFunnel | null> {
-  const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
   const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
 
-  // (1) Oportunidades CRIADAS no período → topo/meio do funil.
-  const soqlCreated =
-    `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
-    `WHERE CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} ${utmf} ${tipf} ` +
-    `GROUP BY StageName`;
-
-  // (2) Ganhos (IsWon + "Ganho não Identificado") e perdas (Perdido) cuja FASE mudou no período.
-  const soqlClosed =
-    `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
-    `WHERE (${WON_CLAUSE} OR StageName = '${LOST_STAGE}') ` +
-    `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ${tipf} ` +
-    `GROUP BY StageName`;
-
-  const [resCreated, resClosed] = await Promise.all([
-    sfQuery(soqlCreated),
-    sfQuery(soqlClosed),
-  ]);
-
-  // Só consideramos "falha de fonte" quando AMBAS as queries falham (null).
-  if (resCreated === null && resClosed === null) return null;
-
-  const created = byStage(resCreated);
-  const closed = byStage(resClosed);
+  // Helper: monta o par de queries (criadas + fechadas/perdidas) para um dado filtro de UTM.
+  const queries = (utmf: string) => ({
+    created:
+      `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
+      `WHERE CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} ${utmf} ${tipf} ` +
+      `GROUP BY StageName`,
+    closed:
+      `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
+      `WHERE (${WON_CLAUSE} OR StageName = '${LOST_STAGE}') ` +
+      `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ${tipf} ` +
+      `GROUP BY StageName`,
+  });
 
   const sumIn = (src: Record<string, number>, set: Set<string>) =>
     Object.entries(src).reduce((acc, [k, v]) => (set.has(k) ? acc + v : acc), 0);
 
-  const ganho_breakdown: Record<string, number> = {};
-  let ganho = 0;
-  let perdido = 0;
-  for (const [stage, n] of Object.entries(closed)) {
-    if (stage === LOST_STAGE) {
-      perdido += n;
-    } else {
-      ganho_breakdown[stage] = n;
-      ganho += n;
+  // Reduz um par (created, closed) num shape de funil. ganho/perdido vêm do closed.
+  const reduce = (created: Record<string, number>, closed: Record<string, number>) => {
+    const breakdown: Record<string, number> = {};
+    let ganho = 0;
+    let perdido = 0;
+    for (const [stage, n] of Object.entries(closed)) {
+      if (stage === LOST_STAGE) perdido += n;
+      else { breakdown[stage] = n; ganho += n; }
     }
+    return {
+      no_crm: Object.values(created).reduce((a, b) => a + b, 0),
+      em_tratamento: sumIn(created, EM_TRATAMENTO_STAGES),
+      proposta: sumIn(created, PROPOSTA_STAGES),
+      ganho,
+      perdido,
+      breakdown,
+    };
+  };
+
+  // Quando cruzamento está desativado: só 2 queries (cpc puro), sem badge de cruzamento.
+  if (!includeCruzamento) {
+    const total = queries(cpcOnlyFilter(platform));
+    const [resCreated, resClosed] = await Promise.all([sfQuery(total.created), sfQuery(total.closed)]);
+    if (resCreated === null && resClosed === null) return null;
+    const t = reduce(byStage(resCreated), byStage(resClosed));
+    return {
+      no_crm: t.no_crm, em_tratamento: t.em_tratamento, proposta: t.proposta,
+      ganho: t.ganho, perdido: t.perdido, ganho_breakdown: t.breakdown,
+    };
   }
 
+  // Cruzamento ativado: TOTAL = cpc OU cruzamento; CRUZ = subconjunto p/ badge.
+  const total = queries(combinedFilter(platform));
+  const cruz = queries(cruzFilter(platform));
+
+  const [resCreated, resClosed, resCreatedCruz, resClosedCruz] = await Promise.all([
+    sfQuery(total.created),
+    sfQuery(total.closed),
+    sfQuery(cruz.created),
+    sfQuery(cruz.closed),
+  ]);
+
+  if (resCreated === null && resClosed === null) return null;
+
+  const t = reduce(byStage(resCreated), byStage(resClosed));
+  const c = reduce(byStage(resCreatedCruz), byStage(resClosedCruz));
+
   return {
-    no_crm: Object.values(created).reduce((a, b) => a + b, 0),
-    em_tratamento: sumIn(created, EM_TRATAMENTO_STAGES),
-    proposta: sumIn(created, PROPOSTA_STAGES),
-    ganho,
-    perdido,
-    ganho_breakdown,
+    no_crm: t.no_crm,
+    em_tratamento: t.em_tratamento,
+    proposta: t.proposta,
+    ganho: t.ganho,
+    perdido: t.perdido,
+    ganho_breakdown: t.breakdown,
+    cruzamento: {
+      no_crm: c.no_crm,
+      em_tratamento: c.em_tratamento,
+      proposta: c.proposta,
+      ganho: c.ganho,
+      perdido: c.perdido,
+    },
   };
 }
 
@@ -199,10 +256,11 @@ export async function sfDaily(
   platform: Platform,
   contratante: Contratante = "all",
   fresh = false,
+  includeCruzamento = true,
 ): Promise<Record<string, { oport: number; ganho: number }> | null> {
   return cached(
-    `sfDaily:${platform}:${contratante}:${dateFrom}:${dateTo}`,
-    () => sfDailyUncached(dateFrom, dateTo, platform, contratante),
+    `sfDaily:${platform}:${contratante}:${dateFrom}:${dateTo}:${includeCruzamento ? "c1" : "c0"}`,
+    () => sfDailyUncached(dateFrom, dateTo, platform, contratante, includeCruzamento),
     { fresh },
   );
 }
@@ -212,8 +270,9 @@ async function sfDailyUncached(
   dateTo: string,
   platform: Platform,
   contratante: Contratante,
+  includeCruzamento: boolean,
 ): Promise<Record<string, { oport: number; ganho: number }> | null> {
-  const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
+  const utmf = includeCruzamento ? combinedFilter(platform) : cpcOnlyFilter(platform);
   const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
@@ -256,6 +315,7 @@ interface SfOppRecord {
   StageName?: string;
   Email_Lead__c?: string | null;
   UtmSou__c?: string | null;
+  UtmMed__c?: string | null;
   Account?: { Name?: string } | null;
 }
 
@@ -273,10 +333,11 @@ export async function sfOpportunities(
   contratante: Contratante,
   stage: FunnelDrillKey,
   fresh = false,
+  includeCruzamento = true,
 ): Promise<OpportunityRow[] | null> {
   return cached(
-    `sfOpps:${stage}:${platform}:${contratante}:${dateFrom}:${dateTo}`,
-    () => sfOpportunitiesUncached(dateFrom, dateTo, platform, contratante, stage),
+    `sfOpps:${stage}:${platform}:${contratante}:${dateFrom}:${dateTo}:${includeCruzamento ? "c1" : "c0"}`,
+    () => sfOpportunitiesUncached(dateFrom, dateTo, platform, contratante, stage, includeCruzamento),
     { fresh },
   );
 }
@@ -287,8 +348,9 @@ async function sfOpportunitiesUncached(
   platform: Platform,
   contratante: Contratante,
   stage: FunnelDrillKey,
+  includeCruzamento: boolean,
 ): Promise<OpportunityRow[] | null> {
-  const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
+  const utmf = includeCruzamento ? combinedFilter(platform) : cpcOnlyFilter(platform);
   const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
@@ -321,13 +383,15 @@ async function sfOpportunitiesUncached(
   }
 
   const soql =
-    `SELECT Id, Account.Name, Name, StageName, Email_Lead__c, UtmSou__c FROM Opportunity ` +
+    `SELECT Id, Account.Name, Name, StageName, Email_Lead__c, UtmSou__c, UtmMed__c FROM Opportunity ` +
     `WHERE ${where} ${utmf} ${tipf} ` +
     `ORDER BY ${orderField} DESC LIMIT ${OPP_DRILL_LIMIT}`;
 
   const res = await sfQuery(soql);
   if (res === null) return null;
 
+  // origem: passou pelo filtro combinado → se o medium NÃO contém cpc, veio do cruzamento.
+  const isCpc = (med?: string | null) => !!med && med.toLowerCase().includes("cpc");
   return ((res.records ?? []) as SfOppRecord[]).map((r, i) => ({
     id: r.Id ?? `opp_${i}`,
     account: r.Account?.Name ?? "—",
@@ -335,6 +399,7 @@ async function sfOpportunitiesUncached(
     source: r.UtmSou__c ?? "",
     name: r.Name ?? "",
     stage: r.StageName ?? "",
+    origem: isCpc(r.UtmMed__c) ? ("cpc" as const) : ("cruzamento" as const),
   }));
 }
 

@@ -16,17 +16,20 @@ export interface FunnelStage {
   breakdown?: Record<string, number>;
   /** Nota curta sob o estágio (ex.: "fechados no período"). */
   note?: string;
+  /** Quantas oportunidades deste estágio vieram via CRUZAMENTO (click ID, medium ≠ cpc). */
+  cruzamento?: number;
 }
 
 // Estágios com drill-down de oportunidades (Lead Novo vem de mídia, não do CRM).
 const DRILLABLE = new Set(["no_crm", "trat", "prop", "ganho"]);
 
 function FunnelBase({
-  stages, lost, totalInvest, onStageClick, selectedStage,
+  stages, lost, totalInvest, lostCruzamento, onStageClick, selectedStage,
 }: {
   stages: FunnelStage[];
   lost: number;
   totalInvest: number;
+  lostCruzamento?: number;
   onStageClick?: (key: string) => void;
   selectedStage?: string | null;
 }) {
@@ -68,6 +71,16 @@ function FunnelBase({
                       {name} <span className="num">{fmtNum(n)}</span>
                     </span>
                   ))}
+                </div>
+              )}
+              {s.cruzamento != null && (
+                <div className="stage-cross">
+                  <span
+                    className={s.cruzamento > 0 ? "cross-badge" : "cross-badge cross-badge-zero"}
+                    title="Capturadas via cruzamento (click ID, UtmMed__c ≠ cpc)"
+                  >
+                    {s.cruzamento > 0 ? "+" : ""}{fmtNum(s.cruzamento)} cruzamento
+                  </span>
                 </div>
               )}
               {s.note && <div className="stage-note">{s.note}</div>}
@@ -115,6 +128,9 @@ function FunnelBase({
           <div>
             <div className="stage-label">Oportunidades perdidas</div>
             <div className="stage-value num">{fmtNum(lost)}</div>
+            {lostCruzamento != null && lostCruzamento > 0 && (
+              <span className="cross-badge" title="Capturadas via cruzamento (click ID)">+{fmtNum(lostCruzamento)} cruzamento</span>
+            )}
           </div>
           <div style={{ marginLeft: 14, fontSize: 11, color: "var(--c-text-muted)" }}>
             ramificação descendente · custo afundado{" "}

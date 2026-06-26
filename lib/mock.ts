@@ -105,6 +105,7 @@ export function mockDashboard(
   to: string,
   prevFrom: string,
   prevTo: string,
+  includeCruzamento = true,
 ): DashboardPayload {
   const days = mockDays(from, to);
   const s = aggMock(days, platform);
@@ -119,6 +120,13 @@ export function mockDashboard(
     ganho: s.ganho,
     perdido: Math.max(0, Math.round(s.oport * 0.3)),
     ganho_breakdown: { Fechado: s.ganho },
+    cruzamento: includeCruzamento ? {
+      no_crm: Math.max(0, Math.round(s.leads * 0.07)),
+      em_tratamento: Math.max(0, Math.round(s.oport * 0.10)),
+      proposta: Math.max(0, Math.round(s.oport * 0.04)),
+      ganho: Math.max(0, Math.round(s.ganho * 0.09)),
+      perdido: Math.max(0, Math.round(s.oport * 0.03)),
+    } : undefined,
     _mock: true,
   };
 
@@ -148,7 +156,7 @@ const MOCK_OPP_NAMES = [
 ];
 
 /** Lista mock de oportunidades para o drill-down (sem credenciais). */
-export function mockOpportunities(stage: FunnelDrillKey): OpportunityRow[] {
+export function mockOpportunities(stage: FunnelDrillKey, includeCruzamento = true): OpportunityRow[] {
   const st = MOCK_OPP_STAGE[stage] ?? "Nova";
   const n = stage === "no_crm" ? 8 : stage === "ganho" ? 3 : 5;
   const sources = ["Instagram_Feed", "google", "facebook", "Instagram_Reels", "{{placement}}"];
@@ -161,6 +169,7 @@ export function mockOpportunities(stage: FunnelDrillKey): OpportunityRow[] {
       source: sources[i % sources.length],
       name: `OP-9${(1000 + i)} | ${name}`,
       stage: st,
+      origem: (includeCruzamento && i % 4 === 0) ? ("cruzamento" as const) : ("cpc" as const),
     };
   });
 }

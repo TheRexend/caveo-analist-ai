@@ -51,6 +51,14 @@ export interface FunnelData {
   perdido: number;
   /** Composição do "Ganho" por estágio (ex.: Fechado, Ganho não Identificado). */
   ganho_breakdown?: Record<string, number>;
+  /** Subconjunto de cada estágio atribuído via CRUZAMENTO (click ID, UtmMed__c ≠ cpc). */
+  cruzamento?: {
+    no_crm: number;
+    em_tratamento: number;
+    proposta: number;
+    ganho: number;
+    perdido: number;
+  };
   _mock?: boolean;
 }
 
@@ -88,6 +96,8 @@ export interface OpportunityRow {
   source: string;
   name: string;
   stage: string;
+  /** Atribuição: "cpc" = UTM medium=cpc (direta); "cruzamento" = via click ID (medium ≠ cpc). */
+  origem: "cpc" | "cruzamento";
 }
 
 /** Métricas de cada plataforma para o comparativo Meta × Google. */

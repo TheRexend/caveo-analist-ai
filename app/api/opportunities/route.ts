@@ -21,13 +21,14 @@ export async function GET(req: NextRequest) {
   const platform = (sp.get("platform") ?? "all") as Platform;
   const contratante = (sp.get("contratante") ?? "all") as Contratante;
   const fresh = sp.get("fresh") === "1";
+  const includeCruzamento = sp.get("cruzamento") !== "0";
   const stageParam = sp.get("stage") ?? "no_crm";
   const stage = (VALID.includes(stageParam as FunnelDrillKey) ? stageParam : "no_crm") as FunnelDrillKey;
 
   if (!HAS_ANY_CREDS()) {
-    return NextResponse.json(mockOpportunities(stage));
+    return NextResponse.json(mockOpportunities(stage, includeCruzamento));
   }
 
-  const rows = await sfOpportunities(dateFrom, dateTo, platform, contratante, stage, fresh);
+  const rows = await sfOpportunities(dateFrom, dateTo, platform, contratante, stage, fresh, includeCruzamento);
   return NextResponse.json(rows ?? []);
 }

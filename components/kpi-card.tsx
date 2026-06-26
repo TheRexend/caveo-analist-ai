@@ -27,11 +27,13 @@ interface KpiCardProps {
   goalScope?: "period" | "month";
   /** Linha auxiliar (ex.: composição do fechamento). */
   footnote?: string;
+  /** Quantas oportunidades deste KPI vieram via CRUZAMENTO (click ID); mostra badge "+N". */
+  cross?: number;
 }
 
 function KpiCardBase({
   label, value, format, icon: Icon, goal, goalType = "min", hasProgress, fullBrl,
-  previous, goalScope = "month", footnote,
+  previous, goalScope = "month", footnote, cross,
 }: KpiCardProps) {
   const animated = useCountUp(value);
   const status = goal != null ? statusFromGoal(value, goal, goalType) : "neutral";
@@ -72,6 +74,12 @@ function KpiCardBase({
           </span>
         )}
       </div>
+
+      {cross != null && cross > 0 && (
+        <div className="kpi-cross" title="Oportunidades com UtmMed__c ≠ cpc capturadas via click ID (fbc/fbclid/gclid/gbraid)">
+          <span className="cross-badge">+{fmtNum(cross)} cruzamento</span>
+        </div>
+      )}
 
       {footnote && <div className="kpi-footnote">{footnote}</div>}
 

@@ -12,6 +12,8 @@ interface TopBarProps {
   onPlatform: (p: Platform) => void;
   contratante: Contratante;
   onContratante: (c: Contratante) => void;
+  cruzamento: boolean;
+  onCruzamento: (v: boolean) => void;
   dateFrom: string;
   dateTo: string;
   onDates: (from: string, to: string) => void;
@@ -92,8 +94,8 @@ const CONTRATANTE_OPTS: SegOption<Contratante>[] = [
 ];
 
 export function TopBar({
-  platform, onPlatform, contratante, onContratante, dateFrom, dateTo, onDates,
-  onOpenGoals, onRefresh, currentMonthLabel, dataMode, theme, onToggleTheme,
+  platform, onPlatform, contratante, onContratante, cruzamento, onCruzamento,
+  dateFrom, dateTo, onDates, onOpenGoals, onRefresh, currentMonthLabel, dataMode, theme, onToggleTheme,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -111,6 +113,20 @@ export function TopBar({
       <div className="topbar-controls">
         <Segmented<Platform> value={platform} options={PLATFORM_OPTS} onChange={onPlatform} ariaLabel="Filtro de plataforma" />
         <Segmented<Contratante> value={contratante} options={CONTRATANTE_OPTS} onChange={onContratante} ariaLabel="Filtro de público / contratante" />
+
+        <label
+          className={`toggle toggle-cruzamento${cruzamento ? " on" : ""}`}
+          title={cruzamento ? "Desativar contagem de cruzamento (click ID)" : "Ativar contagem de cruzamento (click ID)"}
+        >
+          <input
+            type="checkbox"
+            checked={cruzamento}
+            onChange={(e) => onCruzamento(e.target.checked)}
+            style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+          />
+          <span className="toggle-switch" />
+          Cruzamento
+        </label>
 
         <DateRangePicker dateFrom={dateFrom} dateTo={dateTo} onDates={onDates} />
 

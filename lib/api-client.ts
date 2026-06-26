@@ -36,10 +36,12 @@ export function fetchDashboardAll(
   from: string,
   to: string,
   contratante: Contratante,
+  cruzamento: boolean,
   fresh = false,
   signal?: AbortSignal,
 ): Promise<DashboardPayload> {
   const qs = new URLSearchParams({ from, to, platform, contratante });
+  if (!cruzamento) qs.set("cruzamento", "0");
   if (fresh) qs.set("fresh", "1");
   return getJSON<DashboardPayload>(`/api/dashboard?${qs}`, 30000, signal);
 }
@@ -86,9 +88,11 @@ export function fetchOpportunities(
   to: string,
   contratante: Contratante,
   stage: FunnelDrillKey,
+  cruzamento: boolean,
   signal?: AbortSignal,
 ): Promise<OpportunityRow[]> {
   const qs = new URLSearchParams({ from, to, platform, contratante, stage });
+  if (!cruzamento) qs.set("cruzamento", "0");
   return getJSON<OpportunityRow[]>(`/api/opportunities?${qs}`, 25000, signal);
 }
 

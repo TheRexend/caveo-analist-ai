@@ -65,11 +65,12 @@ export async function GET(req: NextRequest) {
   const platform = (sp.get("platform") ?? "all") as Platform;
   const contratante = (sp.get("contratante") ?? "all") as Contratante;
   const fresh = sp.get("fresh") === "1";
+  const includeCruzamento = sp.get("cruzamento") !== "0";
   const prev = prevRange(dateFrom, dateTo);
 
   // Mock só quando NÃO há nenhuma credencial.
   if (!HAS_ANY_CREDS()) {
-    return NextResponse.json(mockDashboard(platform, dateFrom, dateTo, prev.from, prev.to));
+    return NextResponse.json(mockDashboard(platform, dateFrom, dateTo, prev.from, prev.to, includeCruzamento));
   }
 
   const wantMeta = !!META.token && (platform === "all" || platform === "meta");
@@ -89,11 +90,11 @@ export async function GET(req: NextRequest) {
     wantGoogle ? googleCampaigns(dateFrom, dateTo, contratante, fresh) : Promise.resolve(null),
     wantGoogle ? googleDaily(dateFrom, dateTo, contratante, fresh) : Promise.resolve({} as Record<string, DaySource>),
     wantGoogle ? googleCampaigns(prev.from, prev.to, contratante, fresh) : Promise.resolve(null),
-    sfFunnel(dateFrom, dateTo, platform, contratante, fresh),
-    sfFunnel(prev.from, prev.to, platform, contratante, fresh),
-    sfDaily(dateFrom, dateTo, platform, contratante, fresh),
-    isAll ? sfFunnel(dateFrom, dateTo, "meta", contratante, fresh) : Promise.resolve(null),
-    isAll ? sfFunnel(dateFrom, dateTo, "google", contratante, fresh) : Promise.resolve(null),
+    sfFunnel(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
+    sfFunnel(prev.from, prev.to, platform, contratante, fresh, includeCruzamento),
+    sfDaily(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
+    isAll ? sfFunnel(dateFrom, dateTo, "meta", contratante, fresh, includeCruzamento) : Promise.resolve(null),
+    isAll ? sfFunnel(dateFrom, dateTo, "google", contratante, fresh, includeCruzamento) : Promise.resolve(null),
   ]);
 
   const metaInvest = metaInvestOf(metaRows);
@@ -121,6 +122,7 @@ export async function GET(req: NextRequest) {
     ganho: sf?.ganho ?? 0,
     perdido: sf?.perdido ?? 0,
     ganho_breakdown: sf?.ganho_breakdown ?? {},
+    cruzamento: sf?.cruzamento,
     _mock: false,
   };
 

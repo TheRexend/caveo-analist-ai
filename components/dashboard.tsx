@@ -36,6 +36,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; defaultTo: string }) {
   const [platform, setPlatform] = useState<Platform>("all");
   const [contratante, setContratante] = useState<Contratante>("all");
+  const [cruzamento, setCruzamento] = useState(true);
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(defaultTo);
   const [search, setSearch] = useState("");
@@ -83,7 +84,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
     const fresh = freshRef.current;
     freshRef.current = false;
 
-    fetchDashboardAll(platform, dateFrom, dateTo, contratante, fresh, ctrl.signal)
+    fetchDashboardAll(platform, dateFrom, dateTo, contratante, cruzamento, fresh, ctrl.signal)
       .then((d) => {
         if (ctrl.signal.aborted) return;
         setK(d.metrics);
@@ -100,7 +101,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
       });
 
     return () => ctrl.abort();
-  }, [platform, contratante, dateFrom, dateTo, refreshKey]);
+  }, [platform, contratante, cruzamento, dateFrom, dateTo, refreshKey]);
 
   // ── Fetch de metas de todos os meses do intervalo ────────────────────
   useEffect(() => {
@@ -150,7 +151,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
     if (!selectedStage) return;
     const ctrl = new AbortController();
     setOppLoading(true);
-    fetchOpportunities(platform, dateFrom, dateTo, contratante, selectedStage, ctrl.signal)
+    fetchOpportunities(platform, dateFrom, dateTo, contratante, selectedStage, cruzamento, ctrl.signal)
       .then((rows) => {
         if (ctrl.signal.aborted) return;
         setOppRows(rows);
@@ -163,7 +164,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         }
       });
     return () => ctrl.abort();
-  }, [selectedStage, platform, contratante, dateFrom, dateTo, refreshKey]);
+  }, [selectedStage, platform, contratante, cruzamento, dateFrom, dateTo, refreshKey]);
 
   // ── Metas resolvidas: volume pró-rateado, taxa/custo mensal fixa ──────
   const volGoal = useCallback(
@@ -191,7 +192,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
   // ── Estágios do funil derivados ──────────────────────────────────────
   const funnelStages = useMemo<FunnelStage[]>(() => {
     if (!funnelRaw) return [];
-    const { lead_novo, no_crm, em_tratamento, proposta, ganho, ganho_breakdown } = funnelRaw;
+    const { lead_novo, no_crm, em_tratamento, proposta, ganho, ganho_breakdown, cruzamento } = funnelRaw;
     return [
       {
         key: "lead", label: "Lead Novo", count: lead_novo,
@@ -206,12 +207,14 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         convRate: no_crm > 0 ? em_tratamento / no_crm : null,
         convStatus: no_crm > 0 ? convStatus(em_tratamento / no_crm, [0.4, 0.7]) : null,
         note: "geradas no período",
+        cruzamento: cruzamento?.no_crm,
       },
       {
         key: "trat", label: "Em Tratamento", count: em_tratamento,
         unit: k ? k.invest / Math.max(1, em_tratamento) : 0,
         convRate: em_tratamento > 0 ? proposta / em_tratamento : null,
         convStatus: em_tratamento > 0 ? convStatus(proposta / em_tratamento, [0.02, 0.06]) : null,
+        cruzamento: cruzamento?.em_tratamento,
       },
       {
         key: "prop", label: "Proposta", count: proposta,
@@ -220,12 +223,14 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         convStatus: no_crm > 0 ? convStatus(ganho / no_crm, [0.05, 0.15]) : null,
         convLabel: "vs. Oport.",
         goal: monthGoals.oport,
+        cruzamento: cruzamento?.proposta,
       },
       {
         key: "ganho", label: "Fechado Ganho", count: ganho,
         unit: k ? k.cpf : 0, goal: monthGoals.ganho,
         breakdown: ganho_breakdown,
         note: "fechados no período",
+        cruzamento: cruzamento?.ganho,
       },
     ];
   }, [funnelRaw, k, monthGoals]);
@@ -237,6 +242,8 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         onPlatform={setPlatform}
         contratante={contratante}
         onContratante={setContratante}
+        cruzamento={cruzamento}
+        onCruzamento={setCruzamento}
         dateFrom={dateFrom}
         dateTo={dateTo}
         onDates={(f, t) => { setDateFrom(f); setDateTo(t); }}
@@ -273,12 +280,12 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
               <KpiCard label="Investimento total" value={k.invest} format="brl" icon={Wallet} goal={volGoal("invest")} goalType="max" goalScope={volScope} hasProgress fullBrl previous={kPrev?.invest} />
               <KpiCard label="Volume de leads" value={k.leads} format="num" icon={Users} goal={volGoal("leads")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.leads} />
               <KpiCard label="Custo por lead" value={k.cpl} format="brl" icon={Coins} goal={rateGoal("cpl")} goalType="max" previous={kPrev?.cpl} />
-              <KpiCard label="Oportunidades" value={k.oport} format="num" icon={Filter} goal={volGoal("oport")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.oport} />
+              <KpiCard label="Oportunidades" value={k.oport} format="num" icon={Filter} goal={volGoal("oport")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.oport} cross={funnelRaw?.cruzamento?.no_crm} />
               <KpiCard label="Custo por oportunidade" value={k.cpo} format="brl" icon={Coins} goal={rateGoal("cpo")} goalType="max" previous={kPrev?.cpo} />
               <KpiCard label="Tx. conv. Oport→Ganho" value={k.tx_conv} format="pct" icon={Repeat} goal={rateGoal("tx_conv")} goalType="min" previous={kPrev?.tx_conv} />
-              <KpiCard label="Fechamentos · Ganho" value={k.ganho} format="num" icon={Trophy} goal={volGoal("ganho")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.ganho} footnote={ganhoFootnote} />
+              <KpiCard label="Fechamentos · Ganho" value={k.ganho} format="num" icon={Trophy} goal={volGoal("ganho")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.ganho} footnote={ganhoFootnote} cross={funnelRaw?.cruzamento?.ganho} />
               <KpiCard label="Custo por fechamento" value={k.cpf} format="brl" icon={Coins} goal={rateGoal("cpf")} goalType="max" previous={kPrev?.cpf} />
-              <KpiCard label="Oportunidades perdidas" value={k.oport_perdidas} format="num" icon={TrendingDown} goal={volGoal("oport_perdidas")} goalType="max" goalScope={volScope} previous={kPrev?.oport_perdidas} />
+              <KpiCard label="Oportunidades perdidas" value={k.oport_perdidas} format="num" icon={TrendingDown} goal={volGoal("oport_perdidas")} goalType="max" goalScope={volScope} previous={kPrev?.oport_perdidas} cross={funnelRaw?.cruzamento?.perdido} />
             </div>
 
             <section className="panel">
@@ -295,6 +302,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
                 stages={funnelStages}
                 lost={k.oport_perdidas}
                 totalInvest={k.invest}
+                lostCruzamento={funnelRaw?.cruzamento?.perdido}
                 onStageClick={handleStageClick}
                 selectedStage={selectedStage}
               />
