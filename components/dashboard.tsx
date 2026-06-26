@@ -278,8 +278,12 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
 
             <div className="kpi-grid">
               <KpiCard label="Investimento total" value={k.invest} format="brl" icon={Wallet} goal={volGoal("invest")} goalType="max" goalScope={volScope} hasProgress fullBrl previous={kPrev?.invest} />
-              <KpiCard label="Volume de leads" value={k.leads} format="num" icon={Users} goal={volGoal("leads")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.leads} />
-              <KpiCard label="Custo por lead" value={k.cpl} format="brl" icon={Coins} goal={rateGoal("cpl")} goalType="max" previous={kPrev?.cpl} />
+              <KpiCard label="Volume de leads" value={k.leads} format="num" icon={Users} goal={volGoal("leads")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.leads}
+                secondary={platform === "meta" && k.complete_reg != null ? { value: k.complete_reg, format: "num", label: "reg. concluídos" } : undefined}
+              />
+              <KpiCard label="Custo por lead" value={k.cpl} format="brl" icon={Coins} goal={rateGoal("cpl")} goalType="max" previous={kPrev?.cpl}
+                secondary={platform === "meta" && k.cpr != null ? { value: k.cpr, format: "brl", label: "por reg. concluído" } : undefined}
+              />
               <KpiCard label="Oportunidades" value={k.oport} format="num" icon={Filter} goal={volGoal("oport")} goalType="min" goalScope={volScope} hasProgress previous={kPrev?.oport} cross={funnelRaw?.cruzamento?.no_crm} />
               <KpiCard label="Custo por oportunidade" value={k.cpo} format="brl" icon={Coins} goal={rateGoal("cpo")} goalType="max" previous={kPrev?.cpo} />
               <KpiCard label="Tx. conv. Oport→Ganho" value={k.tx_conv} format="pct" icon={Repeat} goal={rateGoal("tx_conv")} goalType="min" previous={kPrev?.tx_conv} />

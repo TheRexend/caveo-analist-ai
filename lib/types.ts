@@ -20,6 +20,10 @@ export interface Metrics {
   cpf: number;
   tx_conv: number;
   oport_perdidas: number;
+  /** Meta only: total de complete_registration (Registro concluído no site). */
+  complete_reg?: number;
+  /** Meta only: custo por registro concluído (invest / complete_reg). */
+  cpr?: number;
   _mock?: boolean;
 }
 

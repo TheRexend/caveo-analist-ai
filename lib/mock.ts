@@ -110,7 +110,13 @@ export function mockDashboard(
   const days = mockDays(from, to);
   const s = aggMock(days, platform);
   const sPrev = aggMock(mockDays(prevFrom, prevTo), platform);
-  const metrics = metricsFromAgg(s);
+  const baseMetrics = metricsFromAgg(s);
+  const mockCompleteReg = Math.round(s.leads * 0.35);
+  const metrics = platform === "meta" ? {
+    ...baseMetrics,
+    complete_reg: mockCompleteReg,
+    cpr: Math.round(s.invest / Math.max(1, mockCompleteReg) * 100) / 100,
+  } : baseMetrics;
 
   const funnel: FunnelData = {
     lead_novo: s.leads,

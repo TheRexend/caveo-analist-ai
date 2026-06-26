@@ -454,6 +454,19 @@ tr:hover .expander { color: var(--c-text); }
 .kpi-delta.flat { color: var(--c-text-muted); background: var(--c-surface-muted); }
 .kpi-footnote { font-size: 11px; color: var(--c-text-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
 
+/* === Métrica secundária do KPI (ex.: complete_registration abaixo de leads) === */
+.kpi-secondary {
+  display: flex; align-items: baseline; gap: 5px;
+  margin-top: 5px; padding-top: 5px;
+  border-top: 1px dashed var(--c-border);
+  font-size: 11px; color: var(--c-text-muted);
+}
+.kpi-secondary-value {
+  font-size: 13px; font-weight: 600;
+  color: var(--c-text-2, var(--c-text-muted));
+}
+.kpi-secondary-label { white-space: nowrap; }
+
 /* === Funil: composição do estágio === */
 .stage-breakdown { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .stage-chip {

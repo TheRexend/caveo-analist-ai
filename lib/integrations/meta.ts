@@ -129,6 +129,14 @@ export function leadsFromActions(actions?: MetaAction[]): number {
   return 0;
 }
 
+/** Extrai complete_registration (Registro concluído no site) dos actions — tipo-pai, sem dupla contagem. */
+export function completeRegistrationsFromActions(actions?: MetaAction[]): number {
+  for (const a of actions ?? []) {
+    if (a.action_type === "complete_registration") return Math.trunc(Number(a.value ?? 0));
+  }
+  return 0;
+}
+
 export function metaDailyToSource(r: MetaInsightRow): DaySource {
   return {
     invest: Number(r.spend ?? 0),

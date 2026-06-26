@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { daysBetween, defaultRange, eachDay } from "@/lib/dates";
 import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
 import {
-  leadsFromActions, metaDailyToSource, metaInsights, metaInsightsDaily, type MetaInsightRow,
+  completeRegistrationsFromActions, leadsFromActions, metaDailyToSource, metaInsights, metaInsightsDaily, type MetaInsightRow,
 } from "@/lib/integrations/meta";
 import { googleCampaigns, googleDaily, type GoogleCampaignsResult } from "@/lib/integrations/google";
 import { sfDaily, sfFunnel, type SfFunnel } from "@/lib/integrations/salesforce";
@@ -35,6 +35,7 @@ function prevRange(from: string, to: string): { from: string; to: string } {
 
 const metaInvestOf = (rows: MetaInsightRow[]) => rows.reduce((s, r) => s + Number(r.spend ?? 0), 0);
 const metaLeadsOf = (rows: MetaInsightRow[]) => rows.reduce((s, r) => s + leadsFromActions(r.actions), 0);
+const metaCompleteRegOf = (rows: MetaInsightRow[]) => rows.reduce((s, r) => s + completeRegistrationsFromActions(r.actions), 0);
 const gadsInvestOf = (g: GoogleCampaignsResult | null) =>
   (g?.results ?? []).reduce((s, r) => s + r.metrics.costMicros / 1_000_000, 0);
 const gadsLeadsOf = (g: GoogleCampaignsResult | null) =>
@@ -99,6 +100,7 @@ export async function GET(req: NextRequest) {
 
   const metaInvest = metaInvestOf(metaRows);
   const metaLeads = metaLeadsOf(metaRows);
+  const metaCompleteReg = wantMeta ? metaCompleteRegOf(metaRows) : 0;
   const gInvest = gadsInvestOf(gads);
   const gLeads = gadsLeadsOf(gads);
 
@@ -109,7 +111,12 @@ export async function GET(req: NextRequest) {
   };
 
   const cur = combine(metaInvest, metaLeads, gInvest, gLeads);
-  const metrics = buildMetrics(cur.invest, cur.leads, sf);
+  const baseMetrics = buildMetrics(cur.invest, cur.leads, sf);
+  const metrics = platform === "meta" && wantMeta ? {
+    ...baseMetrics,
+    complete_reg: metaCompleteReg,
+    cpr: Math.round(metaInvest / Math.max(1, metaCompleteReg) * 100) / 100,
+  } : baseMetrics;
 
   const pAds = combine(metaInvestOf(metaPrev), metaLeadsOf(metaPrev), gadsInvestOf(gadsPrev), gadsLeadsOf(gadsPrev));
   const metricsPrev = buildMetrics(pAds.invest, pAds.leads, sfPrevF);

@@ -12,6 +12,12 @@ const STATUS_LABEL: Record<string, string> = {
   bad: "abaixo",
 };
 
+interface SecondaryMetric {
+  value: number;
+  format: KpiFormat;
+  label: string;
+}
+
 interface KpiCardProps {
   label: string;
   value: number;
@@ -29,11 +35,13 @@ interface KpiCardProps {
   footnote?: string;
   /** Quantas oportunidades deste KPI vieram via CRUZAMENTO (click ID); mostra badge "+N". */
   cross?: number;
+  /** Métrica secundária exibida abaixo do valor principal (ex.: complete_registration para Meta). */
+  secondary?: SecondaryMetric;
 }
 
 function KpiCardBase({
   label, value, format, icon: Icon, goal, goalType = "min", hasProgress, fullBrl,
-  previous, goalScope = "month", footnote, cross,
+  previous, goalScope = "month", footnote, cross, secondary,
 }: KpiCardProps) {
   const animated = useCountUp(value);
   const status = goal != null ? statusFromGoal(value, goal, goalType) : "neutral";
@@ -44,6 +52,12 @@ function KpiCardBase({
   if (format === "brl") formatted = fmtBRL(animated, { compact: !fullBrl && animated > 9999, digits: fullBrl ? 2 : 0 });
   else if (format === "pct") formatted = fmtPct(animated, 1);
   else formatted = fmtNum(Math.round(animated));
+
+  const fmtSecondary = (v: number, f: KpiFormat) => {
+    if (f === "brl") return fmtBRL(v, { compact: v > 9999, digits: 2 });
+    if (f === "pct") return fmtPct(v, 1);
+    return fmtNum(Math.round(v));
+  };
 
   const goalText =
     goal == null ? "" : format === "brl" ? fmtBRL(goal, { compact: !fullBrl }) : format === "pct" ? fmtPct(goal, 0) : fmtNum(goal);
@@ -74,6 +88,13 @@ function KpiCardBase({
           </span>
         )}
       </div>
+
+      {secondary != null && (
+        <div className="kpi-secondary">
+          <span className="kpi-secondary-value num">{fmtSecondary(secondary.value, secondary.format)}</span>
+          <span className="kpi-secondary-label">{secondary.label}</span>
+        </div>
+      )}
 
       {cross != null && cross > 0 && (
         <div className="kpi-cross" title="Oportunidades com UtmMed__c ≠ cpc capturadas via click ID (fbc/fbclid/gclid/gbraid)">
