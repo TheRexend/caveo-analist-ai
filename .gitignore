@@ -1,31 +1,63 @@
-# Credenciais e servidores MCP — nunca commitar
-.mcp.json
-*.yaml
-*.yml
-.env
-.env.*
-*secret*
-*credentials*
-client_secret*.json
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Claude Code — estado local da sessão
-.claude/settings.local.json
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Dependências
-node_modules/
+# testing
+/coverage
 
-# Dados exportados e arquivos de banco de dados
-scratch/*.json
-dashboard/goals.db
-outputs/
+# next.js
+/.next/
+/out/
 
-# Runtime state
-.superpowers/**/state/
+# production
+/build
 
-# Sistema
+# misc
 .DS_Store
-__pycache__/
-*.pyc
-*.db
-*.pid
-*.log
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# local sqlite (metas) — em prod usa Postgres
+/data/*.db
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# arquivos locais do projeto Caveo (não vão pro GitHub)
+dashboard/
+docs/
+scratch/
+scripts/
+outputs/
+.agents/
+.claude/
+.codex/
+.superpowers/
+CLAUDE.md
+AGENTS.md
+Handoff*.docx
+handoff-*.md
+skills-lock.json
+.mcp.json
+package-lock.json
