@@ -45,7 +45,7 @@ yarn-error.log*
 next-env.d.ts
 
 # arquivos locais do projeto Caveo (não vão pro GitHub)
-dashboard/
+/dashboard/
 docs/
 scratch/
 scripts/
