@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultRange } from "@/lib/dates";
 import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
-import { metaAllCampaigns } from "@/lib/integrations/meta";
+import { metaInsights } from "@/lib/integrations/meta";
 import { googleCampaigns } from "@/lib/integrations/google";
 import { buildMetaCampaigns, buildGoogleCampaigns } from "@/lib/build";
 import { mockCampaigns } from "@/lib/mock";
-import type { Platform } from "@/lib/types";
+import type { Contratante, Platform } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,14 +16,15 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
   const platform = (sp.get("platform") ?? "all") as Platform;
+  const contratante = (sp.get("contratante") ?? "all") as Contratante;
 
   const metaRows =
     META.token && (platform === "all" || platform === "meta")
-      ? await metaAllCampaigns(dateFrom, dateTo)
+      ? await metaInsights(dateFrom, dateTo, contratante)
       : [];
   const gadsResp =
     GOOGLE.devToken && (platform === "all" || platform === "google")
-      ? await googleCampaigns(dateFrom, dateTo)
+      ? await googleCampaigns(dateFrom, dateTo, contratante)
       : null;
 
   // Mock só sem credenciais. Com credenciais, lista real (mesmo vazia).

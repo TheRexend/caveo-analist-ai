@@ -18,12 +18,17 @@ export interface FunnelStage {
   note?: string;
 }
 
+// Estágios com drill-down de oportunidades (Lead Novo vem de mídia, não do CRM).
+const DRILLABLE = new Set(["no_crm", "trat", "prop", "ganho"]);
+
 function FunnelBase({
-  stages, lost, totalInvest,
+  stages, lost, totalInvest, onStageClick, selectedStage,
 }: {
   stages: FunnelStage[];
   lost: number;
   totalInvest: number;
+  onStageClick?: (key: string) => void;
+  selectedStage?: string | null;
 }) {
   if (stages.length === 0) return null;
   const max = Math.max(...stages.map((s) => s.count), 1);
@@ -32,9 +37,27 @@ function FunnelBase({
   return (
     <div className="funnel">
       <div className="funnel-row">
-        {stages.map((s, i) => (
+        {stages.map((s, i) => {
+          const clickable = !!onStageClick && DRILLABLE.has(s.key);
+          return (
           <Fragment key={s.key}>
-            <div className="stage">
+            <div
+              className={`stage${clickable ? " clickable" : ""}${selectedStage === s.key ? " selected" : ""}`}
+              onClick={clickable ? () => onStageClick!(s.key) : undefined}
+              role={clickable ? "button" : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              aria-pressed={clickable ? selectedStage === s.key : undefined}
+              onKeyDown={
+                clickable
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onStageClick!(s.key);
+                      }
+                    }
+                  : undefined
+              }
+            >
               <div className="stage-label">{s.label}</div>
               <div className="stage-value num">{fmtNum(s.count)}</div>
               <div className="stage-sub">{s.unit ? fmtBRL(s.unit, { digits: 0 }) + " / un." : " "}</div>
@@ -65,12 +88,29 @@ function FunnelBase({
               </div>
             )}
           </Fragment>
-        ))}
+          );
+        })}
       </div>
 
       <div className="lost-branch">
         <div className="lost-connector" />
-        <div className="lost-box">
+        <div
+          className={`lost-box${onStageClick ? " clickable" : ""}${selectedStage === "perdido" ? " selected" : ""}`}
+          onClick={onStageClick ? () => onStageClick("perdido") : undefined}
+          role={onStageClick ? "button" : undefined}
+          tabIndex={onStageClick ? 0 : undefined}
+          aria-pressed={onStageClick ? selectedStage === "perdido" : undefined}
+          onKeyDown={
+            onStageClick
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onStageClick("perdido");
+                  }
+                }
+              : undefined
+          }
+        >
           <span className="lost-icon"><TrendingDown size={13} /></span>
           <div>
             <div className="stage-label">Oportunidades perdidas</div>

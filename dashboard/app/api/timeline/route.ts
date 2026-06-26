@@ -4,7 +4,7 @@ import { META, GOOGLE, HAS_ANY_CREDS } from "@/lib/env";
 import { metaInsightsDaily, metaDailyToSource } from "@/lib/integrations/meta";
 import { googleDaily } from "@/lib/integrations/google";
 import { mockDays } from "@/lib/mock";
-import type { DaySource, Platform, TimelineDay } from "@/lib/types";
+import type { Contratante, DaySource, Platform, TimelineDay } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
   const platform = (sp.get("platform") ?? "all") as Platform;
+  const contratante = (sp.get("contratante") ?? "all") as Contratante;
 
   // Sem credenciais → mock (já cobre todos os dias do período).
   if (!HAS_ANY_CREDS()) {
@@ -28,8 +29,8 @@ export async function GET(req: NextRequest) {
   const wantGoogle = !!GOOGLE.devToken && (platform === "all" || platform === "google");
 
   const [metaDaily, gadsByDate] = await Promise.all([
-    wantMeta ? metaInsightsDaily(dateFrom, dateTo) : Promise.resolve([]),
-    wantGoogle ? googleDaily(dateFrom, dateTo) : Promise.resolve({} as Record<string, DaySource>),
+    wantMeta ? metaInsightsDaily(dateFrom, dateTo, contratante) : Promise.resolve([]),
+    wantGoogle ? googleDaily(dateFrom, dateTo, contratante) : Promise.resolve({} as Record<string, DaySource>),
   ]);
 
   const metaByDate: Record<string, DaySource> = {};

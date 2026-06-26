@@ -1,6 +1,9 @@
 "use client";
 // Camada de fetch tipada (client-side) com timeout, abort e fallback mock.
-import type { Campaign, FunnelData, Goals, Metrics, Platform, TimelineDay } from "@/lib/types";
+import type {
+  Campaign, Contratante, DashboardPayload, FunnelData, FunnelDrillKey, Goals,
+  Metrics, OpportunityRow, Platform, TimelineDay,
+} from "@/lib/types";
 
 /** GET JSON com timeout próprio + cancelamento via AbortSignal externo. */
 async function getJSON<T>(url: string, ms: number, signal?: AbortSignal): Promise<T> {
@@ -25,6 +28,20 @@ export interface DashboardData {
   metrics: Metrics;
   timeline: TimelineDay[];
   funnel: FunnelData;
+}
+
+/** Carga única e consolidada de todo o dashboard (substitui os múltiplos fetches). */
+export function fetchDashboardAll(
+  platform: Platform,
+  from: string,
+  to: string,
+  contratante: Contratante,
+  fresh = false,
+  signal?: AbortSignal,
+): Promise<DashboardPayload> {
+  const qs = new URLSearchParams({ from, to, platform, contratante });
+  if (fresh) qs.set("fresh", "1");
+  return getJSON<DashboardPayload>(`/api/dashboard?${qs}`, 30000, signal);
 }
 
 export function fetchMetrics(
@@ -60,6 +77,19 @@ export function fetchCampaigns(
 ): Promise<Campaign[]> {
   const qs = new URLSearchParams({ from, to, platform });
   return getJSON<Campaign[]>(`/api/campaigns?${qs}`, 25000, signal);
+}
+
+/** Drill-down: lista de oportunidades de um estágio do funil, com os filtros atuais. */
+export function fetchOpportunities(
+  platform: Platform,
+  from: string,
+  to: string,
+  contratante: Contratante,
+  stage: FunnelDrillKey,
+  signal?: AbortSignal,
+): Promise<OpportunityRow[]> {
+  const qs = new URLSearchParams({ from, to, platform, contratante, stage });
+  return getJSON<OpportunityRow[]>(`/api/opportunities?${qs}`, 25000, signal);
 }
 
 export function fetchGoals(month: string, signal?: AbortSignal): Promise<Goals> {

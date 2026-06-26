@@ -1,5 +1,8 @@
 // === Dados mock (fallback, port de _mock_days / MOCK_CAMPAIGNS) ===
-import type { Campaign, TimelineDay, Platform } from "@/lib/types";
+import type {
+  Campaign, DailyFunnelPoint, DashboardPayload, FunnelData, FunnelDrillKey,
+  Metrics, OpportunityRow, Platform, TimelineDay,
+} from "@/lib/types";
 
 function mockDays(dateFrom: string, dateTo: string): TimelineDay[] {
   const start = new Date(dateFrom + "T00:00:00");
@@ -67,6 +70,99 @@ export function aggMock(days: TimelineDay[], platform: Platform) {
     }
   }
   return s;
+}
+
+function metricsFromAgg(s: { invest: number; leads: number; oport: number; ganho: number }): Metrics {
+  return {
+    invest: Math.round(s.invest * 100) / 100,
+    leads: s.leads,
+    oport: s.oport,
+    ganho: s.ganho,
+    cpl: s.invest / Math.max(1, s.leads),
+    cpo: s.invest / Math.max(1, s.oport),
+    cpf: s.invest / Math.max(1, s.ganho),
+    tx_conv: s.ganho / Math.max(1, s.oport),
+    oport_perdidas: Math.max(0, Math.round(s.oport * 0.62)),
+    _mock: true,
+  };
+}
+
+function mockDailyFunnel(days: TimelineDay[], platform: Platform): DailyFunnelPoint[] {
+  return days.map((d) => {
+    const srcs = platform === "all" ? [d.google, d.meta] : [d[platform]];
+    return {
+      date: d.date,
+      oport: srcs.reduce((a, x) => a + x.oport, 0),
+      ganho: srcs.reduce((a, x) => a + x.ganho, 0),
+    };
+  });
+}
+
+/** Payload completo do dashboard em modo mock (sem credenciais). */
+export function mockDashboard(
+  platform: Platform,
+  from: string,
+  to: string,
+  prevFrom: string,
+  prevTo: string,
+): DashboardPayload {
+  const days = mockDays(from, to);
+  const s = aggMock(days, platform);
+  const sPrev = aggMock(mockDays(prevFrom, prevTo), platform);
+  const metrics = metricsFromAgg(s);
+
+  const funnel: FunnelData = {
+    lead_novo: s.leads,
+    no_crm: Math.round(s.leads * 0.85),
+    em_tratamento: s.oport,
+    proposta: Math.max(0, Math.round(s.oport * 0.2)),
+    ganho: s.ganho,
+    perdido: Math.max(0, Math.round(s.oport * 0.3)),
+    ganho_breakdown: { Fechado: s.ganho },
+    _mock: true,
+  };
+
+  return {
+    metrics,
+    metricsPrev: metricsFromAgg(sPrev),
+    funnel,
+    timeline: days,
+    dailyFunnel: mockDailyFunnel(days, platform),
+    campaigns: mockCampaigns(platform),
+    platformCompare:
+      platform === "all"
+        ? { meta: metricsFromAgg(aggMock(days, "meta")), google: metricsFromAgg(aggMock(days, "google")) }
+        : undefined,
+    _mock: true,
+  };
+}
+
+const MOCK_OPP_STAGE: Record<FunnelDrillKey, string> = {
+  no_crm: "Nova", trat: "Contato Realizado", prop: "Proposta Enviada",
+  ganho: "Fechado", perdido: "Perdido",
+};
+const MOCK_OPP_NAMES = [
+  "Ana Beatriz Carvalho", "Bruno Henrique Lima", "Carla Mendes Souza",
+  "Diego Oliveira Ramos", "Eduarda Pires Antunes", "Felipe Nogueira Castro",
+  "Gabriela Tavares Rocha", "Henrique Salgado Pinto",
+];
+
+/** Lista mock de oportunidades para o drill-down (sem credenciais). */
+export function mockOpportunities(stage: FunnelDrillKey): OpportunityRow[] {
+  const st = MOCK_OPP_STAGE[stage] ?? "Nova";
+  const n = stage === "no_crm" ? 8 : stage === "ganho" ? 3 : 5;
+  const sources = ["Instagram_Feed", "google", "facebook", "Instagram_Reels", "{{placement}}"];
+  return MOCK_OPP_NAMES.slice(0, n).map((name, i) => {
+    const slug = name.toLowerCase().replace(/[^a-z]+/g, ".");
+    return {
+      id: `mock_${stage}_${i}`,
+      account: name,
+      email: `${slug}@exemplo.com`,
+      source: sources[i % sources.length],
+      name: `OP-9${(1000 + i)} | ${name}`,
+      stage: st,
+    };
+  });
 }
 
 export { mockDays };

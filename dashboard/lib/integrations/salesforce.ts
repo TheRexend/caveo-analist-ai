@@ -2,7 +2,8 @@
 import "server-only";
 import { SF } from "@/lib/env";
 import { TZ_OFFSET } from "@/lib/dates";
-import type { Platform } from "@/lib/types";
+import { cached } from "@/lib/cache";
+import type { Contratante, FunnelDrillKey, OpportunityRow, Platform } from "@/lib/types";
 
 let _token = "";
 
@@ -54,20 +55,31 @@ async function sfQuery(soql: string, retry = true): Promise<SfQueryResult | null
   }
 }
 
-// ── Filtros de UTM por plataforma (idênticos ao server.py) ──────────────
+// ── Filtros de plataforma por UTM medium (cpc) ──────────────────────────
+// meta   = cpc e source não-google (Instagram_*/Facebook_*/facebook/{{placement}})
+// google = cpc e source google
+// all    = cpc (= união exata de meta + google)
 const UTM_FILTER: Record<Platform, string> = {
-  all:
-    "AND (UtmSou__c LIKE 'facebook%' OR UtmSou__c LIKE 'instagram%' " +
-    "OR UtmSou__c LIKE 'google%' OR UtmSou__c = '{{placement}}' " +
-    "OR UtmMed__c = 'paid_social')",
-  meta:
-    "AND (UtmSou__c LIKE 'facebook%' OR UtmSou__c LIKE 'instagram%' " +
-    "OR UtmSou__c = '{{placement}}' OR UtmMed__c = 'paid_social')",
-  google: "AND UtmSou__c LIKE 'google%'",
+  all: "AND UtmMed__c LIKE '%cpc%'",
+  meta: "AND UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%')",
+  google: "AND UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%'",
+};
+
+// ── Filtro de contratante por TipCte__c ─────────────────────────────────
+// all = Ambos (RF + MM; exclui Revalida e sem classificação)
+const TIPCTE_FILTER: Record<Contratante, string> = {
+  all: "AND TipCte__c IN ('Formando','Médico','Médicos Maduros')",
+  rf: "AND TipCte__c IN ('Formando','Médico')",
+  mm: "AND TipCte__c = 'Médicos Maduros'",
 };
 
 // Estágios reais do Salesforce da Caveo
 const LOST_STAGE = "Perdido";
+// "Fechado Ganho" = ganho real (IsWon=true → estágio "Fechado") + "Ganho não
+// Identificado" (IsWon=false no SF, mas contabilizado como ganho pela operação).
+// Fragmento único reusado em sfFunnel, sfDaily e sfOpportunities p/ consistência.
+const GANHO_UNID_STAGE = "Ganho não Identificado";
+const WON_CLAUSE = `(IsWon = true OR StageName = '${GANHO_UNID_STAGE}')`;
 const EM_TRATAMENTO_STAGES = new Set([
   "Nova", "Contato Realizado", "Aguardando Resposta",
   "Reunião Agendada", "Standy-By", "Stand By", "Transferido para humano",
@@ -84,6 +96,14 @@ export interface SfFunnel {
   ganho_breakdown: Record<string, number>;
 }
 
+const byStage = (res: SfQueryResult | null): Record<string, number> => {
+  const m: Record<string, number> = {};
+  for (const r of res?.records ?? []) {
+    if (r.StageName) m[r.StageName] = Number(r.cnt ?? 0);
+  }
+  return m;
+};
+
 /**
  * Funil do Salesforce com MODELO DE DUAS DATAS:
  *  - Entrada do funil (no_crm/em_tratamento/proposta) → oportunidades CRIADAS
@@ -91,27 +111,44 @@ export interface SfFunnel {
  *  - Fechamentos e perdas (ganho/perdido) → oportunidades cuja MUDANÇA DE FASE
  *    ocorreu no período (LastStageChangeDate), mesmo que criadas antes.
  * Datas alinhadas ao fuso da operação (TZ_OFFSET) para casar com Meta/Google.
+ * Filtra por plataforma (UTM medium) e contratante (TipCte__c).
  */
 export async function sfFunnel(
   dateFrom: string,
   dateTo: string,
   platform: Platform,
+  contratante: Contratante = "all",
+  fresh = false,
+): Promise<SfFunnel | null> {
+  return cached(
+    `sfFunnel:${platform}:${contratante}:${dateFrom}:${dateTo}`,
+    () => sfFunnelUncached(dateFrom, dateTo, platform, contratante),
+    { fresh },
+  );
+}
+
+async function sfFunnelUncached(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante,
 ): Promise<SfFunnel | null> {
   const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
+  const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
 
   // (1) Oportunidades CRIADAS no período → topo/meio do funil.
   const soqlCreated =
     `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
-    `WHERE CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} ${utmf} ` +
+    `WHERE CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} ${utmf} ${tipf} ` +
     `GROUP BY StageName`;
 
-  // (2) Fechamentos (IsWon) e perdas (Perdido) cuja FASE mudou no período.
+  // (2) Ganhos (IsWon + "Ganho não Identificado") e perdas (Perdido) cuja FASE mudou no período.
   const soqlClosed =
     `SELECT StageName, COUNT(Id) cnt FROM Opportunity ` +
-    `WHERE (IsWon = true OR StageName = '${LOST_STAGE}') ` +
-    `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ` +
+    `WHERE (${WON_CLAUSE} OR StageName = '${LOST_STAGE}') ` +
+    `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ${tipf} ` +
     `GROUP BY StageName`;
 
   const [resCreated, resClosed] = await Promise.all([
@@ -120,16 +157,7 @@ export async function sfFunnel(
   ]);
 
   // Só consideramos "falha de fonte" quando AMBAS as queries falham (null).
-  // Resultado vazio com credenciais OK = zeros reais (não fallback p/ mock).
   if (resCreated === null && resClosed === null) return null;
-
-  const byStage = (res: SfQueryResult | null): Record<string, number> => {
-    const m: Record<string, number> = {};
-    for (const r of res?.records ?? []) {
-      if (r.StageName) m[r.StageName] = Number(r.cnt ?? 0);
-    }
-    return m;
-  };
 
   const created = byStage(resCreated);
   const closed = byStage(resClosed);
@@ -137,7 +165,6 @@ export async function sfFunnel(
   const sumIn = (src: Record<string, number>, set: Set<string>) =>
     Object.entries(src).reduce((acc, [k, v]) => (set.has(k) ? acc + v : acc), 0);
 
-  // Ganho = tudo da query (2) que não é Perdido (já restrita a IsWon OR Perdido).
   const ganho_breakdown: Record<string, number> = {};
   let ganho = 0;
   let perdido = 0;
@@ -158,6 +185,157 @@ export async function sfFunnel(
     perdido,
     ganho_breakdown,
   };
+}
+
+/**
+ * Série diária do funil para o gráfico barra (oportunidades criadas/dia,
+ * por CreatedDate) + linha (fechamentos/dia, por LastStageChangeDate).
+ * Agrupa por dia civil local via DAY_ONLY(convertTimezone(...)).
+ * Retorna mapa { "YYYY-MM-DD": { oport, ganho } } ou null se a fonte falhar.
+ */
+export async function sfDaily(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante = "all",
+  fresh = false,
+): Promise<Record<string, { oport: number; ganho: number }> | null> {
+  return cached(
+    `sfDaily:${platform}:${contratante}:${dateFrom}:${dateTo}`,
+    () => sfDailyUncached(dateFrom, dateTo, platform, contratante),
+    { fresh },
+  );
+}
+
+async function sfDailyUncached(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante,
+): Promise<Record<string, { oport: number; ganho: number }> | null> {
+  const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
+  const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
+  const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
+  const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
+
+  const soqlOport =
+    `SELECT DAY_ONLY(convertTimezone(CreatedDate)) d, COUNT(Id) cnt FROM Opportunity ` +
+    `WHERE CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} ${utmf} ${tipf} ` +
+    `GROUP BY DAY_ONLY(convertTimezone(CreatedDate))`;
+
+  const soqlGanho =
+    `SELECT DAY_ONLY(convertTimezone(LastStageChangeDate)) d, COUNT(Id) cnt FROM Opportunity ` +
+    `WHERE ${WON_CLAUSE} ` +
+    `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ${tipf} ` +
+    `GROUP BY DAY_ONLY(convertTimezone(LastStageChangeDate))`;
+
+  const [resOport, resGanho] = await Promise.all([
+    sfQuery(soqlOport),
+    sfQuery(soqlGanho),
+  ]);
+
+  if (resOport === null && resGanho === null) return null;
+
+  const out: Record<string, { oport: number; ganho: number }> = {};
+  const bump = (iso: string | undefined, key: "oport" | "ganho", n: number) => {
+    if (!iso) return;
+    if (!out[iso]) out[iso] = { oport: 0, ganho: 0 };
+    out[iso][key] += n;
+  };
+  for (const r of resOport?.records ?? []) bump(String(r.d ?? ""), "oport", Number(r.cnt ?? 0));
+  for (const r of resGanho?.records ?? []) bump(String(r.d ?? ""), "ganho", Number(r.cnt ?? 0));
+  return out;
+}
+
+/** Limite de linhas no drill-down (o sfQuery não pagina; cap defensivo). */
+export const OPP_DRILL_LIMIT = 1000;
+
+interface SfOppRecord {
+  Id?: string;
+  Name?: string;
+  StageName?: string;
+  Email_Lead__c?: string | null;
+  UtmSou__c?: string | null;
+  Account?: { Name?: string } | null;
+}
+
+/**
+ * Lista de oportunidades de um estágio do funil (drill-down ao clicar no quadrante).
+ * Mesma lógica de datas/UTM/TipCte do sfFunnel:
+ *  - no_crm/trat/prop → criadas no período (CreatedDate)
+ *  - ganho/perdido    → mudança de fase no período (LastStageChangeDate)
+ * Retorna null se a fonte falhar.
+ */
+export async function sfOpportunities(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante,
+  stage: FunnelDrillKey,
+  fresh = false,
+): Promise<OpportunityRow[] | null> {
+  return cached(
+    `sfOpps:${stage}:${platform}:${contratante}:${dateFrom}:${dateTo}`,
+    () => sfOpportunitiesUncached(dateFrom, dateTo, platform, contratante, stage),
+    { fresh },
+  );
+}
+
+async function sfOpportunitiesUncached(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante,
+  stage: FunnelDrillKey,
+): Promise<OpportunityRow[] | null> {
+  const utmf = UTM_FILTER[platform] ?? UTM_FILTER.all;
+  const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
+  const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
+  const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
+  const quote = (set: Set<string>) => [...set].map((s) => `'${s}'`).join(",");
+
+  let where: string;
+  let orderField: string;
+  switch (stage) {
+    case "trat":
+      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} AND StageName IN (${quote(EM_TRATAMENTO_STAGES)})`;
+      orderField = "CreatedDate";
+      break;
+    case "prop":
+      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} AND StageName IN (${quote(PROPOSTA_STAGES)})`;
+      orderField = "CreatedDate";
+      break;
+    case "ganho":
+      where = `${WON_CLAUSE} AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs}`;
+      orderField = "LastStageChangeDate";
+      break;
+    case "perdido":
+      where = `StageName = '${LOST_STAGE}' AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs}`;
+      orderField = "LastStageChangeDate";
+      break;
+    case "no_crm":
+    default:
+      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs}`;
+      orderField = "CreatedDate";
+      break;
+  }
+
+  const soql =
+    `SELECT Id, Account.Name, Name, StageName, Email_Lead__c, UtmSou__c FROM Opportunity ` +
+    `WHERE ${where} ${utmf} ${tipf} ` +
+    `ORDER BY ${orderField} DESC LIMIT ${OPP_DRILL_LIMIT}`;
+
+  const res = await sfQuery(soql);
+  if (res === null) return null;
+
+  return ((res.records ?? []) as SfOppRecord[]).map((r, i) => ({
+    id: r.Id ?? `opp_${i}`,
+    account: r.Account?.Name ?? "—",
+    email: r.Email_Lead__c ?? "",
+    source: r.UtmSou__c ?? "",
+    name: r.Name ?? "",
+    stage: r.StageName ?? "",
+  }));
 }
 
 export async function sfPing(): Promise<boolean> {

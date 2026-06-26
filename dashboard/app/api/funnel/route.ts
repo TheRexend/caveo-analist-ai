@@ -5,7 +5,7 @@ import { metaInsights, leadsFromActions } from "@/lib/integrations/meta";
 import { googleCampaigns } from "@/lib/integrations/google";
 import { sfFunnel } from "@/lib/integrations/salesforce";
 import { mockDays, aggMock } from "@/lib/mock";
-import type { FunnelData, Platform } from "@/lib/types";
+import type { Contratante, FunnelData, Platform } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,14 +16,15 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
   const platform = (sp.get("platform") ?? "all") as Platform;
+  const contratante = (sp.get("contratante") ?? "all") as Contratante;
 
   const metaRows =
     META.token && (platform === "all" || platform === "meta")
-      ? await metaInsights(dateFrom, dateTo)
+      ? await metaInsights(dateFrom, dateTo, contratante)
       : [];
   const gadsResp =
     GOOGLE.devToken && (platform === "all" || platform === "google")
-      ? await googleCampaigns(dateFrom, dateTo)
+      ? await googleCampaigns(dateFrom, dateTo, contratante)
       : null;
 
   const metaLeads = metaRows.reduce((s, r) => s + leadsFromActions(r.actions), 0);
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(out);
   }
 
-  const sf = await sfFunnel(dateFrom, dateTo, platform);
+  const sf = await sfFunnel(dateFrom, dateTo, platform, contratante);
 
   const out: FunnelData = {
     lead_novo: leadNovo,

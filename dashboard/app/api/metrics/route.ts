@@ -5,7 +5,7 @@ import { metaInsights, leadsFromActions } from "@/lib/integrations/meta";
 import { googleCampaigns } from "@/lib/integrations/google";
 import { sfFunnel } from "@/lib/integrations/salesforce";
 import { mockDays, aggMock } from "@/lib/mock";
-import type { Metrics, Platform } from "@/lib/types";
+import type { Contratante, Metrics, Platform } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,14 +16,15 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
   const platform = (sp.get("platform") ?? "all") as Platform;
+  const contratante = (sp.get("contratante") ?? "all") as Contratante;
 
   const metaRows =
     META.token && (platform === "all" || platform === "meta")
-      ? await metaInsights(dateFrom, dateTo)
+      ? await metaInsights(dateFrom, dateTo, contratante)
       : [];
   const gadsResp =
     GOOGLE.devToken && (platform === "all" || platform === "google")
-      ? await googleCampaigns(dateFrom, dateTo)
+      ? await googleCampaigns(dateFrom, dateTo, contratante)
       : null;
 
   const metaInvest = metaRows.reduce((s, r) => s + Number(r.spend ?? 0), 0);
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
     leads = gadsLeads;
   }
 
-  const sf = await sfFunnel(dateFrom, dateTo, platform);
+  const sf = await sfFunnel(dateFrom, dateTo, platform, contratante);
   const oport = sf?.no_crm ?? 0;
   const ganho = sf?.ganho ?? 0;
   const lost = sf?.perdido ?? 0;

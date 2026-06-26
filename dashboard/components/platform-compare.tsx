@@ -1,9 +1,8 @@
 "use client";
-import { memo, useEffect, useState } from "react";
+import { memo } from "react";
 import { GitCompareArrows } from "lucide-react";
-import { fetchMetrics } from "@/lib/api-client";
 import { fmtBRL, fmtNum } from "@/lib/format";
-import type { Metrics } from "@/lib/types";
+import type { Metrics, PlatformCompareData } from "@/lib/types";
 
 type Row = { key: keyof Metrics; label: string; fmt: (v: number) => string; lowerBetter?: boolean };
 
@@ -27,31 +26,15 @@ function Bar({ side, value, max, label }: { side: "meta" | "google"; value: numb
   );
 }
 
-function PlatformCompareBase({ from, to }: { from: string; to: string }) {
-  const [meta, setMeta] = useState<Metrics | null>(null);
-  const [google, setGoogle] = useState<Metrics | null>(null);
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    Promise.all([
-      fetchMetrics("meta", from, to, ctrl.signal),
-      fetchMetrics("google", from, to, ctrl.signal),
-    ])
-      .then(([m, g]) => {
-        setMeta(m);
-        setGoogle(g);
-      })
-      .catch(() => {});
-    return () => ctrl.abort();
-  }, [from, to]);
-
-  if (!meta || !google) {
+function PlatformCompareBase({ data }: { data: PlatformCompareData | null }) {
+  if (!data) {
     return (
       <section className="panel">
         <div className="loading-shimmer" style={{ height: 140, borderRadius: 10 }} />
       </section>
     );
   }
+  const { meta, google } = data;
 
   return (
     <section className="panel">

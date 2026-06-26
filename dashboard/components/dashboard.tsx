@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Coins, Filter, Repeat, Target, TrendingDown, Trophy, Users, Wallet,
 } from "lucide-react";
@@ -7,27 +7,35 @@ import { TopBar } from "@/components/top-bar";
 import { KpiCard } from "@/components/kpi-card";
 import { Funnel, type FunnelStage } from "@/components/funnel";
 import { TimelineChart } from "@/components/timeline-chart";
+import { OpportunitiesChart } from "@/components/opportunities-chart";
 import { CampaignsTable } from "@/components/campaigns-table";
+import { OpportunitiesTable } from "@/components/opportunities-table";
 import { PlatformCompare } from "@/components/platform-compare";
 import { EfficiencyScatter } from "@/components/efficiency-scatter";
 import { GoalsDialog } from "@/components/goals-dialog";
 import {
-  fetchCampaigns, fetchDashboard, fetchGoals, fetchMetrics, saveGoals as apiSaveGoals,
+  fetchDashboardAll, fetchGoals, fetchOpportunities, saveGoals as apiSaveGoals,
 } from "@/lib/api-client";
 import { daysBetween } from "@/lib/dates";
 import { convStatus, fmtMonth, isFullMonth, monthKey, prorateGoal } from "@/lib/format";
 import { useTheme } from "@/lib/use-theme";
 import type {
-  Campaign, FunnelData, Goals, Metrics, Platform, TimelineDay,
+  Campaign, Contratante, DailyFunnelPoint, FunnelData, FunnelDrillKey, Goals, Metrics,
+  OpportunityRow, Platform, PlatformCompareData, TimelineDay,
 } from "@/lib/types";
+
+const STAGE_LABEL: Record<string, string> = {
+  no_crm: "Oportunidades", trat: "Em Tratamento", prop: "Proposta",
+  ganho: "Fechado Ganho", perdido: "Oportunidades perdidas",
+};
 
 type DataMode = "live" | "mock" | "loading";
 
 const pad = (n: number) => String(n).padStart(2, "0");
-const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; defaultTo: string }) {
   const [platform, setPlatform] = useState<Platform>("all");
+  const [contratante, setContratante] = useState<Contratante>("all");
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(defaultTo);
   const [search, setSearch] = useState("");
@@ -36,12 +44,20 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
   const [dataMode, setDataMode] = useState<DataMode>("loading");
   const [refreshKey, setRefreshKey] = useState(0);
   const [theme, toggleTheme] = useTheme();
+  const freshRef = useRef(false);
 
   const [k, setK] = useState<Metrics | null>(null);
   const [kPrev, setKPrev] = useState<Metrics | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [timelineDays, setTimelineDays] = useState<TimelineDay[]>([]);
+  const [dailyFunnel, setDailyFunnel] = useState<DailyFunnelPoint[]>([]);
   const [funnelRaw, setFunnelRaw] = useState<FunnelData | null>(null);
+  const [platformCompareData, setPlatformCompareData] = useState<PlatformCompareData | null>(null);
+
+  // Drill-down de oportunidades (clique num estágio do funil).
+  const [selectedStage, setSelectedStage] = useState<FunnelDrillKey | null>(null);
+  const [oppRows, setOppRows] = useState<OpportunityRow[]>([]);
+  const [oppLoading, setOppLoading] = useState(false);
 
   const mKey = monthKey(dateTo);
   const monthGoals = goalsByMonth[mKey] ?? {};
@@ -60,48 +76,31 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
     return out;
   }, [dateFrom, dateTo]);
 
-  // Período anterior equivalente (mesmo nº de dias imediatamente antes).
-  const prevRange = useMemo(() => {
-    const len = daysBetween(dateFrom, dateTo);
-    const prevTo = new Date(dateFrom + "T00:00:00");
-    prevTo.setDate(prevTo.getDate() - 1);
-    const prevFrom = new Date(prevTo);
-    prevFrom.setDate(prevFrom.getDate() - (len - 1));
-    return { from: isoOf(prevFrom), to: isoOf(prevTo) };
-  }, [dateFrom, dateTo]);
-
-  // ── Fetch principal (métricas, timeline, funil) ──────────────────────
+  // ── Fetch consolidado (uma requisição = todo o dashboard) ────────────
   useEffect(() => {
     const ctrl = new AbortController();
     setDataMode("loading");
+    const fresh = freshRef.current;
+    freshRef.current = false;
 
-    fetchDashboard(platform, dateFrom, dateTo, mKey, ctrl.signal)
-      .then(({ metrics, timeline, funnel }) => {
+    fetchDashboardAll(platform, dateFrom, dateTo, contratante, fresh, ctrl.signal)
+      .then((d) => {
         if (ctrl.signal.aborted) return;
-        setK(metrics);
-        setTimelineDays(timeline);
-        setFunnelRaw(funnel);
-        setDataMode(metrics._mock ? "mock" : "live");
+        setK(d.metrics);
+        setKPrev(d.metricsPrev);
+        setFunnelRaw(d.funnel);
+        setTimelineDays(d.timeline);
+        setDailyFunnel(d.dailyFunnel);
+        setCampaigns(d.campaigns);
+        setPlatformCompareData(d.platformCompare ?? null);
+        setDataMode(d._mock ? "mock" : "live");
       })
       .catch(() => {
         if (!ctrl.signal.aborted) setDataMode("mock");
       });
 
-    fetchCampaigns(platform, dateFrom, dateTo, ctrl.signal)
-      .then((c) => !ctrl.signal.aborted && setCampaigns(c))
-      .catch(() => !ctrl.signal.aborted && setCampaigns([]));
-
     return () => ctrl.abort();
-  }, [platform, dateFrom, dateTo, mKey, refreshKey]);
-
-  // ── Métricas do período anterior (deltas) ────────────────────────────
-  useEffect(() => {
-    const ctrl = new AbortController();
-    fetchMetrics(platform, prevRange.from, prevRange.to, ctrl.signal)
-      .then((m) => !ctrl.signal.aborted && setKPrev(m))
-      .catch(() => !ctrl.signal.aborted && setKPrev(null));
-    return () => ctrl.abort();
-  }, [platform, prevRange, refreshKey]);
+  }, [platform, contratante, dateFrom, dateTo, refreshKey]);
 
   // ── Fetch de metas de todos os meses do intervalo ────────────────────
   useEffect(() => {
@@ -134,6 +133,37 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
     },
     [mKey],
   );
+
+  const handleRefresh = useCallback(() => {
+    freshRef.current = true;
+    setRefreshKey((x) => x + 1);
+  }, []);
+
+  // Alterna o estágio selecionado (clicar de novo no mesmo fecha a tabela).
+  const handleStageClick = useCallback((key: string) => {
+    setSelectedStage((prev) => (prev === key ? null : (key as FunnelDrillKey)));
+  }, []);
+
+  // ── Fetch do drill-down quando há estágio selecionado (segue os filtros) ──
+  useEffect(() => {
+    // Tabela desmonta quando não há estágio; não é preciso limpar as linhas aqui.
+    if (!selectedStage) return;
+    const ctrl = new AbortController();
+    setOppLoading(true);
+    fetchOpportunities(platform, dateFrom, dateTo, contratante, selectedStage, ctrl.signal)
+      .then((rows) => {
+        if (ctrl.signal.aborted) return;
+        setOppRows(rows);
+        setOppLoading(false);
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) {
+          setOppRows([]);
+          setOppLoading(false);
+        }
+      });
+    return () => ctrl.abort();
+  }, [selectedStage, platform, contratante, dateFrom, dateTo, refreshKey]);
 
   // ── Metas resolvidas: volume pró-rateado, taxa/custo mensal fixa ──────
   const volGoal = useCallback(
@@ -205,11 +235,13 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
       <TopBar
         platform={platform}
         onPlatform={setPlatform}
+        contratante={contratante}
+        onContratante={setContratante}
         dateFrom={dateFrom}
         dateTo={dateTo}
         onDates={(f, t) => { setDateFrom(f); setDateTo(t); }}
         onOpenGoals={() => setGoalsOpen(true)}
-        onRefresh={() => setRefreshKey((x) => x + 1)}
+        onRefresh={handleRefresh}
         currentMonthLabel={fmtMonth(mKey).replace(" de ", "/")}
         dataMode={dataMode}
         theme={theme}
@@ -254,15 +286,31 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
                 <div>
                   <h3 className="section-title"><Filter size={13} /> Funil de conversão</h3>
                   <div className="section-sub" style={{ marginTop: 3 }}>
-                    Lead Novo → Oportunidades → Em Tratamento → Proposta → Fechado Ganho · fechamentos contados por data de mudança de fase
+                    Lead Novo → Oportunidades → Em Tratamento → Proposta → Fechado Ganho · clique num estágio para listar as oportunidades
                   </div>
                 </div>
                 <span className="section-sub">Fonte · Salesforce + UTM por plataforma</span>
               </div>
-              <Funnel stages={funnelStages} lost={k.oport_perdidas} totalInvest={k.invest} />
+              <Funnel
+                stages={funnelStages}
+                lost={k.oport_perdidas}
+                totalInvest={k.invest}
+                onStageClick={handleStageClick}
+                selectedStage={selectedStage}
+              />
+              {selectedStage && (
+                <OpportunitiesTable
+                  rows={oppRows}
+                  loading={oppLoading}
+                  stageLabel={STAGE_LABEL[selectedStage] ?? selectedStage}
+                  onClose={() => setSelectedStage(null)}
+                />
+              )}
             </section>
 
-            {platform === "all" && <PlatformCompare from={dateFrom} to={dateTo} />}
+            <OpportunitiesChart days={dailyFunnel} platform={platform} contratante={contratante} />
+
+            {platform === "all" && <PlatformCompare data={platformCompareData} />}
 
             <TimelineChart days={timelineDays} platform={platform} />
 

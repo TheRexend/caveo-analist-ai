@@ -2,6 +2,14 @@
 
 export type Platform = "all" | "meta" | "google";
 
+/**
+ * Segmento de público (campo Salesforce TipCte__c + nomenclatura de campanhas):
+ *  - "all" → Ambos (Recém-Formado + Médicos Maduros; exclui Revalida/sem classificação)
+ *  - "rf"  → Recém-Formado (TipCte__c em Formando/Médico)
+ *  - "mm"  → Médicos Maduros (TipCte__c = "Médicos Maduros")
+ */
+export type Contratante = "all" | "rf" | "mm";
+
 export interface Metrics {
   invest: number;
   leads: number;
@@ -59,6 +67,46 @@ export interface TimelineDay {
   date: string;
   google: DaySource;
   meta: DaySource;
+}
+
+/** Ponto diário do funil Salesforce: oportunidades criadas e fechamentos no dia. */
+export interface DailyFunnelPoint {
+  date: string;
+  oport: number;
+  ganho: number;
+}
+
+/** Estágios do funil com drill-down de oportunidades (lista, não só contagem). */
+export type FunnelDrillKey = "no_crm" | "trat" | "prop" | "ganho" | "perdido";
+
+/** Linha da tabela de drill-down de oportunidades (clique num estágio do funil). */
+export interface OpportunityRow {
+  id: string;
+  account: string;
+  email: string;
+  /** UtmSou__c — origem de UTM da oportunidade. */
+  source: string;
+  name: string;
+  stage: string;
+}
+
+/** Métricas de cada plataforma para o comparativo Meta × Google. */
+export interface PlatformCompareData {
+  meta: Metrics;
+  google: Metrics;
+}
+
+/** Payload consolidado do endpoint /api/dashboard (uma resposta = todo o dashboard). */
+export interface DashboardPayload {
+  metrics: Metrics;
+  metricsPrev: Metrics;
+  funnel: FunnelData;
+  timeline: TimelineDay[];
+  dailyFunnel: DailyFunnelPoint[];
+  campaigns: Campaign[];
+  /** Presente apenas quando platform === "all". */
+  platformCompare?: PlatformCompareData;
+  _mock: boolean;
 }
 
 export type Goals = Record<string, number>;

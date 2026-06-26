@@ -3,7 +3,17 @@
 // POST googleAds:searchStream com headers developer-token + login-customer-id.
 import "server-only";
 import { GOOGLE } from "@/lib/env";
-import type { DaySource } from "@/lib/types";
+import { cached } from "@/lib/cache";
+import type { Contratante, DaySource } from "@/lib/types";
+
+// Filtro GAQL de nome de campanha por contratante:
+//  all → sem filtro (todas as campanhas); mm/rf → segmento + Institucional (compartilhada).
+//  Brackets em GAQL LIKE são literais (padrão já usado na conta).
+function nameFilter(contratante: Contratante): string {
+  if (contratante === "mm") return `AND (campaign.name LIKE '%[MM]%' OR campaign.name LIKE '%Institucional%')`;
+  if (contratante === "rf") return `AND (campaign.name LIKE '%[RF]%' OR campaign.name LIKE '%Institucional%')`;
+  return "";
+}
 
 let _accessToken: string | null = null;
 let _tokenExpiry = 0;
@@ -109,12 +119,26 @@ export interface GoogleCampaignsResult {
   }>;
 }
 
-/** Campanhas com custo > 0 no período. Retorna null se não há credenciais. */
+/** Campanhas com custo > 0 no período (filtradas por contratante). Retorna null se não há credenciais. */
 export async function googleCampaigns(
   dateFrom: string,
   dateTo: string,
+  contratante: Contratante = "all",
+  fresh = false,
 ): Promise<GoogleCampaignsResult | null> {
   if (!GOOGLE.devToken || !GOOGLE.creds.refresh_token) return null;
+  return cached(
+    `googleCampaigns:${contratante}:${dateFrom}:${dateTo}`,
+    () => googleCampaignsUncached(dateFrom, dateTo, contratante),
+    { fresh },
+  );
+}
+
+async function googleCampaignsUncached(
+  dateFrom: string,
+  dateTo: string,
+  contratante: Contratante,
+): Promise<GoogleCampaignsResult | null> {
   const gaql = `
     SELECT
       campaign.id, campaign.name,
@@ -123,7 +147,7 @@ export async function googleCampaigns(
     FROM campaign
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
       AND metrics.cost_micros > 0
-      AND campaign.name LIKE '%[LEADS]%'
+      ${nameFilter(contratante)}
   `.trim();
   const rows = await gaqlSearchStream(gaql);
   return {
@@ -145,15 +169,30 @@ export async function googleCampaigns(
 export async function googleDaily(
   dateFrom: string,
   dateTo: string,
+  contratante: Contratante = "all",
+  fresh = false,
 ): Promise<Record<string, DaySource>> {
   if (!GOOGLE.devToken || !GOOGLE.creds.refresh_token) return {};
+  return cached(
+    `googleDaily:${contratante}:${dateFrom}:${dateTo}`,
+    () => googleDailyUncached(dateFrom, dateTo, contratante),
+    { fresh },
+  );
+}
+
+async function googleDailyUncached(
+  dateFrom: string,
+  dateTo: string,
+  contratante: Contratante,
+): Promise<Record<string, DaySource>> {
   const gaql = `
     SELECT segments.date,
            metrics.cost_micros, metrics.impressions,
            metrics.clicks, metrics.conversions
     FROM campaign
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
-      AND campaign.name LIKE '%[LEADS]%'
+      AND metrics.cost_micros > 0
+      ${nameFilter(contratante)}
   `.trim();
   const rows = await gaqlSearchStream(gaql);
   const byDate: Record<string, DaySource> = {};
