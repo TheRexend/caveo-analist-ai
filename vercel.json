@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm -C dashboard build",
+  "installCommand": "pnpm -C dashboard install",
+  "outputDirectory": "dashboard/.next",
+  "framework": "nextjs"
+}

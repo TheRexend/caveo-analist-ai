@@ -27,7 +27,7 @@ Em **Project Settings → Environment Variables**, configure todas as chaves do
 
 ## 3. Configuração do projeto
 
-- **Root Directory**: `dashboard-next`
+- **Root Directory**: `dashboard`
 - **Framework Preset**: Next.js (detectado automaticamente)
 - **Build Command**: `next build` (padrão)
 - **Install Command**: `pnpm install` (padrão)
