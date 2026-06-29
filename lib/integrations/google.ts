@@ -67,39 +67,49 @@ interface GoogleRow {
   segments?: { date?: string };
 }
 
-interface SearchStreamBatch {
+interface SearchPage {
   results?: GoogleRow[];
+  nextPageToken?: string;
 }
 
-async function gaqlSearchStream(query: string): Promise<GoogleRow[]> {
+// Usa googleAds:search (paginado, JSON limpo) em vez de searchStream
+// (que retorna NDJSON e falha com res.json()).
+async function gaqlSearch(query: string): Promise<GoogleRow[]> {
   const token = await googleAccessToken();
   if (!token || !GOOGLE.devToken) return [];
 
-  const url = `https://googleads.googleapis.com/${GOOGLE.apiVersion}/customers/${GOOGLE.targetCustomerId}/googleAds:searchStream`;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "developer-token": GOOGLE.devToken,
-        "login-customer-id": GOOGLE.loginCustomerId,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
-    });
-    if (!res.ok) {
-      console.error("[Google] searchStream falhou:", res.status, await res.text());
-      return [];
+  const url = `https://googleads.googleapis.com/${GOOGLE.apiVersion}/customers/${GOOGLE.targetCustomerId}/googleAds:search`;
+  const rows: GoogleRow[] = [];
+  let nextPageToken: string | undefined;
+
+  do {
+    try {
+      const body: Record<string, unknown> = { query, pageSize: 10000 };
+      if (nextPageToken) body.pageToken = nextPageToken;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "developer-token": GOOGLE.devToken,
+          "login-customer-id": GOOGLE.loginCustomerId,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        console.error("[Google] search falhou:", res.status, await res.text());
+        break;
+      }
+      const page = (await res.json()) as SearchPage;
+      rows.push(...(page.results ?? []));
+      nextPageToken = page.nextPageToken;
+    } catch (e) {
+      console.error("[Google] erro na query:", e);
+      break;
     }
-    // searchStream devolve um array de batches { results: [...] }
-    const batches = (await res.json()) as SearchStreamBatch[];
-    const rows: GoogleRow[] = [];
-    for (const b of batches) rows.push(...(b.results ?? []));
-    return rows;
-  } catch (e) {
-    console.error("[Google] erro na query:", e);
-    return [];
-  }
+  } while (nextPageToken);
+
+  return rows;
 }
 
 const n = (v: string | number | undefined): number =>
@@ -149,7 +159,7 @@ async function googleCampaignsUncached(
       AND metrics.cost_micros > 0
       ${nameFilter(contratante)}
   `.trim();
-  const rows = await gaqlSearchStream(gaql);
+  const rows = await gaqlSearch(gaql);
   return {
     results: rows.map((r) => ({
       campaign: { id: r.campaign?.id ?? "?", name: r.campaign?.name ?? "" },
@@ -194,7 +204,7 @@ async function googleDailyUncached(
       AND metrics.cost_micros > 0
       ${nameFilter(contratante)}
   `.trim();
-  const rows = await gaqlSearchStream(gaql);
+  const rows = await gaqlSearch(gaql);
   const byDate: Record<string, DaySource> = {};
   for (const r of rows) {
     const d = r.segments?.date;
