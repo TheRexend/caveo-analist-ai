@@ -6,13 +6,14 @@ import { GOOGLE } from "@/lib/env";
 import { cached } from "@/lib/cache";
 import type { Contratante, DaySource } from "@/lib/types";
 
-// Filtro GAQL de nome de campanha por contratante:
-//  all → sem filtro (todas as campanhas); mm/rf → segmento + Institucional (compartilhada).
-//  Brackets em GAQL LIKE são literais (padrão já usado na conta).
-function nameFilter(contratante: Contratante): string {
-  if (contratante === "mm") return `AND (campaign.name LIKE '%[MM]%' OR campaign.name LIKE '%Institucional%')`;
-  if (contratante === "rf") return `AND (campaign.name LIKE '%[RF]%' OR campaign.name LIKE '%Institucional%')`;
-  return "";
+// GAQL não suporta parênteses no WHERE nem OR agrupado — filtro de nome feito em JS após o fetch.
+// Brackets são literais nos nomes das campanhas.
+function matchesContratante(name: string, contratante: Contratante): boolean {
+  if (contratante === "all") return true;
+  const n = name.toLowerCase();
+  if (contratante === "mm") return n.includes("[mm]") || n.includes("institucional");
+  if (contratante === "rf") return n.includes("[rf]") || n.includes("institucional");
+  return true;
 }
 
 let _accessToken: string | null = null;
@@ -84,7 +85,7 @@ async function gaqlSearch(query: string): Promise<GoogleRow[]> {
 
   do {
     try {
-      const body: Record<string, unknown> = { query, pageSize: 10000 };
+      const body: Record<string, unknown> = { query };
       if (nextPageToken) body.pageToken = nextPageToken;
       const res = await fetch(url, {
         method: "POST",
@@ -157,21 +158,22 @@ async function googleCampaignsUncached(
     FROM campaign
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
       AND metrics.cost_micros > 0
-      ${nameFilter(contratante)}
   `.trim();
   const rows = await gaqlSearch(gaql);
   return {
-    results: rows.map((r) => ({
-      campaign: { id: r.campaign?.id ?? "?", name: r.campaign?.name ?? "" },
-      metrics: {
-        costMicros: n(r.metrics?.costMicros),
-        impressions: n(r.metrics?.impressions),
-        clicks: n(r.metrics?.clicks),
-        ctr: n(r.metrics?.ctr),
-        averageCpc: n(r.metrics?.averageCpc),
-        conversions: n(r.metrics?.conversions),
-      },
-    })),
+    results: rows
+      .filter((r) => matchesContratante(r.campaign?.name ?? "", contratante))
+      .map((r) => ({
+        campaign: { id: r.campaign?.id ?? "?", name: r.campaign?.name ?? "" },
+        metrics: {
+          costMicros: n(r.metrics?.costMicros),
+          impressions: n(r.metrics?.impressions),
+          clicks: n(r.metrics?.clicks),
+          ctr: n(r.metrics?.ctr),
+          averageCpc: n(r.metrics?.averageCpc),
+          conversions: n(r.metrics?.conversions),
+        },
+      })),
   };
 }
 
@@ -196,15 +198,15 @@ async function googleDailyUncached(
   contratante: Contratante,
 ): Promise<Record<string, DaySource>> {
   const gaql = `
-    SELECT segments.date,
+    SELECT campaign.name, segments.date,
            metrics.cost_micros, metrics.impressions,
            metrics.clicks, metrics.conversions
     FROM campaign
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
       AND metrics.cost_micros > 0
-      ${nameFilter(contratante)}
   `.trim();
-  const rows = await gaqlSearch(gaql);
+  const allRows = await gaqlSearch(gaql);
+  const rows = allRows.filter((r) => matchesContratante(r.campaign?.name ?? "", contratante));
   const byDate: Record<string, DaySource> = {};
   for (const r of rows) {
     const d = r.segments?.date;
