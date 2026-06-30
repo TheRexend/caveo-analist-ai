@@ -2,7 +2,7 @@
 // Camada de fetch tipada (client-side) com timeout, abort e fallback mock.
 import type {
   Campaign, Contratante, DashboardPayload, FunnelData, FunnelDrillKey, Goals,
-  Metrics, OpportunityRow, Platform, TimelineDay,
+  HealthPayload, Metrics, OpportunityRow, Platform, TimelineDay,
 } from "@/lib/types";
 
 /** GET JSON com timeout próprio + cancelamento via AbortSignal externo. */
@@ -98,6 +98,11 @@ export function fetchOpportunities(
 
 export function fetchGoals(month: string, signal?: AbortSignal): Promise<Goals> {
   return getJSON<Goals>(`/api/goals?month=${month}`, 10000, signal);
+}
+
+/** Status (ping) de cada integração externa para os indicadores de saúde. */
+export function fetchHealth(signal?: AbortSignal): Promise<HealthPayload> {
+  return getJSON<HealthPayload>(`/api/health`, 15000, signal);
 }
 
 export async function saveGoals(month: string, goals: Partial<Goals>): Promise<void> {

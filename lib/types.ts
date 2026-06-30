@@ -124,3 +124,19 @@ export interface DashboardPayload {
 }
 
 export type Goals = Record<string, number>;
+
+/** Health-check de uma integração externa. */
+export type HealthStatus = "ok" | "down" | "no_creds";
+export interface ServiceHealth {
+  status: HealthStatus;
+  /** Latência do ping em ms; null quando não checado (sem credenciais). */
+  latencyMs: number | null;
+}
+
+/** Payload do endpoint /api/health: status por integração. */
+export interface HealthPayload {
+  google: ServiceHealth;
+  meta: ServiceHealth;
+  salesforce: ServiceHealth;
+  checkedAt: string;
+}

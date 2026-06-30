@@ -1,7 +1,8 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Moon, RefreshCw, Settings2, Sun } from "lucide-react";
+import { Check, ChevronDown, Moon, MoreHorizontal, RefreshCw, Sun, Target, Users } from "lucide-react";
 import { DateRangePicker } from "@/components/date-range-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Theme } from "@/lib/use-theme";
 import type { Contratante, Platform } from "@/lib/types";
 
@@ -38,7 +39,7 @@ interface SegOption<T extends string> {
   ariaLabel?: string;
 }
 
-/** Segmented control com indicador deslizante (reusado p/ plataforma e contratante). */
+/** Segmented control com indicador deslizante (usado para a plataforma). */
 function Segmented<T extends string>({
   value, options, onChange, ariaLabel,
 }: {
@@ -81,6 +82,44 @@ function Segmented<T extends string>({
   );
 }
 
+/** Dropdown de seleção única no estilo Caveo (usado para o público/contratante). */
+function FilterDropdown<T extends string>({
+  value, options, onChange, ariaLabel, icon: Icon,
+}: {
+  value: T;
+  options: SegOption<T>[];
+  onChange: (v: T) => void;
+  ariaLabel: string;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.val === value) ?? options[0];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className="filter-dd-trigger" aria-label={ariaLabel}>
+        {Icon && <Icon size={14} className="filter-dd-icon" />}
+        {current.dot && <span className="seg-dot" style={{ background: current.dot }} />}
+        <span className="filter-dd-label">{current.label}</span>
+        <ChevronDown size={12} className="filter-dd-chevron" />
+      </PopoverTrigger>
+      <PopoverContent className="w-auto! p-1! gap-0! filter-dd-popup" align="start" sideOffset={6}>
+        {options.map((o) => (
+          <button
+            key={o.val}
+            className={`filter-dd-item${o.val === value ? " is-active" : ""}`}
+            onClick={() => { onChange(o.val); setOpen(false); }}
+          >
+            {o.dot && <span className="seg-dot" style={{ background: o.dot }} />}
+            <span className="filter-dd-item-label">{o.label}</span>
+            {o.val === value && <Check size={14} className="filter-dd-check" />}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const PLATFORM_OPTS: SegOption<Platform>[] = [
   { val: "all", label: "Todas", ariaLabel: "Todas as plataformas" },
   { val: "google", label: "Google Ads", dot: "var(--c-google)" },
@@ -97,6 +136,8 @@ export function TopBar({
   platform, onPlatform, contratante, onContratante, cruzamento, onCruzamento,
   dateFrom, dateTo, onDates, onOpenGoals, onRefresh, currentMonthLabel, dataMode, theme, onToggleTheme,
 }: TopBarProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <header className="topbar">
       <div className="brand">
@@ -112,7 +153,13 @@ export function TopBar({
 
       <div className="topbar-controls">
         <Segmented<Platform> value={platform} options={PLATFORM_OPTS} onChange={onPlatform} ariaLabel="Filtro de plataforma" />
-        <Segmented<Contratante> value={contratante} options={CONTRATANTE_OPTS} onChange={onContratante} ariaLabel="Filtro de público / contratante" />
+        <FilterDropdown<Contratante>
+          value={contratante}
+          options={CONTRATANTE_OPTS}
+          onChange={onContratante}
+          ariaLabel="Filtro de público / contratante"
+          icon={Users}
+        />
 
         <label
           className={`toggle toggle-cruzamento${cruzamento ? " on" : ""}`}
@@ -130,23 +177,32 @@ export function TopBar({
 
         <DateRangePicker dateFrom={dateFrom} dateTo={dateTo} onDates={onDates} />
 
-        <button className="btn" onClick={onOpenGoals}>
-          <Settings2 size={14} />
-          Metas de {currentMonthLabel}
-        </button>
-
-        <button
-          className="btn-icon"
-          title={theme === "dark" ? "Tema claro" : "Tema escuro"}
-          aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
-          onClick={onToggleTheme}
-        >
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
-
         <button className="btn-icon" title="Atualizar dados" aria-label="Atualizar dados" onClick={onRefresh}>
           <RefreshCw size={15} className={dataMode === "loading" ? "animate-spin" : ""} />
         </button>
+
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger className="btn-icon" title="Opções" aria-label="Mais opções">
+            <MoreHorizontal size={15} />
+          </PopoverTrigger>
+          <PopoverContent className="w-auto! p-1! gap-0! topbar-menu" align="end" sideOffset={6}>
+            <button
+              className="topbar-menu-item"
+              onClick={() => { onOpenGoals(); setMenuOpen(false); }}
+            >
+              <Target size={14} className="topbar-menu-icon" />
+              <span>Metas de {currentMonthLabel}</span>
+            </button>
+            <div className="topbar-menu-sep" />
+            <button
+              className="topbar-menu-item"
+              onClick={onToggleTheme}
+            >
+              {theme === "dark" ? <Sun size={14} className="topbar-menu-icon" /> : <Moon size={14} className="topbar-menu-icon" />}
+              <span>{theme === "dark" ? "Tema claro" : "Tema escuro"}</span>
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
   );

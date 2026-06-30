@@ -13,6 +13,7 @@ import { OpportunitiesTable } from "@/components/opportunities-table";
 import { PlatformCompare } from "@/components/platform-compare";
 import { EfficiencyScatter } from "@/components/efficiency-scatter";
 import { GoalsDialog } from "@/components/goals-dialog";
+import { HealthIndicators } from "@/components/health-indicators";
 import {
   fetchDashboardAll, fetchGoals, fetchOpportunities, saveGoals as apiSaveGoals,
 } from "@/lib/api-client";
@@ -268,9 +269,12 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         ) : (
           <>
             <div className="section-head">
-              <h2 className="section-title">
-                <Target size={14} /> Visão geral · {dayCount} dias do período
-              </h2>
+              <div className="section-head-left">
+                <h2 className="section-title">
+                  <Target size={14} /> Visão geral · {dayCount} dias do período
+                </h2>
+                <HealthIndicators refreshKey={refreshKey} />
+              </div>
               <span className="section-sub">
                 {dataMode === "live" ? "Dados em tempo real via API" : dataMode === "mock" ? "Dados mockados · configure credenciais" : "Carregando…"}
               </span>
