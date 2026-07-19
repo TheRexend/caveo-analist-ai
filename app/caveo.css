@@ -656,3 +656,55 @@ tr:hover .expander { color: var(--c-text); }
 .health-loading .health-dot { background: var(--c-warning); animation: health-pulse 1s ease-in-out infinite; }
 
 @keyframes health-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* === Abas (Mídia+Funil / Sítio·GA4) === */
+.tab-bar { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--c-border); }
+.tab {
+  appearance: none; background: none; border: none; padding: 9px 16px;
+  font-size: 13px; font-weight: 500; color: var(--c-text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s ease;
+}
+.tab:hover { color: var(--c-text); }
+.tab.active { color: var(--c-accent-text); border-bottom-color: var(--c-accent); }
+
+/* === GA4: barras de canal + tabelas === */
+.ga4-bar-track { height: 8px; background: var(--c-surface-muted); border-radius: 999px; overflow: hidden; }
+.ga4-bar-fill { display: block; height: 100%; background: var(--c-accent); border-radius: 999px; transition: width 0.4s ease; }
+
+.ga4-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ga4-table th {
+  text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--c-text-faint); padding: 6px 10px; border-bottom: 1px solid var(--c-border);
+}
+.ga4-table td { padding: 7px 10px; border-bottom: 1px solid var(--c-border); color: var(--c-text); }
+.ga4-table th:not(:first-child), .ga4-table td:not(:first-child) { text-align: right; }
+.ga4-table tbody tr:last-child td { border-bottom: none; }
+
+/* === Alertas de anomalia === */
+.anomaly-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding: 10px 14px; margin-bottom: 14px;
+  background: var(--c-danger-soft); border: 1px solid var(--c-danger);
+  border-radius: var(--c-radius-md); font-size: 13px;
+}
+.anomaly-icon { color: var(--c-danger); display: inline-flex; }
+.anomaly-title { font-weight: 600; color: var(--c-text); }
+.anomaly-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.anomaly-chip {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--c-text-muted);
+}
+.anomaly-chip b { color: var(--c-danger); }
+
+/* === Google Marca × Não-marca === */
+.bnb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bnb-col {
+  background: var(--c-surface-muted); border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-md); padding: 14px 16px;
+}
+.bnb-col-title {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--c-text-muted); margin-bottom: 10px;
+}
+.bnb-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; color: var(--c-text-muted); }
+.bnb-row b { color: var(--c-text); }

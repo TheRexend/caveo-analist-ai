@@ -1,0 +1,60 @@
+{
+  "_comment": "CONFIG ALVO dos MCPs locais (subprojeto 5). Adote quando o venv e as credenciais estiverem prontos (ver mcps/README.md). Segredos via ${ENV_VAR} — defina-os no ambiente. NÃO commitar o .mcp.json real (já está no .gitignore).",
+  "mcpServers": {
+    "google-ads-mcp": {
+      "command": "./mcps/.venv/bin/google-ads-mcp",
+      "args": [],
+      "env": {
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "${GOOGLE_ADS_DEVELOPER_TOKEN}",
+        "GOOGLE_ADS_LOGIN_CUSTOMER_ID": "${GOOGLE_ADS_LOGIN_CUSTOMER_ID}",
+        "GOOGLE_ADS_TARGET_CUSTOMER_ID": "${GOOGLE_ADS_TARGET_CUSTOMER_ID}",
+        "GOOGLE_ADS_USE_PROTO_PLUS": "True",
+        "GOOGLE_APPLICATION_CREDENTIALS": "./mcps/google_ads_credentials.json"
+      }
+    },
+    "meta-ads-mcp": {
+      "command": "./mcps/.venv/bin/meta-ads-mcp",
+      "args": [],
+      "env": {
+        "META_APP_ID": "${META_APP_ID}",
+        "META_APP_SECRET": "${META_APP_SECRET}",
+        "META_ACCESS_TOKEN": "${META_ACCESS_TOKEN}",
+        "META_AD_ACCOUNT_ID": "${META_AD_ACCOUNT_ID}"
+      }
+    },
+    "gtm": {
+      "command": "./mcps/.venv/bin/python",
+      "args": ["./mcps/gtm/server.py"]
+    },
+    "salesforce-mcp": {
+      "command": "python3",
+      "args": ["./mcps/salesforce/server.py"],
+      "env": {
+        "SF_INSTANCE_URL": "${SF_INSTANCE_URL}",
+        "SF_CLIENT_ID": "${SF_CLIENT_ID}",
+        "SF_CLIENT_SECRET": "${SF_CLIENT_SECRET}",
+        "SF_ACCESS_TOKEN": "${SF_ACCESS_TOKEN}",
+        "SF_REFRESH_TOKEN": "${SF_REFRESH_TOKEN}"
+      }
+    },
+    "ga4": {
+      "command": "./mcps/.venv/bin/python",
+      "args": ["./mcps/ga4/server.py"],
+      "env": {
+        "GA4_PROPERTY_ID": "${GA4_PROPERTY_ID}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "./mcps/ga4_credentials.json"
+      }
+    },
+    "sheets": {
+      "command": "./mcps/.venv/bin/python",
+      "args": ["./mcps/sheets/server.py"],
+      "env": {
+        "SHEETS_CREDENTIALS": "./.claude/sheets_credentials.json"
+      }
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    }
+  }
+}

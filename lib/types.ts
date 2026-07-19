@@ -3,10 +3,10 @@
 export type Platform = "all" | "meta" | "google";
 
 /**
- * Segmento de público (campo Salesforce TipCte__c + nomenclatura de campanhas):
- *  - "all" → Ambos (Recém-Formado + Médicos Maduros; exclui Revalida/sem classificação)
- *  - "rf"  → Recém-Formado (TipCte__c em Formando/Médico)
- *  - "mm"  → Médicos Maduros (TipCte__c = "Médicos Maduros")
+ * Segmento de público (Salesforce TipCte__c). Ver docs/fundacao-dados.md.
+ *  - "all" → Ambos (RF + MM)
+ *  - "rf"  → Recém Formados (TipCte__c em Formando / Médico Faculdades)
+ *  - "mm"  → Médico Maduro (TipCte__c em Médico / Revalida)
  */
 export type Contratante = "all" | "rf" | "mm";
 
@@ -110,6 +110,12 @@ export interface PlatformCompareData {
   google: Metrics;
 }
 
+/** Coorte de fechamento: fechados Ganho no período × mês de origem (CreatedDate). */
+export interface CohortPoint {
+  mes: string; // "YYYY-MM" do mês de origem da captação
+  qtd: number;
+}
+
 /** Payload consolidado do endpoint /api/dashboard (uma resposta = todo o dashboard). */
 export interface DashboardPayload {
   metrics: Metrics;
@@ -118,6 +124,8 @@ export interface DashboardPayload {
   timeline: TimelineDay[];
   dailyFunnel: DailyFunnelPoint[];
   campaigns: Campaign[];
+  /** Coorte de fechamento (fechados no período por mês de origem). */
+  cohort?: CohortPoint[];
   /** Presente apenas quando platform === "all". */
   platformCompare?: PlatformCompareData;
   _mock: boolean;
@@ -139,4 +147,49 @@ export interface HealthPayload {
   meta: ServiceHealth;
   salesforce: ServiceHealth;
   checkedAt: string;
+}
+
+// ── GA4 (aba Sítio) ─────────────────────────────────────────────────────
+export interface GA4Overview {
+  users: number;
+  sessions: number;
+  newUsers: number;
+  engagementRate: number;      // 0..1
+  avgSessionDuration: number;  // segundos
+  conversions: number;
+  pageViews: number;
+}
+
+/** Linha por canal de aquisição (sessionDefaultChannelGroup). */
+export interface GA4ChannelRow {
+  channel: string;
+  sessions: number;
+  users: number;
+}
+
+export interface GA4PageRow {
+  path: string;
+  views: number;
+  avgDuration: number;
+}
+
+/** Linha por landing page (lp.caveo / lp2.caveo). */
+export interface GA4LandingRow {
+  landingPage: string;
+  sessions: number;
+  conversions: number;
+  engagementRate: number;
+  avgDuration: number;
+}
+
+/** Payload do endpoint /api/ga4 (aba Sítio/GA4). */
+export interface GA4Payload {
+  overview: GA4Overview;
+  overviewPrev: GA4Overview;
+  channels: GA4ChannelRow[];
+  /** Derivado dos canais: sessões orgânicas vs. pagas. */
+  organicVsPaid: { organic: number; paid: number; other: number };
+  topPages: GA4PageRow[];
+  landingPages: GA4LandingRow[];
+  _mock: boolean;
 }

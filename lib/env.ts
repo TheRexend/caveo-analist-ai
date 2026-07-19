@@ -142,6 +142,53 @@ export const GOOGLE = {
   },
 };
 
+// ── GA4 (Data API) ────────────────────────────────────────────────────
+// Credencial = service account (DIFERENTE do OAuth do Google Ads). Resolve de:
+//   1) GA4_CREDENTIALS_JSON  → JSON inline (caminho Vercel)
+//   2) GA4_CREDENTIALS        → caminho do arquivo (local / .mcp.json)
+interface GA4ServiceAccount {
+  client_email?: string;
+  private_key?: string;
+}
+
+let _ga4Creds: GA4ServiceAccount | null = null;
+
+function ga4Creds(): GA4ServiceAccount {
+  if (_ga4Creds) return _ga4Creds;
+  const inline = process.env.GA4_CREDENTIALS_JSON;
+  if (inline) {
+    try {
+      _ga4Creds = JSON.parse(inline);
+      return _ga4Creds as GA4ServiceAccount;
+    } catch {
+      /* ignora */
+    }
+  }
+  const credsPath = cfg("GA4_CREDENTIALS");
+  if (credsPath) {
+    try {
+      const resolved = path.isAbsolute(credsPath)
+        ? credsPath
+        : path.join(process.cwd(), credsPath);
+      _ga4Creds = JSON.parse(fs.readFileSync(resolved, "utf8"));
+      return _ga4Creds as GA4ServiceAccount;
+    } catch {
+      /* ignora */
+    }
+  }
+  _ga4Creds = {};
+  return _ga4Creds;
+}
+
+export const GA4 = {
+  get propertyId() {
+    return cfg("GA4_PROPERTY_ID");
+  },
+  get creds(): GA4ServiceAccount {
+    return ga4Creds();
+  },
+};
+
 // ── Presença de credenciais ───────────────────────────────────────────
 // Distingue "sem credenciais" (→ mock) de "credenciais OK porém zero
 // atividade no período" (→ mostrar zeros reais). É a chave para os dados
@@ -149,4 +196,5 @@ export const GOOGLE = {
 export const HAS_META = (): boolean => !!META.token;
 export const HAS_GOOGLE = (): boolean => !!(GOOGLE.devToken && GOOGLE.creds.refresh_token);
 export const HAS_SF = (): boolean => !!(SF.refreshToken || SF.accessToken);
+export const HAS_GA4 = (): boolean => !!(GA4.propertyId && GA4.creds.client_email && GA4.creds.private_key);
 export const HAS_ANY_CREDS = (): boolean => HAS_META() || HAS_GOOGLE() || HAS_SF();
