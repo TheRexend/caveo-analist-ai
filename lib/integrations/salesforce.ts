@@ -1,8 +1,14 @@
 // === Salesforce via REST/SOQL (port de _sf_* do server.py) ===
+// Regras de atribuição (canal/cruzamento/contratante/estágio) vêm da FONTE
+// ÚNICA em @/config/business-rules — não reescrever cláusulas SOQL aqui.
 import "server-only";
 import { SF } from "@/lib/env";
 import { TZ_OFFSET } from "@/lib/dates";
 import { cached } from "@/lib/cache";
+import {
+  cpcExpr, cruzExpr, tipcteFilter,
+  WON_CLAUSE, LOST_STAGE, EM_TRATAMENTO_STAGES, PROPOSTA_STAGES,
+} from "@/config/business-rules";
 import type { Contratante, FunnelDrillKey, OpportunityRow, Platform } from "@/lib/types";
 
 let _token = "";
@@ -56,57 +62,19 @@ async function sfQuery(soql: string, retry = true): Promise<SfQueryResult | null
 }
 
 // ── Atribuição de plataforma: cpc (medium) + cruzamento (click ID) ───────
-// (A) cpc — atribuição "direta" por UTM medium=cpc (mantida como sempre):
-//     meta   = cpc e source não-google (Instagram_*/Facebook_*/facebook/{{placement}})
-//     google = cpc e source google
-//     all    = cpc
-const CPC_EXPR: Record<Platform, string> = {
-  all: "UtmMed__c LIKE '%cpc%'",
-  meta: "(UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%'))",
-  google: "(UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%')",
-};
-
-// (B) cruzamento — oportunidades cujo UtmMed__c é DIFERENTE de cpc (inclui nulo)
-//     mas que tiveram interferência de mídia paga via click ID:
-//     meta   = não-cpc e (fbc__c OU fbclid__c)
-//     google = não-cpc e (gclid__c OU gbraid__c) e SEM fbc/fbclid (Meta tem prioridade no conflito)
-//     all    = não-cpc e qualquer click ID (meta ∪ google, sem sobreposição)
-const NON_CPC = "(UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%'))";
-const CRUZ_EXPR: Record<Platform, string> = {
-  all: `(${NON_CPC} AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null))`,
-  meta: `(${NON_CPC} AND (fbc__c != null OR fbclid__c != null))`,
-  google: `(${NON_CPC} AND (gclid__c != null OR gbraid__c != null) AND fbc__c = null AND fbclid__c = null)`,
-};
-
-// Cláusulas SOQL prontas (com o "AND " inicial p/ concatenar ao WHERE):
+// Toda a lógica (cpcExpr, cruzExpr, tipcteFilter, WON_CLAUSE, LOST_STAGE e as
+// listas de estágio) vem de @/config/business-rules. Aqui só montamos os
+// fragmentos de WHERE (com o "AND " inicial) a partir desses builders:
 //  - cpcOnlyFilter  → só atribuição direta (cpc); usado quando cruzamento está desativado
 //  - cruzFilter     → só cruzamento (subconjunto p/ o badge)
 //  - combinedFilter → cpc OU cruzamento (= TOTAL exibido nos KPIs/funil; modelo "somar")
-const cpcOnlyFilter = (p: Platform) => `AND ${CPC_EXPR[p] ?? CPC_EXPR.all}`;
-const cruzFilter = (p: Platform) => `AND ${CRUZ_EXPR[p] ?? CRUZ_EXPR.all}`;
-const combinedFilter = (p: Platform) =>
-  `AND (${CPC_EXPR[p] ?? CPC_EXPR.all} OR ${CRUZ_EXPR[p] ?? CRUZ_EXPR.all})`;
+const cpcOnlyFilter = (p: Platform) => `AND ${cpcExpr(p)}`;
+const cruzFilter = (p: Platform) => `AND ${cruzExpr(p)}`;
+const combinedFilter = (p: Platform) => `AND (${cpcExpr(p)} OR ${cruzExpr(p)})`;
 
-// ── Filtro de contratante por TipCte__c ─────────────────────────────────
-// all = Ambos (RF + MM; exclui Revalida e sem classificação)
-const TIPCTE_FILTER: Record<Contratante, string> = {
-  all: "AND TipCte__c IN ('Formando','Médico','Médicos Maduros')",
-  rf: "AND TipCte__c IN ('Formando','Médico')",
-  mm: "AND TipCte__c = 'Médicos Maduros'",
-};
-
-// Estágios reais do Salesforce da Caveo
-const LOST_STAGE = "Perdido";
-// "Fechado Ganho" = ganho real (IsWon=true → estágio "Fechado") + "Ganho não
-// Identificado" (IsWon=false no SF, mas contabilizado como ganho pela operação).
-// Fragmento único reusado em sfFunnel, sfDaily e sfOpportunities p/ consistência.
-const GANHO_UNID_STAGE = "Ganho não Identificado";
-const WON_CLAUSE = `(IsWon = true OR StageName = '${GANHO_UNID_STAGE}')`;
-const EM_TRATAMENTO_STAGES = new Set([
-  "Nova", "Contato Realizado", "Aguardando Resposta",
-  "Reunião Agendada", "Standy-By", "Stand By", "Transferido para humano",
-]);
-const PROPOSTA_STAGES = new Set(["Proposta Enviada"]);
+// Sets de estágio derivados das listas da fundação (usados em sumIn/quote).
+const EM_TRATAMENTO_SET = new Set<string>(EM_TRATAMENTO_STAGES);
+const PROPOSTA_SET = new Set<string>(PROPOSTA_STAGES);
 
 export interface SfFunnel {
   no_crm: number;
@@ -160,7 +128,7 @@ async function sfFunnelUncached(
   contratante: Contratante,
   includeCruzamento: boolean,
 ): Promise<SfFunnel | null> {
-  const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
+  const tipf = tipcteFilter(contratante);
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
 
@@ -191,8 +159,8 @@ async function sfFunnelUncached(
     }
     return {
       no_crm: Object.values(created).reduce((a, b) => a + b, 0),
-      em_tratamento: sumIn(created, EM_TRATAMENTO_STAGES),
-      proposta: sumIn(created, PROPOSTA_STAGES),
+      em_tratamento: sumIn(created, EM_TRATAMENTO_SET),
+      proposta: sumIn(created, PROPOSTA_SET),
       ganho,
       perdido,
       breakdown,
@@ -273,7 +241,7 @@ async function sfDailyUncached(
   includeCruzamento: boolean,
 ): Promise<Record<string, { oport: number; ganho: number }> | null> {
   const utmf = includeCruzamento ? combinedFilter(platform) : cpcOnlyFilter(platform);
-  const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
+  const tipf = tipcteFilter(contratante);
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
 
@@ -304,6 +272,57 @@ async function sfDailyUncached(
   for (const r of resOport?.records ?? []) bump(String(r.d ?? ""), "oport", Number(r.cnt ?? 0));
   for (const r of resGanho?.records ?? []) bump(String(r.d ?? ""), "ganho", Number(r.cnt ?? 0));
   return out;
+}
+
+/**
+ * Coorte de fechamento: dos Ganho fechados no período (LastStageChangeDate),
+ * quebra por mês de ORIGEM da captação (CreatedDate). Escopo só Ganho.
+ * Agrega os dias em buckets YYYY-MM fora do SOQL (regra COHORT_RULES da fundação).
+ */
+export async function sfCohort(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante = "all",
+  fresh = false,
+  includeCruzamento = true,
+): Promise<import("@/lib/types").CohortPoint[] | null> {
+  return cached(
+    `sfCohort:${platform}:${contratante}:${dateFrom}:${dateTo}:${includeCruzamento ? "c1" : "c0"}`,
+    () => sfCohortUncached(dateFrom, dateTo, platform, contratante, includeCruzamento),
+    { fresh },
+  );
+}
+
+async function sfCohortUncached(
+  dateFrom: string,
+  dateTo: string,
+  platform: Platform,
+  contratante: Contratante,
+  includeCruzamento: boolean,
+): Promise<import("@/lib/types").CohortPoint[] | null> {
+  const utmf = includeCruzamento ? combinedFilter(platform) : cpcOnlyFilter(platform);
+  const tipf = tipcteFilter(contratante);
+  const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
+  const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
+
+  const soql =
+    `SELECT DAY_ONLY(convertTimezone(CreatedDate)) d, COUNT(Id) cnt FROM Opportunity ` +
+    `WHERE ${WON_CLAUSE} ` +
+    `AND LastStageChangeDate >= ${fromTs} AND LastStageChangeDate <= ${toTs} ${utmf} ${tipf} ` +
+    `GROUP BY DAY_ONLY(convertTimezone(CreatedDate))`;
+
+  const res = await sfQuery(soql);
+  if (res === null) return null;
+
+  const byMonth: Record<string, number> = {};
+  for (const r of res.records ?? []) {
+    const ym = String(r.d ?? "").slice(0, 7); // "YYYY-MM"
+    if (ym) byMonth[ym] = (byMonth[ym] ?? 0) + Number(r.cnt ?? 0);
+  }
+  return Object.entries(byMonth)
+    .map(([mes, qtd]) => ({ mes, qtd }))
+    .sort((a, b) => a.mes.localeCompare(b.mes));
 }
 
 /** Limite de linhas no drill-down (o sfQuery não pagina; cap defensivo). */
@@ -351,7 +370,7 @@ async function sfOpportunitiesUncached(
   includeCruzamento: boolean,
 ): Promise<OpportunityRow[] | null> {
   const utmf = includeCruzamento ? combinedFilter(platform) : cpcOnlyFilter(platform);
-  const tipf = TIPCTE_FILTER[contratante] ?? TIPCTE_FILTER.all;
+  const tipf = tipcteFilter(contratante);
   const fromTs = `${dateFrom}T00:00:00${TZ_OFFSET}`;
   const toTs = `${dateTo}T23:59:59${TZ_OFFSET}`;
   const quote = (set: Set<string>) => [...set].map((s) => `'${s}'`).join(",");
@@ -360,11 +379,11 @@ async function sfOpportunitiesUncached(
   let orderField: string;
   switch (stage) {
     case "trat":
-      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} AND StageName IN (${quote(EM_TRATAMENTO_STAGES)})`;
+      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} AND StageName IN (${quote(EM_TRATAMENTO_SET)})`;
       orderField = "CreatedDate";
       break;
     case "prop":
-      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} AND StageName IN (${quote(PROPOSTA_STAGES)})`;
+      where = `CreatedDate >= ${fromTs} AND CreatedDate <= ${toTs} AND StageName IN (${quote(PROPOSTA_SET)})`;
       orderField = "CreatedDate";
       break;
     case "ganho":

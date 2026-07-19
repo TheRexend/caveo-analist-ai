@@ -1,8 +1,8 @@
 "use client";
 // Camada de fetch tipada (client-side) com timeout, abort e fallback mock.
 import type {
-  Campaign, Contratante, DashboardPayload, FunnelData, FunnelDrillKey, Goals,
-  HealthPayload, Metrics, OpportunityRow, Platform, TimelineDay,
+  Contratante, DashboardPayload, FunnelDrillKey, GA4Payload, Goals,
+  HealthPayload, OpportunityRow, Platform,
 } from "@/lib/types";
 
 /** GET JSON com timeout próprio + cancelamento via AbortSignal externo. */
@@ -24,12 +24,6 @@ async function getJSON<T>(url: string, ms: number, signal?: AbortSignal): Promis
   }
 }
 
-export interface DashboardData {
-  metrics: Metrics;
-  timeline: TimelineDay[];
-  funnel: FunnelData;
-}
-
 /** Carga única e consolidada de todo o dashboard (substitui os múltiplos fetches). */
 export function fetchDashboardAll(
   platform: Platform,
@@ -46,41 +40,6 @@ export function fetchDashboardAll(
   return getJSON<DashboardPayload>(`/api/dashboard?${qs}`, 30000, signal);
 }
 
-export function fetchMetrics(
-  platform: Platform,
-  from: string,
-  to: string,
-  signal?: AbortSignal,
-): Promise<Metrics> {
-  const qs = new URLSearchParams({ from, to, platform });
-  return getJSON<Metrics>(`/api/metrics?${qs}`, 20000, signal);
-}
-
-export function fetchDashboard(
-  platform: Platform,
-  from: string,
-  to: string,
-  month: string,
-  signal?: AbortSignal,
-): Promise<DashboardData> {
-  const qs = new URLSearchParams({ from, to, platform });
-  return Promise.all([
-    getJSON<Metrics>(`/api/metrics?${qs}`, 20000, signal),
-    getJSON<TimelineDay[]>(`/api/timeline?${qs}`, 20000, signal),
-    getJSON<FunnelData>(`/api/funnel?${qs}&month=${month}`, 20000, signal),
-  ]).then(([metrics, timeline, funnel]) => ({ metrics, timeline, funnel }));
-}
-
-export function fetchCampaigns(
-  platform: Platform,
-  from: string,
-  to: string,
-  signal?: AbortSignal,
-): Promise<Campaign[]> {
-  const qs = new URLSearchParams({ from, to, platform });
-  return getJSON<Campaign[]>(`/api/campaigns?${qs}`, 25000, signal);
-}
-
 /** Drill-down: lista de oportunidades de um estágio do funil, com os filtros atuais. */
 export function fetchOpportunities(
   platform: Platform,
@@ -94,6 +53,18 @@ export function fetchOpportunities(
   const qs = new URLSearchParams({ from, to, platform, contratante, stage });
   if (!cruzamento) qs.set("cruzamento", "0");
   return getJSON<OpportunityRow[]>(`/api/opportunities?${qs}`, 25000, signal);
+}
+
+/** Carga da aba Sítio/GA4 (independente do dashboard de mídia). */
+export function fetchGA4(
+  from: string,
+  to: string,
+  fresh = false,
+  signal?: AbortSignal,
+): Promise<GA4Payload> {
+  const qs = new URLSearchParams({ from, to });
+  if (fresh) qs.set("fresh", "1");
+  return getJSON<GA4Payload>(`/api/ga4?${qs}`, 30000, signal);
 }
 
 export function fetchGoals(month: string, signal?: AbortSignal): Promise<Goals> {

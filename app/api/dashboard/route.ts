@@ -9,7 +9,7 @@ import {
   completeRegistrationsFromActions, leadsFromActions, metaDailyToSource, metaInsights, metaInsightsDaily, type MetaInsightRow,
 } from "@/lib/integrations/meta";
 import { googleCampaigns, googleDaily, type GoogleCampaignsResult } from "@/lib/integrations/google";
-import { sfDaily, sfFunnel, type SfFunnel } from "@/lib/integrations/salesforce";
+import { sfCohort, sfDaily, sfFunnel, type SfFunnel } from "@/lib/integrations/salesforce";
 import { buildGoogleCampaigns, buildMetaCampaigns } from "@/lib/build";
 import { mockDashboard } from "@/lib/mock";
 import type {
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
   const [
     metaRows, metaDaily, metaPrev,
     gads, gadsByDate, gadsPrev,
-    sf, sfPrevF, sfD,
+    sf, sfPrevF, sfD, sfCoh,
     sfMeta, sfGoogle,
   ] = await Promise.all([
     wantMeta ? metaInsights(dateFrom, dateTo, contratante, fresh) : Promise.resolve([] as MetaInsightRow[]),
@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
     sfFunnel(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
     sfFunnel(prev.from, prev.to, platform, contratante, fresh, includeCruzamento),
     sfDaily(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
+    sfCohort(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
     isAll ? sfFunnel(dateFrom, dateTo, "meta", contratante, fresh, includeCruzamento) : Promise.resolve(null),
     isAll ? sfFunnel(dateFrom, dateTo, "google", contratante, fresh, includeCruzamento) : Promise.resolve(null),
   ]);
@@ -165,6 +166,7 @@ export async function GET(req: NextRequest) {
     timeline,
     dailyFunnel,
     campaigns,
+    cohort: sfCoh ?? undefined,
     platformCompare: isAll
       ? { meta: buildMetrics(metaInvest, metaLeads, sfMeta), google: buildMetrics(gInvest, gLeads, sfGoogle) }
       : undefined,

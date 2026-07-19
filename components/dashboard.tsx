@@ -14,6 +14,10 @@ import { PlatformCompare } from "@/components/platform-compare";
 import { EfficiencyScatter } from "@/components/efficiency-scatter";
 import { GoalsDialog } from "@/components/goals-dialog";
 import { HealthIndicators } from "@/components/health-indicators";
+import { GA4View } from "@/components/ga4-view";
+import { AnomalyAlerts } from "@/components/anomaly-alerts";
+import { CohortChart } from "@/components/cohort-chart";
+import { BrandNonBrand } from "@/components/brand-nonbrand";
 import {
   fetchDashboardAll, fetchGoals, fetchOpportunities, saveGoals as apiSaveGoals,
 } from "@/lib/api-client";
@@ -21,7 +25,7 @@ import { daysBetween } from "@/lib/dates";
 import { convStatus, fmtMonth, isFullMonth, monthKey, prorateGoal } from "@/lib/format";
 import { useTheme } from "@/lib/use-theme";
 import type {
-  Campaign, Contratante, DailyFunnelPoint, FunnelData, FunnelDrillKey, Goals, Metrics,
+  Campaign, CohortPoint, Contratante, DailyFunnelPoint, FunnelData, FunnelDrillKey, Goals, Metrics,
   OpportunityRow, Platform, PlatformCompareData, TimelineDay,
 } from "@/lib/types";
 
@@ -35,6 +39,7 @@ type DataMode = "live" | "mock" | "loading";
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; defaultTo: string }) {
+  const [tab, setTab] = useState<"midia" | "ga4">("midia");
   const [platform, setPlatform] = useState<Platform>("all");
   const [contratante, setContratante] = useState<Contratante>("all");
   const [cruzamento, setCruzamento] = useState(true);
@@ -54,6 +59,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
   const [timelineDays, setTimelineDays] = useState<TimelineDay[]>([]);
   const [dailyFunnel, setDailyFunnel] = useState<DailyFunnelPoint[]>([]);
   const [funnelRaw, setFunnelRaw] = useState<FunnelData | null>(null);
+  const [cohort, setCohort] = useState<CohortPoint[]>([]);
   const [platformCompareData, setPlatformCompareData] = useState<PlatformCompareData | null>(null);
 
   // Drill-down de oportunidades (clique num estágio do funil).
@@ -94,6 +100,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         setTimelineDays(d.timeline);
         setDailyFunnel(d.dailyFunnel);
         setCampaigns(d.campaigns);
+        setCohort(d.cohort ?? []);
         setPlatformCompareData(d.platformCompare ?? null);
         setDataMode(d._mock ? "mock" : "live");
       })
@@ -257,7 +264,14 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
       />
 
       <main className="main">
-        {!k ? (
+        <div className="tab-bar">
+          <button className={`tab${tab === "midia" ? " active" : ""}`} onClick={() => setTab("midia")}>Mídia + Funil</button>
+          <button className={`tab${tab === "ga4" ? " active" : ""}`} onClick={() => setTab("ga4")}>Sítio · GA4</button>
+        </div>
+
+        {tab === "ga4" ? (
+          <GA4View dateFrom={dateFrom} dateTo={dateTo} refreshKey={refreshKey} />
+        ) : !k ? (
           <div className="kpi-grid">
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="kpi-card">
@@ -279,6 +293,8 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
                 {dataMode === "live" ? "Dados em tempo real via API" : dataMode === "mock" ? "Dados mockados · configure credenciais" : "Carregando…"}
               </span>
             </div>
+
+            <AnomalyAlerts metrics={k} prev={kPrev} />
 
             <div className="kpi-grid">
               <KpiCard label="Investimento total" value={k.invest} format="brl" icon={Wallet} goal={volGoal("invest")} goalType="max" goalScope={volScope} hasProgress fullBrl previous={kPrev?.invest} />
@@ -324,9 +340,13 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
               )}
             </section>
 
+            <CohortChart cohort={cohort} refMonth={mKey} />
+
             <OpportunitiesChart days={dailyFunnel} platform={platform} contratante={contratante} />
 
             {platform === "all" && <PlatformCompare data={platformCompareData} />}
+
+            <BrandNonBrand campaigns={campaigns} platform={platform} />
 
             <TimelineChart days={timelineDays} platform={platform} />
 

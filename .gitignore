@@ -37,6 +37,13 @@ yarn-error.log*
 # local sqlite (metas) — em prod usa Postgres
 /data/*.db
 
+# MCPs locais — venv, cache e credenciais nunca vão ao git
+mcps/.venv/
+mcps/**/__pycache__/
+mcps/**/credentials.json
+mcps/**/token.json
+mcps/*_credentials.json
+
 # vercel
 .vercel
 
@@ -44,20 +51,24 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# arquivos locais do projeto Caveo (não vão pro GitHub)
+# === Caveo — versiona a camada agêntica; NUNCA versiona segredos ===
+# Segredos / credenciais (mesmo dentro de pastas versionadas):
+.mcp.json
+.mcp.json.bak
+**/*credentials*.json
+**/*credential*.json
+**/token.json
+.claude/settings.local.json
+
+# Cruft de workspace e dependências vendorizadas (não vale versionar):
 /dashboard/
-docs/
-scratch/
-scripts/
 outputs/
+scratch/
 .agents/
-.claude/
 .codex/
 .superpowers/
-CLAUDE.md
-AGENTS.md
-Handoff*.docx
-handoff-*.md
 skills-lock.json
-.mcp.json
 package-lock.json
+
+# Versionados a partir de agora (antes ignorados): docs/, scripts/, config/,
+# mcps/ (só código), .claude/ (agentes/skills/comandos), CLAUDE.md, AGENTS.md.
