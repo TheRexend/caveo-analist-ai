@@ -86,9 +86,9 @@ H=Invest Planejado, I=Invest.(R$), J=Variação(R$), K=LEADS, L=MQL, M=SQL •
 | C / I | Investimento Meta / Google | Plataforma: Meta `spend` / Google `cost` | dia do gasto |
 | E | Leads Meta | Meta `complete_registration` (registro concluído) | dia do gasto |
 | K | Leads Google | Google `metrics.conversions` (total) | dia do gasto |
-| F / L | MQL Meta / Google | Salesforce: opp que **já atingiu** "Aguardando Resposta" | `CreatedDate` |
-| G / M | SQL Meta / Google | Salesforce: opp que **já atingiu** "Proposta Enviada" | `CreatedDate` |
-| O | Fechamento Diária | Salesforce: fechamentos Ganho de mídia paga (Meta+Google) do segmento | `LastStageChangeDate` |
+| F / L | MQL Meta / Google | Salesforce: opp que atingiu "Aguardando Resposta" | **dia da transição** (`OpportunityHistory`) |
+| G / M | SQL Meta / Google | Salesforce: opp que atingiu "Proposta Enviada" | **dia da transição** (`OpportunityHistory`) |
+| O | Fechamento Diária | Salesforce: fechamentos Ganho de mídia paga (Meta+Google) do segmento | `LastStageChangeDate` (dia do fechamento) |
 
 Decisões de fonte confirmadas: Leads vêm da **plataforma**; MQL/SQL/Fechamento
 do **Salesforce**. Para o Meta, "Leads" = **`complete_registration`** (visão de
@@ -116,7 +116,11 @@ atingiu o estágio-limiar, mesmo que hoje esteja em Perdido ou já tenha avança
 Como Ganho implica passagem por Proposta, e Proposta implica passagem por
 Aguardando Resposta, os conjuntos são cumulativos (SQL ⊆ MQL). MQL/SQL são
 contados **por segmento (TipCte) direto** — não sofrem rateio — e bucketizados
-por `CreatedDate` (dia de captação da opp).
+pelo **dia da transição**: a data da **primeira** linha de `OpportunityHistory`
+que cruza o gate (entra em Aguardando Resposta ou posterior, p/ MQL; em Proposta
+Enviada, p/ SQL). Se o gate só é satisfeito por Ganho (sem transição de estágio
+registrada), usa a data do fechamento (`LastStageChangeDate`). Coerente com a
+cadência append-only — cada opp entra no MQL/SQL uma única vez, no dia do evento.
 
 Estas regras entram na Fundação como `QUALIFICATION_RULES` (ver "Mudanças na
 Fundação"), para não hardcodar estágios na skill.
@@ -151,13 +155,19 @@ Matching campanha↔SF: `UtmCam__c` normalmente == nome da campanha no Meta; no
 Google há mapeamento por nome (reaproveitar o de `planilha-resultados`
 Fase 2 / a classificação de `lib/integrations/google.ts`).
 
-## Cadência (idempotente, mês-até-o-dia)
+## Cadência (append-only, sem retroativo)
 
-Padrão: **recomputa e reescreve os dias 1..D-1 do mês corrente** a cada execução.
-É necessário, não redundante: MQL/SQL/Fechamento de um dia **mudam
-retroativamente** (opp captada no dia 3 que chega em Proposta no dia 10 aumenta o
-SQL do dia 3). Gravar só D-1 deixaria o passado defasado. Aceita override de data
-única ou intervalo.
+Padrão: escreve **apenas o(s) dia(s) novo(s)** desde a última execução (D-1 por
+padrão). **Não recomputa nem reescreve dias anteriores** — cada dia é gravado uma
+vez e congelado. Aceita override de data única ou intervalo (que também são
+gravados sem mexer nos demais dias).
+
+Regra: **cada métrica cai no dia do seu próprio evento e não é movida depois**.
+Exemplo do usuário: opp que entra no dia 3 e fecha no dia 10 → a captação fica no
+dia 3 e o fechamento no dia 10; **não se reescreve o dia 3**. Pela mesma lógica,
+MQL e SQL entram no **dia em que a opp atingiu o estágio** (data da transição no
+`OpportunityHistory`), não na data de criação — assim um SQL alcançado no dia 10
+entra no dia 10, sem retroação ao dia da captação.
 
 ## Fluxo da skill
 
@@ -170,8 +180,8 @@ SQL do dia 3). Gravar só D-1 deixaria o passado defasado. Aceita override de da
    - Salesforce: opps do período + `OpportunityHistory` (estágios já atingidos);
      canal por `cpcExpr`/`cruzExpr`, segmento por `TipCte__c`. Uma passada
      agregada por dia (não uma query por dia).
-3. **Cálculo** por dia × segmento (rateio institucional; MQL/SQL por histórico;
-   fechamento por `LastStageChangeDate`).
+3. **Cálculo** por dia × segmento (rateio institucional; MQL/SQL pelo **dia da
+   transição** no histórico; fechamento por `LastStageChangeDate`).
 4. **Preview** no chat: tabelas MM e RF (dias × colunas), marcando qualquer
    institucional caído no fallback 50/50. Pede confirmação explícita.
 5. **Gravação** (após confirmação): valores nas células dos blocos MM e RF via
@@ -215,6 +225,10 @@ SQL do dia 3). Gravar só D-1 deixaria o passado defasado. Aceita override de da
 - Opp sem `UtmCam__c` → não entra no rateio institucional (mas entra em
   MQL/SQL/fechamento pelo canal/segmento).
 - Mês com menos de 31 dias → só grava os dias existentes; linhas extras ficam vazias.
+- Opp que retrocede e reavança de estágio → conta **a primeira** transição que
+  cruza o gate (não duplica MQL/SQL em dias diferentes).
+- Transição de estágio anterior ao período em análise → o MQL/SQL já foi (ou
+  será) registrado no dia real da transição; não é retroagido para o período atual.
 
 ## Notas ao guardião (anti-duplicação / divergências)
 
