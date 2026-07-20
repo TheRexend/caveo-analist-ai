@@ -114,7 +114,7 @@ from collections import defaultdict
 # META_ROWS / GOOGLE_ROWS: [{"campaign": str, "day": int, "spend": float, "leads": float}]
 # SF_CAMP_OPPS: {(utmcam, day): {"mm": int, "rf": int}}
 # SF_HISTORY:  [{"channel": "meta"|"google", "segment": "mm"|"rf",
-#               "history": [{"stage","date"}], "is_won": bool, "day_created": int}]
+#               "history": [{"stage","date"}], "is_won": bool}]
 # SF_CLOSINGS: [{"segment": "mm"|"rf", "day": int}]
 
 # acc[segment][day] = dict parcial de métricas (chaves de sheet.COLS)
@@ -128,10 +128,14 @@ def opp_share(utmcam, day):
     c = SF_CAMP_OPPS.get((utmcam, day), {"mm": 0, "rf": 0})
     return c["mm"], c["rf"]
 
+fallback_5050 = []  # (campaign, day) institucionais sem opp no dia (gasto rateado 50/50)
+
 for rows, ik, lk in ((META_ROWS, "invest_meta", "leads_meta"),
                      (GOOGLE_ROWS, "invest_google", "leads_google")):
     for r in rows:
         omm, orf = opp_share(r["campaign"], r["day"])
+        if classify_segment(r["campaign"]) == "institucional" and (omm + orf) == 0 and r["spend"]:
+            fallback_5050.append((r["campaign"], r["day"]))
         a = allocate(r["campaign"], r["spend"], r["leads"], omm, orf)
         for seg in ("mm", "rf"):
             add(seg, r["day"], ik, a[seg]["spend"])
@@ -164,6 +168,11 @@ for seg in ("mm", "rf"):
     print(f"\n=== {seg.upper()} ===")
     for day in sorted(acc[seg]):
         print(day, dict(acc[seg][day]))
+
+if fallback_5050:
+    print("\n[!] Institucional em fallback 50/50 (gasto no dia, 0 opps no SF):")
+    for camp, day in fallback_5050:
+        print(f"    dia {day}: {camp}")
 
 # --- GRAVAÇÃO (só após confirmação do usuário na Fase 3) ---
 def gravar():
