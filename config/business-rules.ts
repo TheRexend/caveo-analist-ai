@@ -78,6 +78,32 @@ export const COHORT_RULES = {
     "(CreatedDate), agregados em buckets YYYY-MM fora do SOQL.",
 } as const;
 
+// ── 7. Qualificação — MQL / SQL (nomenclatura interna da agência) ────────────
+// Cumulativo via OpportunityHistory: a opp conta se JÁ ATINGIU o estágio-limiar
+// em algum momento. O DIA do MQL/SQL é o da primeira transição que cruza o gate
+// (não a data de criação). `alsoWon`: uma opp Ganho conta mesmo sem transição
+// explícita ao estágio-limiar registrada.
+export const QUALIFICATION_RULES = {
+  mql: {
+    reachedStages: ["Aguardando Resposta", "Reunião Agendada", "Proposta Enviada"],
+    alsoWon: true,
+  },
+  sql: {
+    reachedStages: ["Proposta Enviada"],
+    alsoWon: true,
+  },
+} as const;
+
+// ── 8. Alocação de segmento em campanhas de mídia paga ──────────────────────
+// Classificação por marcador no nome da campanha. Campanha institucional (sem
+// marcador de segmento) tem investimento e leads RATEADOS entre MM/RF pela
+// participação de opps do segmento naquela campanha (SF UtmCam__c/TipCte__c).
+// Fallback (gasto no dia, 0 opps no SF) = 50/50.
+export const SEGMENT_ALLOCATION = {
+  tags: { mm: "[MM]", rf: "[RF]" },
+  emptyRatioFallback: { mm: 0.5, rf: 0.5 },
+} as const;
+
 // ============================================================================
 // BUILDERS DE SOQL — mantêm a lógica de atribuição num só lugar.
 // O dashboard consome estes builders em vez de reescrever as cláusulas.

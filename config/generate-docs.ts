@@ -11,7 +11,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
   CHANNEL_RULES, CRUZAMENTO_RULES, STAGE_GROUPS, CONTRATANTE_RULES,
-  DATE_MODEL, COHORT_RULES, cpcExpr, cruzExpr, tipcteFilter, WON_CLAUSE,
+  DATE_MODEL, COHORT_RULES, QUALIFICATION_RULES, SEGMENT_ALLOCATION,
+  cpcExpr, cruzExpr, tipcteFilter, WON_CLAUSE,
 } from "./business-rules.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -78,6 +79,23 @@ ${DATE_MODEL.description}
 Escopo: **${COHORT_RULES.scope}** (Fechado + Ganho não Identificado; não inclui Perdido).
 Origem por \`${COHORT_RULES.originField}\`; referência por \`${COHORT_RULES.closeField}\`.
 ${COHORT_RULES.description}
+
+## 7. Qualificação — MQL / SQL (nomenclatura interna)
+
+Cumulativo via \`OpportunityHistory\` (a opp conta se **já atingiu** o estágio).
+O dia do MQL/SQL é o da **primeira transição** que cruza o gate.
+
+| Nível | Já atingiu (qualquer um) | Ganho também conta |
+|---|---|---|
+| MQL | ${codeList(QUALIFICATION_RULES.mql.reachedStages)} | ${QUALIFICATION_RULES.mql.alsoWon ? "sim" : "não"} |
+| SQL | ${codeList(QUALIFICATION_RULES.sql.reachedStages)} | ${QUALIFICATION_RULES.sql.alsoWon ? "sim" : "não"} |
+
+## 8. Alocação de segmento (campanhas de mídia paga)
+
+Marcadores no nome da campanha: MM = \`${SEGMENT_ALLOCATION.tags.mm}\`, RF = \`${SEGMENT_ALLOCATION.tags.rf}\`.
+Campanha **sem** marcador de segmento (institucional) → investimento e leads
+rateados pela participação de opps do segmento naquela campanha (SF). Fallback
+(gasto no dia, 0 opps) = ${SEGMENT_ALLOCATION.emptyRatioFallback.mm * 100}/${SEGMENT_ALLOCATION.emptyRatioFallback.rf * 100}.
 
 ## Fragmentos SOQL prontos (gerados dos builders)
 

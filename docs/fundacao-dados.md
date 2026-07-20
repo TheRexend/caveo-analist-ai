@@ -57,6 +57,23 @@ Escopo: **ganho** (Fechado + Ganho não Identificado; não inclui Perdido).
 Origem por `CreatedDate`; referência por `LastStageChangeDate`.
 Fechamentos Ganho de um período quebrados por mês de origem da captação (CreatedDate), agregados em buckets YYYY-MM fora do SOQL.
 
+## 7. Qualificação — MQL / SQL (nomenclatura interna)
+
+Cumulativo via `OpportunityHistory` (a opp conta se **já atingiu** o estágio).
+O dia do MQL/SQL é o da **primeira transição** que cruza o gate.
+
+| Nível | Já atingiu (qualquer um) | Ganho também conta |
+|---|---|---|
+| MQL | `Aguardando Resposta`, `Reunião Agendada`, `Proposta Enviada` | sim |
+| SQL | `Proposta Enviada` | sim |
+
+## 8. Alocação de segmento (campanhas de mídia paga)
+
+Marcadores no nome da campanha: MM = `[MM]`, RF = `[RF]`.
+Campanha **sem** marcador de segmento (institucional) → investimento e leads
+rateados pela participação de opps do segmento naquela campanha (SF). Fallback
+(gasto no dia, 0 opps) = 50/50.
+
 ## Fragmentos SOQL prontos (gerados dos builders)
 
 | Filtro | all | meta | google |

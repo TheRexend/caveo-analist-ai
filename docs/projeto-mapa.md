@@ -58,6 +58,7 @@ caveo_analist_ai/
 │   │   ├── auditoria-tracking-gtm.md   (analítica → tracking; novo)
 │   │   ├── criativos-campeoes.md       (analítica → analista; novo)
 │   │   ├── detector-defeitos.md        (analítica → analista; novo)
+│   │   ├── acompanhamento-diario-caveo.md (procedimento; diário MM/RF; grava planilha)
 │   │   └── brainstorming.md            (infra genérica)
 │   ├── commands/                      # ── COMANDOS DE CHAT · subprojeto 4 ──
 │   │   └── <um .md por skill>          #   invólucro fino → invoca a skill
