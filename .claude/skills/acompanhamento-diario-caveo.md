@@ -33,9 +33,30 @@ usam `QUALIFICATION_RULES` (seção 7); alocação de segmento usa `SEGMENT_ALLO
 
 ## Fase 0 — Período
 
-- START = `YYYY-MM-01` (mês corrente). END = D-1 (ontem). Aceita override:
-  `$ARGUMENTS` pode conter uma data (`YYYY-MM-DD`) ou intervalo (`YYYY-MM-DD a YYYY-MM-DD`).
+- **Padrão (append-only): `START = END = D-1` (só ontem).** A cadência diária grava
+  apenas o dia novo — nunca reprocessa nem reescreve dias anteriores do mês.
+- Override: `$ARGUMENTS` pode conter uma única data (`YYYY-MM-DD` → `START=END=data`)
+  ou um intervalo explícito (`YYYY-MM-DD a YYYY-MM-DD` → `START..END`), para
+  recuperar um dia perdido ou refazer uma janela sob demanda.
 - Informar: `Coletando de [START] a [END]…`
+- Todo o pipeline (coleta, cálculo, preview e `gravar()`) já é escopado por
+  `in_period(START,END)` e pelas SOQL/insights limitadas ao período, então
+  `START=END=D-1` computa e grava **somente** aquele dia.
+
+## Fase 0.5 — Antes da primeira execução real (uma vez)
+
+Gate único, executado **uma só vez** antes da primeira gravação real (não rodar
+agora, nem a cada execução). Antes do primeiro `gravar()`:
+
+1. **Confirmar as bases dos blocos** — ler de volta as células de rótulo e checar
+   que a planilha traz "MÉDICO MADURO" por volta da linha 43 e "RECÉM FORMADOS"
+   por volta da linha 85. `sheet.day_to_row` assume `BLOCK_BASE = {mm: 45, rf: 87}`
+   (dia _d_ → 45+_d_ / 87+_d_); se os rótulos estiverem em outras linhas, ajustar
+   `BLOCK_BASE` antes de gravar — caso contrário os números caem no bloco errado.
+2. **Confirmar a autenticação** — validar que a service account
+   (`.claude/sheets_credentials.json`) autentica e abre a aba `Resultados Mês Atual`.
+
+Passando os dois checks, a skill pode gravar normalmente nas execuções seguintes.
 
 ## Fase 1 — Coleta (paralela)
 
@@ -54,12 +75,14 @@ invest = `cost_micros`/1e6; **leads Google** = `conversions` (total, arredondar 
 
 ### 1C. Salesforce — histórico p/ MQL/SQL (por canal)
 Para `[FILTRO_META]` e `[FILTRO_GOOGLE]` (fragmentos cpc+cruzamento da fundação),
-com lookback de 3 meses antes de START (para pegar opps que progridem tarde):
+com lookback de 12 meses antes de START (ciclos médicos longos podem passar de 3
+meses — a janela larga garante capturar opps criadas antes mas que cruzam um gate
+DENTRO do período; o `in_period` continua restringindo o que é gravado):
 ```sql
 SELECT OpportunityId, StageName, CreatedDate,
        Opportunity.TipCte__c, Opportunity.IsWon
 FROM OpportunityHistory
-WHERE Opportunity.CreatedDate >= [START-3meses]T00:00:00-03:00
+WHERE Opportunity.CreatedDate >= [START-12meses]T00:00:00-03:00
   AND Opportunity.CreatedDate <= [END]T23:59:59-03:00
   AND ([FILTRO_META | FILTRO_GOOGLE])
 ORDER BY OpportunityId, CreatedDate
@@ -164,10 +187,16 @@ for seg in ("mm", "rf"):
             if k in m: m[k] = round(m[k])
 
 # --- PREVIEW (imprimir antes de gravar) ---
+# Além do agregado por dia, imprime as células A1 exatas que serão gravadas
+# (as mesmas que cell_updates devolve) para conferência humana do mapeamento:
+# ex.: MM dia 3 escreve em C48/F48/… (linha = base do bloco + dia).
 for seg in ("mm", "rf"):
     print(f"\n=== {seg.upper()} ===")
     for day in sorted(acc[seg]):
-        print(day, dict(acc[seg][day]))
+        m = dict(acc[seg][day])
+        print(day, m)
+        cells = cell_updates(seg, day, m)
+        print("    A1:", ", ".join(f"{a1}={val}" for a1, val in cells))
 
 if fallback_5050:
     print("\n[!] Institucional em fallback 50/50 (gasto no dia, 0 opps no SF):")

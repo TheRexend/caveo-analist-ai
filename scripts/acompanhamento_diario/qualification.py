@@ -8,6 +8,11 @@ se JÁ atingiu o estágio. O dia é o da PRIMEIRA transição que cruza o gate.
 MQL_REACHED = ("Aguardando Resposta", "Reunião Agendada", "Proposta Enviada")
 SQL_REACHED = ("Proposta Enviada",)
 # Ganho (WON_CLAUSE da fundação): estágio "Fechado" (IsWon) ou "Ganho não Identificado".
+# ATENÇÃO — acoplamento: WON_STAGES é um proxy por NOME de estágio para o
+# `IsWon = true` da WON_CLAUSE (a Fundação documenta o estágio ganho como "Fechado").
+# Só é usado como fallback quando não há transição explícita de gate. Se o SF passar
+# a marcar IsWon num estágio com outro nome, uma opp ganha sem transição de gate
+# explícita não seria capturada aqui — reveja esta lista se o estágio ganho mudar.
 WON_STAGES = ("Fechado", "Ganho não Identificado")
 
 
