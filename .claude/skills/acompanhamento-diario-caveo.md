@@ -31,6 +31,15 @@ usam `QUALIFICATION_RULES` (seção 7); alocação de segmento usa `SEGMENT_ALLO
 - MQL / SQL → **dia da primeira transição** que cruza o gate (`OpportunityHistory`).
 - Fechamento → **`LastStageChangeDate`** (dia do fechamento).
 
+## Zero explícito (regra de ouro — sem ambiguidade)
+
+Todo dia dentro do período processado grava as **9 métricas com `0`** quando
+não há ocorrência (ex.: sem MQL, sem SQL, sem fechamento, sem lead naquele
+canal). A célula nunca fica em branco por falta de dado — só fica em branco
+se o dia estiver **fora** do período desta execução. Assim, uma célula vazia
+na planilha significa "esse dia não foi processado ainda", nunca "processei e
+não sei o valor".
+
 ## Fase 0 — Período
 
 - **Padrão (append-only): `START = END = D-1` (só ontem).** A cadência diária grava
@@ -140,8 +149,23 @@ from collections import defaultdict
 #               "history": [{"stage","date"}], "is_won": bool}]
 # SF_CLOSINGS: [{"segment": "mm"|"rf", "day": int}]
 
-# acc[segment][day] = dict parcial de métricas (chaves de sheet.COLS)
+# acc[segment][day] = dict de métricas (chaves de sheet.COLS), PRÉ-ZERADO abaixo.
 acc = {"mm": defaultdict(dict), "rf": defaultdict(dict)}
+
+# Zero explícito: todo dia dentro de [START,END] recebe as 9 métricas com 0
+# antes de qualquer acumulação. Sem isso, um dia sem MQL/SQL/fechamento/lead
+# simplesmente não teria a chave no dict e cell_updates() pularia a célula —
+# ficando indistinguível de "esse dia não foi processado". Com o zero
+# explícito, toda célula do período é sempre escrita (0 quando não há
+# ocorrência), então "vazio" na planilha só significa "fora do período".
+_ALL_METRIC_KEYS = ("invest_meta", "leads_meta", "mql_meta", "sql_meta",
+                    "invest_google", "leads_google", "mql_google", "sql_google",
+                    "fechamento")
+_day_start, _day_end = int(START[8:10]), int(END[8:10])
+for _seg in ("mm", "rf"):
+    for _day in range(_day_start, _day_end + 1):
+        for _k in _ALL_METRIC_KEYS:
+            acc[_seg][_day][_k] = 0
 
 def add(seg, day, key, val):
     acc[seg][day][key] = acc[seg][day].get(key, 0) + val
