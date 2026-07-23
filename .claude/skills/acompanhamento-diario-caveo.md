@@ -23,7 +23,7 @@ planilha de acompanhamento. **Append-only: nunca reescreve dias anteriores.**
 Canal pago (Meta/Google) usa o modelo **cpc + cruzamento** de
 `docs/fundacao-dados.md` (seção "Fragmentos SOQL prontos"), fuso `-03:00`. MQL/SQL
 usam `QUALIFICATION_RULES` (seção 7); alocação de segmento usa `SEGMENT_ALLOCATION`
-(seção 8). Segmento por `TipCte__c` (seção 4). NÃO reescrever essas listas aqui.
+(seção 8). Segmento por `TipCte__c` + `Tempo_de_Formado__c` via `classifyContratante` (seção 4). NÃO reescrever essas listas aqui.
 
 ## Bucket temporal (regra de ouro — sem retroativo)
 
@@ -93,7 +93,7 @@ meses — a janela larga garante capturar opps criadas antes mas que cruzam um g
 DENTRO do período; o `in_period` continua restringindo o que é gravado):
 ```sql
 SELECT OpportunityId, StageName, CreatedDate,
-       Opportunity.TipCte__c, Opportunity.IsWon
+       Opportunity.TipCte__c, Opportunity.Tempo_de_Formado__c, Opportunity.IsWon
 FROM OpportunityHistory
 WHERE Opportunity.CreatedDate >= [START-12meses]T00:00:00-03:00
   AND Opportunity.CreatedDate <= [END]T23:59:59-03:00
@@ -102,11 +102,11 @@ ORDER BY OpportunityId, CreatedDate
 ```
 Agrupar as linhas por `OpportunityId` → `history=[{stage, date}]` (date = dia de
 `CreatedDate` da linha de histórico, em `-03:00`), `is_won = IsWon OR StageName
-contém "Ganho não Identificado"`, `segment` por `TipCte__c`.
+contém "Ganho não Identificado"`, `segment` por `classifyContratante(TipCte__c, Tempo_de_Formado__c)`.
 
 ### 1D. Salesforce — fechamentos por dia/segmento (mídia paga)
 ```sql
-SELECT TipCte__c, LastStageChangeDate
+SELECT TipCte__c, Tempo_de_Formado__c, LastStageChangeDate
 FROM Opportunity
 WHERE LastStageChangeDate >= [START]T00:00:00-03:00
   AND LastStageChangeDate <= [END]T23:59:59-03:00
@@ -124,13 +124,13 @@ WHERE LastStageChangeDate >= [START]T00:00:00-03:00
 
 ### 1E. Salesforce — opps por campanha/dia/segmento (para o rateio institucional)
 ```sql
-SELECT UtmCam__c, TipCte__c, CreatedDate
+SELECT UtmCam__c, TipCte__c, Tempo_de_Formado__c, CreatedDate
 FROM Opportunity
 WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
   AND UtmCam__c != null
 ```
-Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (dia em `-03:00`).
+Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (segmento via `classifyContratante(TipCte__c, Tempo_de_Formado__c)`; dia em `-03:00`).
 
 > **Matching campanha↔UtmCam:** o rateio casa o nome da campanha da plataforma
 > com `UtmCam__c`. No Meta costuma ser idêntico; no Google, campanhas
