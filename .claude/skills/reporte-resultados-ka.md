@@ -1,358 +1,295 @@
 ---
 name: reporte-resultados-ka
-description: Coleta dados de Meta Ads (Captação e Awareness), Google Ads e Salesforce para o cliente KA e preenche a planilha de resultados. Use ao rodar o relatório mensal do KA ou quando precisar atualizar os dados de performance consolidados na planilha.
+description: Reporte mensal segmentado por RF e MM da Caveo. Coleta Meta Ads, Google Ads e Salesforce do mês corrente até D-1 e grava os inputs das abas "Mês-a-Mês RF" e "Mês-a-Mês MM" (mídia por bloco + funil MQL/SQL/Vendas/Faturamento). Use para atualizar as abas mensais segmentadas.
 ---
 
-# Skill: Reporte de Resultados — KA
+# Skill: Reporte Mensal Segmentado RF/MM
 
-Automatiza a coleta de dados de performance e o preenchimento da planilha mensal do cliente KA
-a partir de Meta Ads, Google Ads e Salesforce.
+Coleta **Meta + Google + Salesforce** do mês corrente (dia 1 até D-1), separa por
+segmento **RF / MM** e grava os **22 inputs secos** da coluna do mês (Realizado)
+nas abas **"Mês-a-Mês RF"** e **"Mês-a-Mês MM"**. Sobrescreve a coluna do mês a
+cada rodada (snapshot vivo). As fórmulas derivadas recalculam sozinhas — NUNCA
+escrever em célula de fórmula.
 
-## Contas
+## Contas e planilha
 
-| Plataforma | Identificador |
+| Recurso | Identificador |
 |---|---|
-| Salesforce | `caveo.my.salesforce.com` |
 | Meta Ads | `act_438086148409254` |
-| Google Ads | Caveo Tecnologia `3921127876` (MCC `5029399396`) |
-| Google Sheets | `169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw` |
+| Google Ads | `3921127876` (MCC `5029399396`) |
+| Salesforce | `caveo.my.salesforce.com` |
+| Planilha | `169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw` |
+| Abas | `Mês-a-Mês RF`, `Mês-a-Mês MM` |
+| Auth Sheets | `.claude/sheets_credentials.json` (service account) |
 
-## Fonte única de regras (LER ANTES DE QUALQUER SOQL)
+## Fundação (LER ANTES DE QUALQUER SOQL)
 
-O filtro de **canal pago** e os **estágios** vêm de **`docs/fundacao-dados.md`**
-(modelo **cpc + cruzamento**, **duas datas**, fuso `-03:00`). NÃO reescrever
-listas de `UtmSou__c` aqui. Fechamentos contam por `LastStageChangeDate`
-(`WON_CLAUSE` da fundação).
+Canal pago (cpc + cruzamento), segmento (`TipCte__c` + `Tempo_de_Formado__c`),
+MQL/SQL (`QUALIFICATION_RULES`) e ganho (`WON_CLAUSE`) vêm de
+`docs/fundacao-dados.md`. Modelo de **duas datas**: MQL/SQL por `CreatedDate`;
+Vendas/Faturamento por `LastStageChangeDate`. Fuso `-03:00`. NÃO reescrever listas.
 
-## Quando o usuário pede algo, identifique a fase
+Fragmentos usados (verbatim):
 
-| Pedido | Fase |
-|---|---|
-| "roda o reporte" / "atualiza a planilha" | Todas as fases (0→1→2→3) |
-| "coleta os dados" sem gravar | Fase 0 + Fase 1 apenas |
-| "grava na planilha" com dados já em mãos | Fase 3 diretamente |
-| "qual o período do reporte?" | Fase 0 — confirmar período |
+- **PAID:** `((UtmMed__c LIKE '%cpc%') OR ((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null)))`
+- **WON_CLAUSE:** `(IsWon = true OR StageName = 'Ganho não Identificado')`
+- **TIPCTE_RF:** `(TipCte__c IN ('Formando') OR (TipCte__c = 'Médico' AND Tempo_de_Formado__c IN ('Menos de 3 anos','Vai se formar')))`
+- **TIPCTE_MM:** `(TipCte__c IN ('Revalida') OR (TipCte__c = 'Médico' AND (NOT Tempo_de_Formado__c IN ('Menos de 3 anos','Vai se formar'))))`
 
----
+## Universo e blocos
 
-## Fase 0 — Confirmar Período
+Só campanhas com o marcador **BOO** (`[BOO]` no Meta, `BOO -` no Google → teste
+"contém boo"). Blocos (helper `blocks.block_of`): `google_search`,
+`google_yt_pmax` (PMax/Display/Video/DemandGen não-topo), `meta_captacao`,
+`meta_awareness` (`[TOPO]`), `google_awareness` (`[TOPO]`/DemandGen topo).
+Campanha BOO sem tag `[RF]`/`[MM]` (institucional) → rateio por opps
+(`alloc.allocate_row`, fallback 50/50).
 
-Calcular automaticamente:
-- **START** = primeiro dia do mês corrente no formato `YYYY-MM-01`
-- **END** = hoje − 1 dia no formato `YYYY-MM-DD`
+## Mapa de células (idêntico nas duas abas; `<COL>` = coluna do mês)
 
-Apresentar ao usuário para confirmação antes de coletar:
-```
-Período a coletar: [START] a [END]
-Confirma?
-```
+| Bloco | invest | impr | clicks | leads/engaj |
+|---|---|---|---|---|
+| Google Search | 4 | 5 | 6 | 9 (conv.) |
+| Google YT/PMax/Display | 12 | 13 | 15 | 18 (conv.) |
+| Meta captação | 21 | 22 | 24 | 27 (leads) |
+| Meta Awareness | 30 | 31 | — | 33 (engaj.) |
+| Google Awareness | 35 | 36 | — | 38 (engaj.) |
+| SF | mql=43 | sql=46 | vendas=49 | faturamento=52 |
 
----
+## Fase 0 — Período
 
-## Fase 1 — Coleta de Dados
+`START` = 1º dia do mês corrente (`YYYY-MM-01`); `END` = D-1 (`YYYY-MM-DD`).
+Deriva `ANO`, `MES` de `END`. Informar: `Coletando de [START] a [END]…`.
 
-Executar as quatro coletas **em paralelo** (uma chamada MCP por bloco).
+## Fase 1 — Coleta (paralela)
 
-### 1A. Meta Ads — Captação ([FUNDO] e [MEIO])
+### 1A. Meta — insights por campanha
+`mcp__meta-ads-mcp__get_insights` com `account_id="act_438086148409254"`,
+`level="campaign"`, `time_range={"since": START, "until": END}`,
+`fields="campaign_name,spend,impressions,actions"`. Por campanha extrair:
+`spend`; `impressions`; `link_clicks` = `actions[action_type=link_click].value`;
+`leads` = `actions[action_type=lead].value`; `post_engagement` =
+`actions[action_type=post_engagement].value` (0 se ausente). Montar `META_ROWS`.
 
-**Ferramenta:** `mcp__meta-ads-mcp__get_insights`
+### 1B. Google — por campanha
+`mcp__google-ads-mcp__search_search`, `customer_id="3921127876"`,
+`resource="campaign"`,
+`fields=["campaign.name","campaign.advertising_channel_type","metrics.cost_micros","metrics.impressions","metrics.clicks","metrics.conversions","metrics.engagements"]`,
+`conditions=["segments.date BETWEEN '[START]' AND '[END]'","campaign.status != 'REMOVED'"]`.
+Por campanha: `cost` = `cost_micros`/1e6; `impressions`; `clicks`; `conversions`;
+`engagements` (0 se ausente); `channel_type`. Montar `GOOGLE_ROWS`.
 
-Parâmetros-chave:
-- `account_id`: `act_438086148409254`
-- `level`: `campaign`
-- `date_preset`: custom (usar START e END da Fase 0)
-- `fields`: `campaign_name,spend,impressions,link_clicks,leads`
-
-Após receber os dados, **filtrar apenas campanhas cujo nome contenha `[FUNDO]` ou `[MEIO]`** (case-insensitive).
-
-Somar os valores filtrados:
-
-| Métrica | Campo API | Variável |
-|---|---|---|
-| Investimento | `spend` | `meta_captacao_investimento` |
-| Impressões | `impressions` | `meta_captacao_impressoes` |
-| Clique no Link | `link_clicks` | `meta_captacao_cliques` |
-| Leads | `leads` | `meta_captacao_leads` |
-
-### 1B. Meta Ads — Awareness ([TOPO])
-
-**Ferramenta:** `mcp__meta-ads-mcp__get_insights`
-
-Parâmetros-chave:
-- `account_id`: `act_438086148409254`
-- `level`: `campaign`
-- `date_preset`: custom (usar START e END da Fase 0)
-- `fields`: `campaign_name,spend,impressions,link_clicks,actions`
-- `breakdowns`: `publisher_platform` (para isolar Instagram)
-
-Após receber os dados, **filtrar apenas campanhas cujo nome contenha `[TOPO]`** (case-insensitive).
-
-Para Seguidores: dentro do array `actions`, encontrar o objeto com `action_type = "page_fan_add"` e somar os valores das linhas com `publisher_platform = "instagram"`.
-
-Somar os valores filtrados:
-
-| Métrica | Campo API | Variável |
-|---|---|---|
-| Investimento | `spend` | `meta_awareness_investimento` |
-| Impressões | `impressions` | `meta_awareness_impressoes` |
-| Clique no Link | `link_clicks` | `meta_awareness_cliques` |
-| Seguidores | `actions[action_type=page_fan_add]` (Instagram) | `meta_awareness_seguidores` |
-
-> **Atenção:** Se a campanha [TOPO] não tiver objetivo "Seguidores de conta do Instagram", `page_fan_add` pode retornar zero ou não aparecer no array `actions`. Reportar `0` nesse caso e sinalizar ao usuário.
-
-### 1C. Google Ads — Performance Max
-
-**Ferramenta:** `mcp__google-ads-mcp__search`
-
-Parâmetros:
-- `customer_id`: `3921127876`
-- `query`:
-
+### 1C. SF — MQL/SQL (coorte por `CreatedDate`; rodar 2x: TIPCTE_RF / TIPCTE_MM)
 ```sql
-SELECT
-  campaign.name,
-  campaign.advertising_channel_type,
-  metrics.cost_micros,
-  metrics.impressions,
-  metrics.clicks,
-  metrics.conversions
-FROM campaign
-WHERE segments.date BETWEEN '[START]' AND '[END]'
-  AND campaign.status != 'REMOVED'
-  AND campaign.advertising_channel_type = 'PERFORMANCE_MAX'
+SELECT OpportunityId, StageName, CreatedDate, Opportunity.IsWon
+FROM OpportunityHistory
+WHERE Opportunity.CreatedDate >= [START]T00:00:00-03:00
+  AND Opportunity.CreatedDate <= [END]T23:59:59-03:00
+  AND Opportunity.[PAID]
+  AND Opportunity.[TIPCTE_RF | TIPCTE_MM]
+ORDER BY OpportunityId, CreatedDate
 ```
+Agrupar por `OpportunityId` → `history=[{stage, date}]` (`date` = dia de
+`CreatedDate` da linha), `is_won = IsWon OR StageName contém "Ganho não Identificado"`.
+Montar `SF_HISTORY = {"rf":[...], "mm":[...]}`.
 
-Converter `cost_micros` para BRL: `valor / 1_000_000`.
-
-Somar todas as campanhas retornadas:
-
-| Métrica | Campo API | Variável |
-|---|---|---|
-| Investimento | `metrics.cost_micros / 1e6` | `google_pmax_investimento` |
-| Impressões | `metrics.impressions` | `google_pmax_impressoes` |
-| Cliques | `metrics.clicks` | `google_pmax_cliques` |
-| Conversões | `metrics.conversions` | `google_pmax_conversoes` |
-
-### 1D. Google Ads — Demais Campanhas
-
-**Ferramenta:** `mcp__google-ads-mcp__search`
-
-Parâmetros:
-- `customer_id`: `3921127876`
-- `query`:
-
+### 1D. SF — Vendas/Faturamento (por `LastStageChangeDate`; rodar 2x: RF / MM)
 ```sql
-SELECT
-  campaign.name,
-  campaign.advertising_channel_type,
-  metrics.cost_micros,
-  metrics.impressions,
-  metrics.clicks,
-  metrics.conversions
-FROM campaign
-WHERE segments.date BETWEEN '[START]' AND '[END]'
-  AND campaign.status != 'REMOVED'
-  AND campaign.advertising_channel_type != 'PERFORMANCE_MAX'
+SELECT COUNT(Id) qtd, SUM(Amount) valor
+FROM Opportunity
+WHERE [WON_CLAUSE]
+  AND LastStageChangeDate >= [START]T00:00:00-03:00
+  AND LastStageChangeDate <= [END]T23:59:59-03:00
+  AND [PAID]
+  AND [TIPCTE_RF | TIPCTE_MM]
 ```
+`VENDAS = {"rf": qtd, "mm": qtd}`; `FATURAMENTO = {"rf": valor or 0, "mm": valor or 0}`.
 
-Converter `cost_micros` para BRL: `valor / 1_000_000`.
-
-Somar todas as campanhas retornadas:
-
-| Métrica | Campo API | Variável |
-|---|---|---|
-| Investimento | `metrics.cost_micros / 1e6` | `google_outros_investimento` |
-| Impressões | `metrics.impressions` | `google_outros_impressoes` |
-| Cliques | `metrics.clicks` | `google_outros_cliques` |
-| Conversões | `metrics.conversions` | `google_outros_conversoes` |
-
-### 1E. Salesforce — Oportunidades e Fechamentos
-
-**Ferramenta:** `mcp__salesforce-mcp__salesforce_query`
-
-Executar **duas queries**:
-
-> Usar os filtros `[FILTRO_META]` / `[FILTRO_GOOGLE]` (cláusula "cpc OU
-> cruzamento" por plataforma) e o `WON_CLAUSE` de `docs/fundacao-dados.md`.
-
-**Query A — Oportunidades criadas (por plataforma, `CreatedDate`):**
-
+### 1E. SF — opps por campanha p/ rateio institucional (rodar 2x: RF / MM)
 ```sql
--- rodar 2x: [FILTRO_META] / [FILTRO_GOOGLE]
-SELECT COUNT(Id) total
+SELECT UtmCam__c, COUNT(Id) qtd
 FROM Opportunity
 WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
-  AND ([FILTRO_META | FILTRO_GOOGLE])
+  AND UtmCam__c != null
+  AND [PAID]
+  AND [TIPCTE_RF | TIPCTE_MM]
+GROUP BY UtmCam__c
 ```
+Montar `INST_OPPS = {utmcam: {"mm": n, "rf": n}}`. Matching campanha↔UtmCam: no
+Meta costuma ser idêntico; no Google institucional pode divergir — sem match, a
+campanha cai no fallback 50/50 e é sinalizada no preview.
 
-**Query B — Fechamentos (ganho, por `LastStageChangeDate` — duas datas):**
+## Fase 2 — Cálculo (script Python via Bash)
 
-```sql
--- rodar 2x: [FILTRO_META] / [FILTRO_GOOGLE]
-SELECT COUNT(Id) total
-FROM Opportunity
-WHERE ([WON_CLAUSE])
-  AND LastStageChangeDate >= [START]T00:00:00-03:00
-  AND LastStageChangeDate <= [END]T23:59:59-03:00
-  AND ([FILTRO_META | FILTRO_GOOGLE])
-```
-
-A partir dos resultados, derivar:
-
-| Variável | Cálculo |
-|---|---|
-| `sf_meta_oportunidades` | Query A com `[FILTRO_META]` |
-| `sf_meta_fechamentos` | Query B com `[FILTRO_META]` |
-| `sf_google_oportunidades` | Query A com `[FILTRO_GOOGLE]` |
-| `sf_google_fechamentos` | Query B com `[FILTRO_GOOGLE]` |
-
----
-
-## Fase 2 — Consolidação e Validação
-
-Apresentar o resumo ao usuário antes de gravar:
-
-```
-REPORTE KA — [START] a [END]
-═══════════════════════════════════════════
-
-META ADS — CAPTAÇÃO ([FUNDO] e [MEIO])
-  Investimento:    R$ [meta_captacao_investimento]
-  Impressões:      [meta_captacao_impressoes]
-  Cliques no Link: [meta_captacao_cliques]
-  Leads:           [meta_captacao_leads]
-
-META ADS — AWARENESS ([TOPO])
-  Investimento:    R$ [meta_awareness_investimento]
-  Impressões:      [meta_awareness_impressoes]
-  Cliques no Link: [meta_awareness_cliques]
-  Seguidores:      [meta_awareness_seguidores]
-
-GOOGLE ADS — PERFORMANCE MAX
-  Investimento:    R$ [google_pmax_investimento]
-  Impressões:      [google_pmax_impressoes]
-  Cliques:         [google_pmax_cliques]
-  Conversões:      [google_pmax_conversoes]
-
-GOOGLE ADS — DEMAIS CAMPANHAS
-  Investimento:    R$ [google_outros_investimento]
-  Impressões:      [google_outros_impressoes]
-  Cliques:         [google_outros_cliques]
-  Conversões:      [google_outros_conversoes]
-
-SALESFORCE
-  Meta — Oportunidades:  [sf_meta_oportunidades]
-  Meta — Fechamentos:    [sf_meta_fechamentos]
-  Google — Oportunidades:[sf_google_oportunidades]
-  Google — Fechamentos:  [sf_google_fechamentos]
-
-Confirma gravação na planilha?
-```
-
-Aguardar confirmação do usuário antes de avançar para a Fase 3.
-
----
-
-## Fase 3 — Gravação na Planilha
-
-**Planilha:** `169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw`
-
-### Autenticação (service account)
-
-Credenciais: `.claude/sheets_credentials.json`
-Conta de serviço: `reporte-ka-sheets@caveo-496716.iam.gserviceaccount.com`
-
-### Script de gravação (Python via Bash)
+Preencher `ANO, MES, META_ROWS, GOOGLE_ROWS, SF_HISTORY, VENDAS, FATURAMENTO,
+INST_OPPS` com os dados reais e rodar com o `python3` do sistema:
 
 ```python
+import sys
+sys.path.insert(0, 'scripts/acompanhamento_diario')
+sys.path.insert(0, 'scripts/reporte_ka')
+from blocks import block_of
+from alloc import allocate_row
+from qualification import mql_day, sql_day
+from sheet import resolve_realizado_column, col_letter, cell_updates, write_updates
 import gspread
 from google.oauth2.service_account import Credentials
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = Credentials.from_service_account_file(
-    '.claude/sheets_credentials.json',
-    scopes=SCOPES
-)
-gc = gspread.authorize(creds)
-ws = gc.open_by_key('169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw').worksheet('Banco de Dados')
+SHEET_ID = '169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw'
+TABS = {"rf": "Mês-a-Mês RF", "mm": "Mês-a-Mês MM"}
 
-def write_cell(cell, value):
-    ws.update(values=[[value]], range_name=cell)
+# ===== dados da Fase 1 (PREENCHER) =====
+# ANO, MES = 2026, 7
+# META_ROWS = [{"name","spend","impressions","link_clicks","leads","post_engagement"}]
+# GOOGLE_ROWS = [{"name","channel_type","cost","impressions","clicks","conversions","engagements"}]
+# SF_HISTORY = {"rf":[{"history":[{"stage","date"}],"is_won":bool}], "mm":[...]}
+# VENDAS = {"rf": int, "mm": int}
+# FATURAMENTO = {"rf": float, "mm": float}
+# INST_OPPS = {utmcam: {"mm": int, "rf": int}}
 
-# --- escrita das células ---
+acc = {"rf": {}, "mm": {}}
+def add(seg, block, metrics):
+    b = acc[seg].setdefault(block, {})
+    for k, v in metrics.items():
+        b[k] = b.get(k, 0) + v
 
-# Meta Ads — Awareness
-write_cell('A2', meta_awareness_investimento)
-write_cell('B2', meta_awareness_impressoes)
-write_cell('C2', meta_awareness_cliques)
-write_cell('D2', meta_awareness_seguidores)
+fallback_5050 = []
+def opp_counts(name):
+    c = INST_OPPS.get(name)
+    if c is None:
+        return 0, 0
+    return c.get("mm", 0), c.get("rf", 0)
 
-# Meta Ads — Captação
-write_cell('A5', meta_captacao_investimento)
-write_cell('B5', meta_captacao_impressoes)
-write_cell('C5', meta_captacao_cliques)
-write_cell('D5', meta_captacao_leads)
+def is_tagged(name):
+    n = name.lower()
+    return "[mm]" in n or "[rf]" in n
 
-# Google Ads — Demais campanhas
-write_cell('A8', google_outros_investimento)
-write_cell('B8', google_outros_impressoes)
-write_cell('C8', google_outros_cliques)
-write_cell('D8', google_outros_conversoes)
+# --- Meta ---
+for r in META_ROWS:
+    blk = block_of(r["name"], "meta")
+    if blk == "excluded":
+        continue
+    if blk == "meta_awareness":
+        metrics = {"invest": r["spend"], "impr": r["impressions"], "engaj": r.get("post_engagement", 0)}
+    else:
+        metrics = {"invest": r["spend"], "impr": r["impressions"], "clicks": r["link_clicks"], "leads": r["leads"]}
+    omm, orf = opp_counts(r["name"])
+    if not is_tagged(r["name"]) and (omm + orf) == 0 and r["spend"]:
+        fallback_5050.append(r["name"])
+    al = allocate_row(r["name"], metrics, omm, orf)
+    for seg in ("mm", "rf"):
+        add(seg, blk, al[seg])
 
-# Google Ads — Performance Max
+# --- Google ---
+for r in GOOGLE_ROWS:
+    blk = block_of(r["name"], "google", r["channel_type"])
+    if blk == "excluded":
+        continue
+    if blk == "google_awareness":
+        metrics = {"invest": r["cost"], "impr": r["impressions"], "engaj": r.get("engagements", 0)}
+    else:
+        metrics = {"invest": r["cost"], "impr": r["impressions"], "clicks": r["clicks"], "leads": r["conversions"]}
+    omm, orf = opp_counts(r["name"])
+    if not is_tagged(r["name"]) and (omm + orf) == 0 and r["cost"]:
+        fallback_5050.append(r["name"])
+    al = allocate_row(r["name"], metrics, omm, orf)
+    for seg in ("mm", "rf"):
+        add(seg, blk, al[seg])
 
-write_cell('A11', google_pmax_investimento)
-write_cell('B11', google_pmax_impressoes)
-write_cell('C11', google_pmax_cliques)
-write_cell('D11', google_pmax_conversoes)
+# --- SF MQL/SQL (coorte por criação; reached-gate via qualification) ---
+for seg in ("rf", "mm"):
+    mql = sum(1 for o in SF_HISTORY[seg] if mql_day(o["history"], o["is_won"]) is not None)
+    sql = sum(1 for o in SF_HISTORY[seg] if sql_day(o["history"], o["is_won"]) is not None)
+    add(seg, "sf", {"mql": mql, "sql": sql})
 
-# Salesforce — Meta
-write_cell('A13', sf_meta_oportunidades)
-write_cell('B13', sf_meta_fechamentos)
+# --- SF Vendas/Faturamento (por LastStageChangeDate) ---
+for seg in ("rf", "mm"):
+    add(seg, "sf", {"vendas": VENDAS[seg], "faturamento": FATURAMENTO[seg]})
 
-# Salesforce — Google
-write_cell('A16', sf_google_oportunidades)
-write_cell('B16', sf_google_fechamentos)
+# --- Arredondar métricas inteiras fracionadas pelo rateio ---
+for seg in ("rf", "mm"):
+    for blk, m in acc[seg].items():
+        for k in ("impr", "clicks", "leads"):
+            if k in m:
+                m[k] = round(m[k])
 
-print('Planilha atualizada.')
+# --- Zero explícito: garante overwrite das 22 células mesmo sem dado ---
+BLOCK_KEYS = {
+    "google_search": ("invest", "impr", "clicks", "leads"),
+    "google_yt_pmax": ("invest", "impr", "clicks", "leads"),
+    "meta_captacao": ("invest", "impr", "clicks", "leads"),
+    "meta_awareness": ("invest", "impr", "engaj"),
+    "google_awareness": ("invest", "impr", "engaj"),
+    "sf": ("mql", "sql", "vendas", "faturamento"),
+}
+for seg in ("rf", "mm"):
+    for blk, keys in BLOCK_KEYS.items():
+        b = acc[seg].setdefault(blk, {})
+        for k in keys:
+            b.setdefault(k, 0)
+
+# --- Resolver a coluna do mês nas DUAS abas (header NÃO formatado) ---
+gc = gspread.authorize(Credentials.from_service_account_file(
+    '.claude/sheets_credentials.json', scopes=['https://www.googleapis.com/auth/spreadsheets']))
+sh = gc.open_by_key(SHEET_ID)
+cols = {}
+for seg, tab in TABS.items():
+    ws = sh.worksheet(tab)
+    header = ws.get('A1:AZ2', value_render_option='UNFORMATTED_VALUE')
+    header = header + [[], []]
+    cols[seg] = resolve_realizado_column(header[0], header[1], ANO, MES)
+
+if cols["rf"] is None or cols["mm"] is None:
+    print(f"[PARAR] Coluna do mês {MES:02d}/{ANO} não existe (RF={cols['rf']} MM={cols['mm']}).")
+    print("Crie o trio Realizado|Meta|Δ% do mês nas abas ou informe a coluna. NADA foi gravado.")
+    sys.exit(1)
+if cols["rf"] != cols["mm"]:
+    print(f"[PARAR] RF e MM resolveram colunas diferentes (RF={cols['rf']} MM={cols['mm']}). NADA foi gravado.")
+    sys.exit(1)
+
+COL = col_letter(cols["rf"])
+print(f"Mês {MES:02d}/{ANO} -> coluna {COL} (Realizado) nas abas RF e MM.\n")
+
+# --- PREVIEW ---
+for seg in ("rf", "mm"):
+    print(f"=== {seg.upper()} — coluna {COL} ===")
+    for a1, val in cell_updates(COL, acc[seg]):
+        print(f"  {a1} = {val}")
+    print()
+if fallback_5050:
+    print("[!] Institucional em fallback 50/50 (sem opps p/ ratear):")
+    for c in sorted(set(fallback_5050)):
+        print(f"    {c}")
+
+# --- GRAVAÇÃO: só após confirmação (Fase 4). Descomentar e rodar de novo. ---
+def gravar():
+    total = 0
+    for seg, tab in TABS.items():
+        total += write_updates(sh.worksheet(tab), cell_updates(COL, acc[seg]))
+    print(f"Gravadas {total} células ({COL} nas abas RF e MM).")
+# gravar()
 ```
 
-### Mapeamento de Células
+## Fase 3 — Preview e confirmação
 
-> Preencher junto com o usuário. Cada linha liga uma variável coletada a uma célula da planilha.
+Apresentar as tabelas RF e MM (as 22 células de cada) + a coluna resolvida +
+avisos: rateios em fallback 50/50; vendas/faturamento não segmentados por
+`TipCte__c` nulo (diferença entre total pago e RF+MM); awareness zerado.
+Perguntar:
+```
+Gravar na coluna [COL] ([MÊS]/[ANO]) das abas RF e MM? (sim para confirmar)
+```
 
-| Dado | Variável | Aba | Célula |
-|---|---|---|---|
-| Investimento Meta Awareness | `meta_awareness_investimento` | Banco de Dados | A2 |
-| Impressões Meta Awareness | `meta_awareness_impressoes` | Banco de Dados | B2 |
-| Cliques Meta Awareness | `meta_awareness_cliques` | Banco de Dados | C2 |
-| Seguidores Meta Awareness | `meta_awareness_seguidores` | Banco de Dados | D2 |
-| Investimento Meta Captação | `meta_captacao_investimento` | Banco de Dados | A5 |
-| Impressões Meta Captação | `meta_captacao_impressoes` | Banco de Dados | B5 |
-| Cliques Meta Captação | `meta_captacao_cliques` | Banco de Dados | C5 |
-| Leads Meta Captação | `meta_captacao_leads` | Banco de Dados | D5 |
-| Investimento Google Demais | `google_outros_investimento` | Banco de Dados | A8 |
-| Impressões Google Demais | `google_outros_impressoes` | Banco de Dados | B8 |
-| Cliques Google Demais | `google_outros_cliques` | Banco de Dados | C8 |
-| Conversões Google Demais | `google_outros_conversoes` | Banco de Dados | D8 |
-| Investimento Google PMax | `google_pmax_investimento` | Banco de Dados | A11 |
-| Impressões Google PMax | `google_pmax_impressoes` | Banco de Dados | B11 |
-| Cliques Google PMax | `google_pmax_cliques` | Banco de Dados | C11 |
-| Conversões Google PMax | `google_pmax_conversoes` | Banco de Dados | D11 |
-| Oportunidades Meta (SF) | `sf_meta_oportunidades` | Banco de Dados | A13 |
-| Fechamentos Meta (SF) | `sf_meta_fechamentos` | Banco de Dados | B13 |
-| Oportunidades Google (SF) | `sf_google_oportunidades` | Banco de Dados | A16 |
-| Fechamentos Google (SF) | `sf_google_fechamentos` | Banco de Dados | B16 |
+## Fase 4 — Gravação
 
----
+Só após "sim": descomentar `gravar()` no script e rodar de novo (dados já
+embutidos). Nunca tocar em células de fórmula.
 
 ## Pontos de atenção
 
-- **Seguidores:** `page_fan_add` agrega Facebook + Instagram. Usar breakdown `publisher_platform=instagram` para isolar. Se a campanha [TOPO] não tiver objetivo de seguidores, o valor será `0`.
-- **Filtro de campanhas:** o filtro `[FUNDO]`, `[MEIO]` e `[TOPO]` é feito **localmente** após o retorno da API — não é um filtro de API nativa. Verificar se os nomes das campanhas seguem exatamente esse padrão.
-- **Investimento Google:** `cost_micros` deve ser dividido por `1.000.000` para obter BRL.
-- **Fechamentos Salesforce:** usar o `WON_CLAUSE` da fundação (`IsWon = true OR StageName = 'Ganho não Identificado'`) por `LastStageChangeDate`, não lista própria de estágios.
-- **Canal pago:** `[FILTRO_META]` / `[FILTRO_GOOGLE]` da fundação (cpc + cruzamento), não `LIKE '%...%'` de source.
-- **Token gcloud:** o access token tem validade de ~1 hora. Se o script falhar com 401, re-executar `gcloud auth print-access-token`.
-- **Escopo gcloud:** confirmar que a conta logada no gcloud tem permissão de edição na planilha. Verificar com `gcloud auth list`.
+- **Header não formatado:** ler o cabeçalho com `value_render_option='UNFORMATTED_VALUE'` — senão os seriais viram strings ("julho / 26") e o resolvedor não acha a coluna.
+- **Coluna inexistente = parar:** mês novo sem trio de colunas → PARA sem gravar (evita sobrescrever o mês anterior).
+- **Duas datas:** MQL/SQL por `CreatedDate`; Vendas/Faturamento por `LastStageChangeDate`.
+- **Universo BOO:** exclui webinar/comunidade e as campanhas "Turbo" (pausadas). Se "Turbo" voltar como captação médico, revisar.
+- **Métricas a validar na 1ª rodada:** Meta Cliques=`link_click`, Leads=`actions[lead]`; Google Leads=`conversions`. Ajustar se o cliente definir diferente.
