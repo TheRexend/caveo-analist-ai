@@ -103,6 +103,8 @@ ORDER BY OpportunityId, CreatedDate
 Agrupar as linhas por `OpportunityId` → `history=[{stage, date}]` (date = dia de
 `CreatedDate` da linha de histórico, em `-03:00`), `is_won = IsWon OR StageName
 contém "Ganho não Identificado"`, `segment` por `classifyContratante(TipCte__c, Tempo_de_Formado__c)`.
+Opps que classificam como `null` (`TipCte__c` vazio) são **descartadas** — não
+entram em `mm`/`rf` (o acumulador só tem essas duas chaves).
 
 ### 1D. Salesforce — fechamentos por dia/segmento (mídia paga)
 ```sql
@@ -130,7 +132,8 @@ WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
   AND UtmCam__c != null
 ```
-Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (segmento via `classifyContratante(TipCte__c, Tempo_de_Formado__c)`; dia em `-03:00`).
+Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (segmento via `classifyContratante(TipCte__c, Tempo_de_Formado__c)`; dia em `-03:00`). Opps que
+classificam como `null` (`TipCte__c` vazio) são **descartadas** do rateio.
 
 > **Matching campanha↔UtmCam:** o rateio casa o nome da campanha da plataforma
 > com `UtmCam__c`. No Meta costuma ser idêntico; no Google, campanhas
