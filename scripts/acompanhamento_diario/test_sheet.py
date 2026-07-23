@@ -29,6 +29,13 @@ def test_cell_updates_ignora_none_e_ausentes():
     assert ups == [("K88", 7)]
 
 
+def test_cell_updates_mantem_zero_explicito():
+    # 0 é um valor real (zero MQL/SQL/fechamento naquele dia) e deve ser
+    # gravado, não tratado como ausente — só None é omitido.
+    ups = cell_updates("mm", 1, {"mql_meta": 0, "sql_meta": 0, "fechamento": 0})
+    assert ups == [("F46", 0), ("G46", 0), ("O46", 0)]
+
+
 class _FakeWS:
     def __init__(self):
         self.calls = []

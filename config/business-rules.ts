@@ -50,13 +50,35 @@ export const STAGE_GROUPS = {
   perdido: ["Perdido"],
 } as const;
 
-// ── 4. Contratante — TipCte__c (CORRIGIDO 2026-07) ──────────────────────────
-// Correção da empresa: "Médico" passou de RF para MM. Valor antigo
-// "Médicos Maduros" foi substituído e não é mais considerado.
+// ── 4. Contratante — segmento (TipCte__c) + recência (Tempo_de_Formado__c) ──
+// Modelo do cliente (2026-07): TipCte__c carrega só o segmento
+// (Formando/Médico/Revalida); a recência do médico vive em Tempo_de_Formado__c.
+// RF (Recém-Formado) = Formando + Médico recém (recência em rfRecencyValues).
+// MM (Médico Maduro) = Revalida + Médico maduro (demais recências, incl. null).
 export const CONTRATANTE_RULES = {
-  rf: ["Formando", "Médico Faculdades"],       // Recém Formados
-  mm: ["Médico", "Revalida"],                  // Médico Maduro
+  recencyField: "Tempo_de_Formado__c",
+  rfSegments: ["Formando"],                          // segmento já define RF
+  mmSegments: ["Revalida"],                          // segmento já define MM
+  splitSegment: "Médico",                            // dividido pela recência
+  rfRecencyValues: ["Menos de 3 anos", "Vai se formar"],
+  allSegments: ["Formando", "Médico", "Revalida"],
 } as const;
+
+/** Classifica uma opp em "rf" | "mm" | null a partir de segmento + recência. */
+export function classifyContratante(
+  tipCte: string | null,
+  recencia: string | null,
+): "rf" | "mm" | null {
+  const R = CONTRATANTE_RULES;
+  if ((R.rfSegments as readonly string[]).includes(tipCte ?? "")) return "rf";
+  if ((R.mmSegments as readonly string[]).includes(tipCte ?? "")) return "mm";
+  if (tipCte === R.splitSegment) {
+    return recencia && (R.rfRecencyValues as readonly string[]).includes(recencia)
+      ? "rf"
+      : "mm"; // Mais de 3 anos, null, ou valor inesperado → MM
+  }
+  return null; // TipCte null/desconhecido → fora de RF/MM
+}
 
 // ── 5. Modelo de duas datas ─────────────────────────────────────────────────
 export const DATE_MODEL = {
@@ -134,12 +156,18 @@ export function cruzExpr(p: Channel): string {
   }
 }
 
-/** Filtro de contratante (com o " AND " inicial p/ concatenar ao WHERE). */
+/** Filtro de contratante (com o " AND " inicial p/ concatenar ao WHERE).
+ *  Regra composta: segmento (TipCte__c) + recência (Tempo_de_Formado__c). */
 export function tipcteFilter(c: ContratanteKey): string {
+  const R = CONTRATANTE_RULES;
+  const rfRecency = `${R.recencyField} IN (${quoteIn(R.rfRecencyValues)})`;
+  const medicoRf = `(TipCte__c = '${R.splitSegment}' AND ${rfRecency})`;
+  const medicoMm = `(TipCte__c = '${R.splitSegment}' AND (NOT ${rfRecency}))`;
+  const inSeg = (vals: readonly string[]) => `TipCte__c IN (${quoteIn(vals)})`;
   switch (c) {
-    case "rf": return `AND TipCte__c IN (${quoteIn(CONTRATANTE_RULES.rf)})`;
-    case "mm": return `AND TipCte__c IN (${quoteIn(CONTRATANTE_RULES.mm)})`;
-    default: return `AND TipCte__c IN (${quoteIn([...CONTRATANTE_RULES.rf, ...CONTRATANTE_RULES.mm])})`;
+    case "rf": return `AND (${inSeg(R.rfSegments)} OR ${medicoRf})`;
+    case "mm": return `AND (${inSeg(R.mmSegments)} OR ${medicoMm})`;
+    default:   return `AND ${inSeg(R.allSegments)}`;
   }
 }
 

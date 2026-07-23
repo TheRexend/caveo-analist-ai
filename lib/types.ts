@@ -3,10 +3,11 @@
 export type Platform = "all" | "meta" | "google";
 
 /**
- * Segmento de público (Salesforce TipCte__c). Ver docs/fundacao-dados.md.
+ * Segmento de público. O segmento vem de TipCte__c; a recência do médico, de
+ * Tempo_de_Formado__c. Ver docs/fundacao-dados.md (seção 4).
  *  - "all" → Ambos (RF + MM)
- *  - "rf"  → Recém Formados (TipCte__c em Formando / Médico Faculdades)
- *  - "mm"  → Médico Maduro (TipCte__c em Médico / Revalida)
+ *  - "rf"  → Recém-Formado (Formando, ou Médico com recência recente)
+ *  - "mm"  → Médico Maduro (Revalida, ou Médico maduro / sem recência)
  */
 export type Contratante = "all" | "rf" | "mm";
 

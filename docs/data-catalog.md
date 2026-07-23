@@ -47,7 +47,12 @@
 ### Segmentação
 | Campo | Tipo | Descrição | Usado hoje? |
 |---|---|---|---|
-| `TipCte__c` | picklist | Tipo de contratante (RF/MM) | ✅ |
+| `TipCte__c` | picklist | Segmento: `Formando` / `Médico` / `Revalida` | ✅ |
+| `Tempo_de_Formado__c` | picklist | Recência do médico: `Vai se formar` / `Menos de 3 anos` / `Mais de 3 anos`; compõe RF/MM com `TipCte__c` (seção 4 da fundação) | ✅ |
+| `MesFor__c` | string | "Mês de formatura" — vale "Já é formado" p/ todo médico; **não** serve de recência | ⬜ |
+
+> **FLS:** `Tempo_de_Formado__c` (criado 21/07/2026) exige Read liberado ao
+> usuário de integração do MCP; sem isso o SOQL retorna `INVALID_FIELD`.
 
 ### Campos NÃO usados de alto valor analítico (oportunidades)
 | Campo | Tipo | Descrição | Ideia de uso |

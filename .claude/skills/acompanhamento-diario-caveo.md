@@ -23,13 +23,26 @@ planilha de acompanhamento. **Append-only: nunca reescreve dias anteriores.**
 Canal pago (Meta/Google) usa o modelo **cpc + cruzamento** de
 `docs/fundacao-dados.md` (seção "Fragmentos SOQL prontos"), fuso `-03:00`. MQL/SQL
 usam `QUALIFICATION_RULES` (seção 7); alocação de segmento usa `SEGMENT_ALLOCATION`
-(seção 8). Segmento por `TipCte__c` (seção 4). NÃO reescrever essas listas aqui.
+(seção 8). Segmento por `TipCte__c` + `Tempo_de_Formado__c` via `classifyContratante` (seção 4). NÃO reescrever essas listas aqui.
 
 ## Bucket temporal (regra de ouro — sem retroativo)
 
 - Investimento / Leads → **dia do gasto** (plataforma).
 - MQL / SQL → **dia da primeira transição** que cruza o gate (`OpportunityHistory`).
 - Fechamento → **`LastStageChangeDate`** (dia do fechamento).
+
+Todo dia é sempre calculado em **`-03:00`**, nunca no UTC bruto que o
+Salesforce devolve (ver nota de fuso na Fase 1D) — vale para os três casos
+acima.
+
+## Zero explícito (regra de ouro — sem ambiguidade)
+
+Todo dia dentro do período processado grava as **9 métricas com `0`** quando
+não há ocorrência (ex.: sem MQL, sem SQL, sem fechamento, sem lead naquele
+canal). A célula nunca fica em branco por falta de dado — só fica em branco
+se o dia estiver **fora** do período desta execução. Assim, uma célula vazia
+na planilha significa "esse dia não foi processado ainda", nunca "processei e
+não sei o valor".
 
 ## Fase 0 — Período
 
@@ -80,7 +93,7 @@ meses — a janela larga garante capturar opps criadas antes mas que cruzam um g
 DENTRO do período; o `in_period` continua restringindo o que é gravado):
 ```sql
 SELECT OpportunityId, StageName, CreatedDate,
-       Opportunity.TipCte__c, Opportunity.IsWon
+       Opportunity.TipCte__c, Opportunity.Tempo_de_Formado__c, Opportunity.IsWon
 FROM OpportunityHistory
 WHERE Opportunity.CreatedDate >= [START-12meses]T00:00:00-03:00
   AND Opportunity.CreatedDate <= [END]T23:59:59-03:00
@@ -89,27 +102,38 @@ ORDER BY OpportunityId, CreatedDate
 ```
 Agrupar as linhas por `OpportunityId` → `history=[{stage, date}]` (date = dia de
 `CreatedDate` da linha de histórico, em `-03:00`), `is_won = IsWon OR StageName
-contém "Ganho não Identificado"`, `segment` por `TipCte__c`.
+contém "Ganho não Identificado"`, `segment` por `classifyContratante(TipCte__c, Tempo_de_Formado__c)`.
+Opps que classificam como `null` (`TipCte__c` vazio) são **descartadas** — não
+entram em `mm`/`rf` (o acumulador só tem essas duas chaves).
 
 ### 1D. Salesforce — fechamentos por dia/segmento (mídia paga)
 ```sql
-SELECT TipCte__c, LastStageChangeDate
+SELECT TipCte__c, Tempo_de_Formado__c, LastStageChangeDate
 FROM Opportunity
 WHERE LastStageChangeDate >= [START]T00:00:00-03:00
   AND LastStageChangeDate <= [END]T23:59:59-03:00
   AND ([FILTRO_META] OR [FILTRO_GOOGLE])
   AND [WON_CLAUSE]
 ```
+> **Atenção fuso:** o Salesforce devolve `LastStageChangeDate` em **UTC**
+> (`+0000`) mesmo com o `WHERE` limitado em `-03:00`. Para montar
+> `SF_CLOSINGS`, **converter cada `LastStageChangeDate` para -03:00 antes de
+> extrair o dia** (mesma regra de 1C e 1E). Ex.: `2026-07-21T00:56:14+0000` =
+> `20/07 20:56 -03:00` → dia **20**, não 21. Sem essa conversão, fechamentos
+> entre ~21h e 23h59 (horário de Brasília) voltam com data UTC do dia
+> seguinte e ficam fora do dia processado (somem da linha certa) ou são
+> gravados fora da janela pedida (quebra o append-only).
 
 ### 1E. Salesforce — opps por campanha/dia/segmento (para o rateio institucional)
 ```sql
-SELECT UtmCam__c, TipCte__c, CreatedDate
+SELECT UtmCam__c, TipCte__c, Tempo_de_Formado__c, CreatedDate
 FROM Opportunity
 WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
   AND UtmCam__c != null
 ```
-Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (dia em `-03:00`).
+Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (segmento via `classifyContratante(TipCte__c, Tempo_de_Formado__c)`; dia em `-03:00`). Opps que
+classificam como `null` (`TipCte__c` vazio) são **descartadas** do rateio.
 
 > **Matching campanha↔UtmCam:** o rateio casa o nome da campanha da plataforma
 > com `UtmCam__c`. No Meta costuma ser idêntico; no Google, campanhas
@@ -140,8 +164,23 @@ from collections import defaultdict
 #               "history": [{"stage","date"}], "is_won": bool}]
 # SF_CLOSINGS: [{"segment": "mm"|"rf", "day": int}]
 
-# acc[segment][day] = dict parcial de métricas (chaves de sheet.COLS)
+# acc[segment][day] = dict de métricas (chaves de sheet.COLS), PRÉ-ZERADO abaixo.
 acc = {"mm": defaultdict(dict), "rf": defaultdict(dict)}
+
+# Zero explícito: todo dia dentro de [START,END] recebe as 9 métricas com 0
+# antes de qualquer acumulação. Sem isso, um dia sem MQL/SQL/fechamento/lead
+# simplesmente não teria a chave no dict e cell_updates() pularia a célula —
+# ficando indistinguível de "esse dia não foi processado". Com o zero
+# explícito, toda célula do período é sempre escrita (0 quando não há
+# ocorrência), então "vazio" na planilha só significa "fora do período".
+_ALL_METRIC_KEYS = ("invest_meta", "leads_meta", "mql_meta", "sql_meta",
+                    "invest_google", "leads_google", "mql_google", "sql_google",
+                    "fechamento")
+_day_start, _day_end = int(START[8:10]), int(END[8:10])
+for _seg in ("mm", "rf"):
+    for _day in range(_day_start, _day_end + 1):
+        for _k in _ALL_METRIC_KEYS:
+            acc[_seg][_day][_k] = 0
 
 def add(seg, day, key, val):
     acc[seg][day][key] = acc[seg][day].get(key, 0) + val
