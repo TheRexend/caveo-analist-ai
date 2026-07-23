@@ -5,4 +5,4 @@ import sys
 
 _HERE = os.path.dirname(__file__)
 sys.path.insert(0, _HERE)
-sys.path.insert(0, os.path.join(_HERE, "..", "acompanhamento_diario"))
+sys.path.append(os.path.join(_HERE, "..", "acompanhamento_diario"))
