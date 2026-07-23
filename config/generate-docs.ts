@@ -57,15 +57,17 @@ click ID. Meta tem prioridade sobre Google em caso de conflito.
 | Ganho | \`${STAGE_GROUPS.ganho.wonClause}\` |
 | Perdido | ${codeList(STAGE_GROUPS.perdido)} |
 
-## 4. Contratante — \`TipCte__c\` (corrigido 2026-07)
+## 4. Contratante — segmento (\`TipCte__c\`) + recência (\`${CONTRATANTE_RULES.recencyField}\`)
 
-| Grupo | Valores |
+O segmento vem de \`TipCte__c\`; a recência do médico, de \`${CONTRATANTE_RULES.recencyField}\`.
+
+| Bucket | Regra |
 |---|---|
-| RF — Recém Formados | ${codeList(CONTRATANTE_RULES.rf)} |
-| MM — Médico Maduro | ${codeList(CONTRATANTE_RULES.mm)} |
+| RF — Recém-Formado | \`TipCte__c\` ∈ ${codeList(CONTRATANTE_RULES.rfSegments)} **ou** (\`TipCte__c\` = \`${CONTRATANTE_RULES.splitSegment}\` **e** \`${CONTRATANTE_RULES.recencyField}\` ∈ ${codeList(CONTRATANTE_RULES.rfRecencyValues)}) |
+| MM — Médico Maduro | \`TipCte__c\` ∈ ${codeList(CONTRATANTE_RULES.mmSegments)} **ou** (\`TipCte__c\` = \`${CONTRATANTE_RULES.splitSegment}\` **e** recência fora do conjunto RF, incluindo \`null\`) |
 
-> Correção: \`Médico\` passou de RF para MM. O valor antigo \`Médicos Maduros\` foi
-> substituído e não é mais considerado.
+> \`${CONTRATANTE_RULES.splitSegment}\` sem recência (\`null\`) cai em MM (fallback).
+> Os valores antigos \`Médico Faculdades\`/\`Médicos Maduros\` foram descontinuados.
 
 ## 5. Modelo de duas datas
 

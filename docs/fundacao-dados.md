@@ -34,15 +34,17 @@ click ID. Meta tem prioridade sobre Google em caso de conflito.
 | Ganho | `IsWon = true OR StageName = 'Ganho não Identificado'` |
 | Perdido | `Perdido` |
 
-## 4. Contratante — `TipCte__c` (corrigido 2026-07)
+## 4. Contratante — segmento (`TipCte__c`) + recência (`Tempo_de_Formado__c`)
 
-| Grupo | Valores |
+O segmento vem de `TipCte__c`; a recência do médico, de `Tempo_de_Formado__c`.
+
+| Bucket | Regra |
 |---|---|
-| RF — Recém Formados | `Formando`, `Médico Faculdades` |
-| MM — Médico Maduro | `Médico`, `Revalida` |
+| RF — Recém-Formado | `TipCte__c` ∈ `Formando` **ou** (`TipCte__c` = `Médico` **e** `Tempo_de_Formado__c` ∈ `Menos de 3 anos`, `Vai se formar`) |
+| MM — Médico Maduro | `TipCte__c` ∈ `Revalida` **ou** (`TipCte__c` = `Médico` **e** recência fora do conjunto RF, incluindo `null`) |
 
-> Correção: `Médico` passou de RF para MM. O valor antigo `Médicos Maduros` foi
-> substituído e não é mais considerado.
+> `Médico` sem recência (`null`) cai em MM (fallback).
+> Os valores antigos `Médico Faculdades`/`Médicos Maduros` foram descontinuados.
 
 ## 5. Modelo de duas datas
 
@@ -81,6 +83,6 @@ rateados pela participação de opps do segmento naquela campanha (SF). Fallback
 | cpc (direto) | `UtmMed__c LIKE '%cpc%'` | `(UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%'))` | `(UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%')` |
 | cruzamento | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (gclid__c != null OR gbraid__c != null) AND fbc__c = null AND fbclid__c = null)` |
 
-Contratante: all → `AND TipCte__c IN ('Formando','Médico Faculdades','Médico','Revalida')` · rf → `AND TipCte__c IN ('Formando','Médico Faculdades')` · mm → `AND TipCte__c IN ('Médico','Revalida')`
+Contratante: all → `AND TipCte__c IN ('Formando','Médico','Revalida')` · rf → `AND (TipCte__c IN ('Formando') OR (TipCte__c = 'Médico' AND Tempo_de_Formado__c IN ('Menos de 3 anos','Vai se formar')))` · mm → `AND (TipCte__c IN ('Revalida') OR (TipCte__c = 'Médico' AND (NOT Tempo_de_Formado__c IN ('Menos de 3 anos','Vai se formar'))))`
 
 Ganho: `(IsWon = true OR StageName = 'Ganho não Identificado')`
