@@ -49,7 +49,7 @@ caveo_analist_ai/
 │   │   └── ga4-analise.md             #   comportamento site/LP
 │   ├── skills/                        # ── SKILLS · subprojeto 4 ──
 │   │   ├── planilha-resultados.md      (procedimento)
-│   │   ├── reporte-resultados-ka.md    (procedimento)
+│   │   ├── reporte-resultados-ka.md    (procedimento; mensal segmentado RF/MM → abas Mês-a-Mês)
 │   │   ├── reporte-semanal-caveo.md    (procedimento; aciona analista)
 │   │   ├── reporte-ga4.md              (procedimento; novo)
 │   │   ├── reporte-consolidado-mensal.md (procedimento; novo)
