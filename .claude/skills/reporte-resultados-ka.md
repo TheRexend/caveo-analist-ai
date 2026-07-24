@@ -210,7 +210,7 @@ for seg in ("rf", "mm"):
 # --- Arredondar métricas inteiras fracionadas pelo rateio ---
 for seg in ("rf", "mm"):
     for blk, m in acc[seg].items():
-        for k in ("impr", "clicks", "leads"):
+        for k in ("impr", "clicks", "leads", "engaj"):
             if k in m:
                 m[k] = round(m[k])
 
