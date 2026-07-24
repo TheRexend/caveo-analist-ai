@@ -1,5 +1,5 @@
 ---
-description: Relatório mensal do cliente KA → planilha Banco de Dados
+description: Reporte mensal segmentado RF/MM → abas Mês-a-Mês RF e MM
 argument-hint: [período/escopo opcional]
 ---
 
