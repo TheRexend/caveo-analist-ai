@@ -100,7 +100,7 @@ caveo_analist_ai/
 │   ├── fundacao-dados.md               #   GERADO de business-rules.ts
 │   ├── data-catalog.md                 #   catálogo de campos MCP (Meta/Google/SF/GA4)
 │   ├── superpowers/specs/              #   os 5 specs desta reforma
-│   └── (estratégicos: personas_*, Dores_Desejos, LP_*, Google_Ads_*, ...)
+│   └── (estratégicos: personas_*, Dores_Desejos, LP_*, Google_Ads_*, matriz-poder-interesse-caveo, ...)
 │
 ├── scripts/                            # utilitários (md_to_docx, etc.)
 ├── outputs/                            # entregáveis gerados (apresentações)
