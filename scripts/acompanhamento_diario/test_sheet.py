@@ -1,6 +1,6 @@
 import pytest
 
-from sheet import day_to_row, cell_updates, write_updates
+from sheet import day_to_row, cell_updates, write_updates, read_fechamentos
 
 
 def test_day_to_row_mm_e_rf():
@@ -58,3 +58,53 @@ def test_write_updates_vazio_nao_chama_api():
     ws = _FakeWS()
     assert write_updates(ws, []) == 0
     assert ws.calls == []
+
+
+class _FakeReadWS:
+    """Simula gspread: .get(range) devolve linhas; trailing vazio é omitido
+    (mesmo comportamento real do gspread .get())."""
+
+    def __init__(self, mm_col=None, rf_col=None):
+        self.mm_col = mm_col or []
+        self.rf_col = rf_col or []
+
+    def get(self, rng):
+        if rng.startswith("O46"):
+            return [[v] if v != "" else [] for v in self.mm_col]
+        if rng.startswith("O88"):
+            return [[v] if v != "" else [] for v in self.rf_col]
+        raise ValueError(f"range inesperado: {rng}")
+
+
+def test_read_fechamentos_valores_presentes():
+    ws = _FakeReadWS(mm_col=["2", "1", "0"], rf_col=["1", "3"])
+    out = read_fechamentos(ws)
+    assert out["mm"][1] == 2
+    assert out["mm"][2] == 1
+    assert out["mm"][3] == 0  # zero explícito é um valor, não ausência
+    assert out["rf"][1] == 1
+    assert out["rf"][2] == 3
+
+
+def test_read_fechamentos_dia_vazio_no_meio_e_none():
+    ws = _FakeReadWS(mm_col=["2", "1", "", "0", "3"])
+    out = read_fechamentos(ws)
+    assert out["mm"][3] is None
+    assert out["mm"][4] == 0
+    assert out["mm"][5] == 3
+
+
+def test_read_fechamentos_dias_finais_omitidos_pelo_gspread_sao_none():
+    ws = _FakeReadWS(mm_col=["2", "1"])  # dias 3..31 nem aparecem na resposta
+    out = read_fechamentos(ws)
+    assert out["mm"][3] is None
+    assert out["mm"][31] is None
+
+
+def test_read_fechamentos_cobre_dias_1_a_31_nos_dois_segmentos():
+    ws = _FakeReadWS()  # planilha totalmente vazia (mês novo)
+    out = read_fechamentos(ws)
+    assert set(out.keys()) == {"mm", "rf"}
+    assert set(out["mm"].keys()) == set(range(1, 32))
+    assert all(v is None for v in out["mm"].values())
+    assert all(v is None for v in out["rf"].values())
