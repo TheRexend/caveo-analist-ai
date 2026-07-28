@@ -23,7 +23,10 @@ planilha de acompanhamento. **Append-only: nunca reescreve dias anteriores.**
 Canal pago (Meta/Google) usa o modelo **cpc + cruzamento** de
 `docs/fundacao-dados.md` (seção "Fragmentos SOQL prontos"), fuso `-03:00`. MQL/SQL
 usam `QUALIFICATION_RULES` (seção 7); alocação de segmento usa `SEGMENT_ALLOCATION`
-(seção 8). Segmento por `TipCte__c` + `Tempo_de_Formado__c` via `classifyContratante` (seção 4). NÃO reescrever essas listas aqui.
+(seção 8). Segmento por `TipCte__c` + `Tempo_de_Formado__c` via
+`classify_contratante` (seção 4) — **sempre** `from segments import
+classify_contratante` (`scripts/acompanhamento_diario/segments.py`); nunca
+aplicar a regra de cabeça. NÃO reescrever essas listas aqui.
 
 ## Bucket temporal (regra de ouro — sem retroativo)
 
@@ -102,8 +105,10 @@ ORDER BY OpportunityId, CreatedDate
 ```
 Agrupar as linhas por `OpportunityId` → `history=[{stage, date}]` (date = dia de
 `CreatedDate` da linha de histórico, em `-03:00`), `is_won = IsWon OR StageName
-contém "Ganho não Identificado"`, `segment` por `classifyContratante(TipCte__c, Tempo_de_Formado__c)`.
-Opps que classificam como `null` (`TipCte__c` vazio) são **descartadas** — não
+contém "Ganho não Identificado"`, `segment = classify_contratante(TipCte__c,
+Tempo_de_Formado__c)` (`from segments import classify_contratante` — nunca
+classificar de memória).
+Opps que classificam como `None` (`TipCte__c` vazio) são **descartadas** — não
 entram em `mm`/`rf` (o acumulador só tem essas duas chaves).
 
 ### 1D. Salesforce — fechamentos por dia/segmento (mídia paga)
@@ -115,6 +120,11 @@ WHERE LastStageChangeDate >= [START]T00:00:00-03:00
   AND ([FILTRO_META] OR [FILTRO_GOOGLE])
   AND [WON_CLAUSE]
 ```
+Esta query **não filtra por `TipCte__c`** — classificar cada linha em
+`segment = classify_contratante(TipCte__c, Tempo_de_Formado__c)` (`from
+segments import classify_contratante`; nunca de memória). Opps que classificam
+como `None` são **descartadas** do `SF_CLOSINGS` — mesma regra de 1C/1E.
+
 > **Atenção fuso:** o Salesforce devolve `LastStageChangeDate` em **UTC**
 > (`+0000`) mesmo com o `WHERE` limitado em `-03:00`. Para montar
 > `SF_CLOSINGS`, **converter cada `LastStageChangeDate` para -03:00 antes de
@@ -132,8 +142,10 @@ WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
   AND UtmCam__c != null
 ```
-Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (segmento via `classifyContratante(TipCte__c, Tempo_de_Formado__c)`; dia em `-03:00`). Opps que
-classificam como `null` (`TipCte__c` vazio) são **descartadas** do rateio.
+Bucketizar em `{ (utmcam, dia): {mm: n, rf: n} }` (segmento via
+`classify_contratante(TipCte__c, Tempo_de_Formado__c)` — `from segments import
+classify_contratante`; dia em `-03:00`). Opps que classificam como `None`
+(`TipCte__c` vazio) são **descartadas** do rateio.
 
 > **Matching campanha↔UtmCam:** o rateio casa o nome da campanha da plataforma
 > com `UtmCam__c`. No Meta costuma ser idêntico; no Google, campanhas
@@ -150,7 +162,7 @@ com os dados reais coletados:
 ```python
 import sys
 sys.path.insert(0, 'scripts/acompanhamento_diario')
-from segments import allocate, classify_segment
+from segments import allocate, classify_segment, classify_contratante
 from qualification import mql_day, sql_day
 from sheet import cell_updates, write_updates
 import gspread
