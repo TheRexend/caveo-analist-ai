@@ -1,4 +1,4 @@
-from segments import classify_segment, allocate
+from segments import classify_segment, allocate, classify_contratante
 
 
 def test_classify_por_tag():
@@ -39,3 +39,24 @@ def test_allocate_institucional_zero_opps_cai_no_fallback_50_50():
     assert r["rf"]["spend"] == 500.0
     assert r["mm"]["leads"] == 5.0
     assert r["rf"]["leads"] == 5.0
+
+
+def test_classify_contratante_formando_sempre_rf():
+    assert classify_contratante("Formando", None) == "rf"
+    assert classify_contratante("Formando", "Vai se formar") == "rf"
+
+
+def test_classify_contratante_medico_dividido_pela_recencia():
+    assert classify_contratante("Médico", "Menos de 3 anos") == "rf"
+    assert classify_contratante("Médico", "Vai se formar") == "rf"
+    assert classify_contratante("Médico", "Mais de 3 anos") == "mm"
+    assert classify_contratante("Médico", None) == "mm"  # fallback
+
+
+def test_classify_contratante_revalida_e_mm():
+    assert classify_contratante("Revalida", None) == "mm"
+
+
+def test_classify_contratante_tipcte_nulo_ou_desconhecido_e_none():
+    assert classify_contratante(None, None) is None
+    assert classify_contratante("Outro", "Menos de 3 anos") is None

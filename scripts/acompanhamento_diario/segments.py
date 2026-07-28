@@ -41,3 +41,22 @@ def allocate(campaign_name, spend, leads, opp_mm=0, opp_rf=0):
         "mm": {"spend": spend * r["mm"], "leads": leads * r["mm"]},
         "rf": {"spend": spend * r["rf"], "leads": leads * r["rf"]},
     }
+
+
+# Espelha CONTRATANTE_RULES / classifyContratante
+# (fonte de verdade: config/business-rules.ts).
+RF_SEGMENTS = ("Formando",)
+MM_SEGMENTS = ("Revalida",)
+SPLIT_SEGMENT = "Médico"
+RF_RECENCY_VALUES = ("Menos de 3 anos", "Vai se formar")
+
+
+def classify_contratante(tip_cte, tempo_de_formado):
+    """'rf', 'mm' ou None a partir de TipCte__c + Tempo_de_Formado__c."""
+    if tip_cte in RF_SEGMENTS:
+        return "rf"
+    if tip_cte in MM_SEGMENTS:
+        return "mm"
+    if tip_cte == SPLIT_SEGMENT:
+        return "rf" if tempo_de_formado in RF_RECENCY_VALUES else "mm"
+    return None
