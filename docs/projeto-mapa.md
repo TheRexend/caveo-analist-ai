@@ -59,6 +59,7 @@ caveo_analist_ai/
 │   │   ├── criativos-campeoes.md       (analítica → analista; novo)
 │   │   ├── detector-defeitos.md        (analítica → analista; novo)
 │   │   ├── acompanhamento-diario-caveo.md (procedimento; diário MM/RF; grava planilha)
+│   │   ├── reconciliacao-fechamentos-caveo.md (procedimento; só leitura; planilha × Salesforce)
 │   │   └── brainstorming.md            (infra genérica)
 │   ├── commands/                      # ── COMANDOS DE CHAT · subprojeto 4 ──
 │   │   └── <um .md por skill>          #   invólucro fino → invoca a skill
