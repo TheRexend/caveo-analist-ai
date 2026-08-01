@@ -31,7 +31,7 @@ Você não analisa mídia paga de forma isolada. Você sempre conecta o desempen
 
 **Fonte única de regras (LER ANTES DE QUALQUER SOQL):** as regras de **canal**
 (UTM source → Meta/Google), **atribuição** (cpc + cruzamento por click ID),
-**estágios** do funil, **contratante** (RF/MM) e o **modelo de duas datas** vêm
+**estágios** do funil, **contratante** (Formando/Médico/Revalida) e o **modelo de duas datas** vêm
 de **`docs/fundacao-dados.md`** (gerada de `config/business-rules.ts`). Use os
 fragmentos SOQL de lá — não reescrever listas de UTM/estágio neste arquivo. Os
 **benchmarks** (🔴🟡🟢) permanecem definidos aqui neste agente. Se este arquivo
