@@ -1,43 +1,48 @@
-"""Classificação de campanha por segmento e rateio de institucionais.
+"""Classificação de campanha por segmento e classificação de oportunidade.
 
-Espelha config/business-rules.ts (SEGMENT_ALLOCATION).
+Oportunidade: espelha config/business-rules.ts (classifyContratante).
+Campanha: mecanismo próprio desta camada Python — não existe mais na
+fundação TS (SEGMENT_ALLOCATION foi removido no sub-projeto 1). Tags
+[rf]/[mm] são um shim de compatibilidade com campanhas legadas; campanha
+sem tag = 100% Médico (mídia paga mira só Médico daqui pra frente, sem
+rateio institucional).
 """
 
-TAG_MM = "[mm]"
-TAG_RF = "[rf]"
-FALLBACK = {"mm": 0.5, "rf": 0.5}
+TAG_FORMANDO = "[rf]"   # tag legada — campanhas antigas podem ainda ter esse nome
+TAG_MEDICO = "[mm]"     # tag legada — idem
 
 
 def classify_segment(campaign_name):
-    """'mm', 'rf' ou 'institucional' (case-insensitive). Sem tag => institucional."""
+    """'formando', 'medico' ou 'institucional' (case-insensitive).
+    Sem tag => institucional (100% Médico na alocação, ver allocate)."""
     n = campaign_name.lower()
-    if TAG_MM in n:
-        return "mm"
-    if TAG_RF in n:
-        return "rf"
+    if TAG_FORMANDO in n:
+        return "formando"
+    if TAG_MEDICO in n:
+        return "medico"
     return "institucional"
 
 
-def _ratio(opp_mm, opp_rf):
-    total = opp_mm + opp_rf
-    if total == 0:
-        return dict(FALLBACK)
-    return {"mm": opp_mm / total, "rf": opp_rf / total}
+def allocate(campaign_name, spend, leads):
+    """spend/leads de UMA campanha num dia -> {'formando': {...}, 'medico': {...}}.
 
-
-def allocate(campaign_name, spend, leads, opp_mm=0, opp_rf=0):
-    """spend/leads de UMA campanha num dia -> divididos entre mm/rf.
-
-    Campanha taggeada => 100% no segmento. Institucional => rateio por opp-share
-    (fallback 50/50 quando não há opps).
+    Campanha taggeada [rf] => 100% formando. Taggeada [mm] ou institucional
+    (sem tag) => 100% medico — mídia paga mira só Médico, sem rateio.
     """
     seg = classify_segment(campaign_name)
-    if seg in ("mm", "rf"):
-        other = "rf" if seg == "mm" else "mm"
-        return {seg: {"spend": spend, "leads": leads},
-                other: {"spend": 0.0, "leads": 0.0}}
-    r = _ratio(opp_mm, opp_rf)
-    return {
-        "mm": {"spend": spend * r["mm"], "leads": leads * r["mm"]},
-        "rf": {"spend": spend * r["rf"], "leads": leads * r["rf"]},
-    }
+    if seg == "formando":
+        return {"formando": {"spend": spend, "leads": leads},
+                "medico": {"spend": 0.0, "leads": 0.0}}
+    return {"formando": {"spend": 0.0, "leads": 0.0},
+            "medico": {"spend": spend, "leads": leads}}
+
+
+def classify_contratante(tip_cte):
+    """'formando', 'medico', 'revalida' ou None a partir de TipCte__c."""
+    if tip_cte == "Formando":
+        return "formando"
+    if tip_cte == "Médico":
+        return "medico"
+    if tip_cte == "Revalida":
+        return "revalida"
+    return None

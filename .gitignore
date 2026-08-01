@@ -72,3 +72,6 @@ package-lock.json
 
 # Versionados a partir de agora (antes ignorados): docs/, scripts/, config/,
 # mcps/ (só código), .claude/ (agentes/skills/comandos), CLAUDE.md, AGENTS.md.
+
+# Worktrees isolados (criados pelo EnterWorktree / git worktree add):
+.claude/worktrees/

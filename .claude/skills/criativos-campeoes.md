@@ -19,7 +19,7 @@ Meta `act_438086148409254` · Google `3921127876` · Salesforce `caveo.my.salesf
 
 ## Fase 0 — Período e escopo
 Perguntar (ou assumir mês corrente 01→D-1): período, plataforma (Meta/Google/ambas),
-contratante (RF/MM/ambos).
+contratante (Formando/Médico/ambos).
 
 ## Fase 1 — Coleta (paralela)
 
