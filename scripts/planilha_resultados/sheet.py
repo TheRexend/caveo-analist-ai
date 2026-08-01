@@ -1,9 +1,9 @@
 """Mapeamento de células — planilha "Relação de Leads" (skill planilha-resultados).
 
 Blocos mensais (não diário, ao contrário de acompanhamento_diario/sheet.py):
-MÉDICO MADURO nas linhas 30-53, RECÉM-FORMADOS nas linhas 58-81 (offset fixo
-de +28 sobre as linhas do bloco MM). O bloco "Geral" (linhas 1-26, colunas
-I/J) é 100% fórmula (=MM+RF) e nunca é tocado — mesma regra do TOTAL em
+MÉDICO nas linhas 30-53, FORMANDO nas linhas 58-81 (offset fixo
+de +28 sobre as linhas do bloco Médico). O bloco "Geral" (linhas 1-26, colunas
+I/J) é 100% fórmula (=Médico+Formando) e nunca é tocado — mesma regra do TOTAL em
 acompanhamento_diario/sheet.py. CPL, T Conv/T Oport./T SQL/T Fechamento., a
 coluna "%" da tabela de estágio e a linha TOTAL também são fórmulas da
 própria planilha. CPM e CTR são valores estáticos (sem fórmula) e por isso
