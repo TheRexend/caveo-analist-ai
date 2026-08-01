@@ -1,5 +1,5 @@
 """Resolução da coluna do mês (Realizado) e mapeamento célula→métrica das abas
-Mês-a-Mês Formando/Médico. A coluna NÃO é fixa: cada mês (de mai/26 em diante) ocupa um
+Mês-a-Mês RF/MM. A coluna NÃO é fixa: cada mês (de mai/26 em diante) ocupa um
 trio Realizado|Meta|Δ%; as colunas Realizado andam de 3 em 3 (H, K, N, Q...).
 A linha 1 guarda o 1º-dia-do-mês como número de série (NÃO é dia 1: o formato
 mmmm/yy só exibe mês/ano); a linha 2 marca 'Realizado'. Comparar ano+mês.
