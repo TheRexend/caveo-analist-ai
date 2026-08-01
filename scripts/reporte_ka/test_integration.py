@@ -5,7 +5,7 @@ from qualification import mql_day, sql_day
 
 
 def test_pipeline_midia_para_celulas():
-    data = {"mm": {}, "rf": {}}
+    data = {"medico": {}, "formando": {}}
 
     def acc(seg, block, metrics):
         b = data[seg].setdefault(block, {})
@@ -14,22 +14,22 @@ def test_pipeline_midia_para_celulas():
 
     rows = [
         {"name": "[BOO] [MM] [FUNDO] [LEADS]", "platform": "meta", "ct": None,
-         "metrics": {"invest": 1000.0, "impr": 5000, "clicks": 100, "leads": 10}, "omm": 0, "orf": 0},
+         "metrics": {"invest": 1000.0, "impr": 5000, "clicks": 100, "leads": 10}},
         {"name": "BOO - [Search] - Institucional", "platform": "google", "ct": "SEARCH",
-         "metrics": {"invest": 800.0, "impr": 4000, "clicks": 80, "leads": 8}, "omm": 3, "orf": 1},
+         "metrics": {"invest": 800.0, "impr": 4000, "clicks": 80, "leads": 8}},
     ]
     for r in rows:
         blk = block_of(r["name"], r["platform"], r["ct"])
         assert blk != "excluded"
-        al = allocate_row(r["name"], r["metrics"], r["omm"], r["orf"])
-        for seg in ("mm", "rf"):
+        al = allocate_row(r["name"], r["metrics"])
+        for seg in ("medico", "formando"):
             acc(seg, blk, al[seg])
 
-    ups_mm = dict(cell_updates("N", data["mm"]))
-    ups_rf = dict(cell_updates("N", data["rf"]))
-    assert ups_mm["N21"] == 1000.0   # meta captação 100% MM (taggeada)
-    assert ups_mm["N4"] == 600.0     # google search: 800 * 0.75 (3 de 4 opps MM)
-    assert ups_rf["N4"] == 200.0     # 800 * 0.25
+    ups_medico = dict(cell_updates("N", data["medico"]))
+    ups_formando = dict(cell_updates("N", data["formando"]))
+    assert ups_medico["N21"] == 1000.0   # meta captação 100% Médico (taggeada [MM])
+    assert ups_medico["N4"] == 800.0     # google search institucional: 100% Médico (sem rateio)
+    assert ups_formando["N4"] == 0       # Formando não recebe nada da campanha institucional (zero explícito, não ausente)
 
 
 def test_qualification_reuse_conta_mql_sql():
