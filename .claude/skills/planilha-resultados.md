@@ -27,7 +27,9 @@ NÃO reescrever listas de `UtmSou__c` aqui. Segmento (Médico/Formando) usa
 `classify_contratante` (fundação §4, `TipCte__c`) — **sempre** `from segments
 import classify_contratante` (`scripts/acompanhamento_diario/segments.py`);
 nunca aplicar a regra de cabeça. Opps que classificam como `"revalida"` ou
-`None` são descartadas — não aparecem nesta skill. MQL/SQL cumulativo usa
+`None` são descartadas do funil segmentado (blocos Médico/Formando) — a
+tabela de campanhas (não segmentada, Fase 4) ainda conta essas opps no
+total. MQL/SQL cumulativo usa
 `QUALIFICATION_RULES` (fundação §7) via `from qualification import mql_day,
 sql_day` (`scripts/acompanhamento_diario/qualification.py`). Campanha sem tag
 de segmento no nome conta 100% como Médico via `from segments import
@@ -354,7 +356,7 @@ def campaign_rows(campaigns, platform, lead_key):
 meta_campaign_rows = campaign_rows(META_CAMPAIGNS, "meta", "leads")
 google_campaign_rows = campaign_rows(GOOGLE_CAMPAIGNS, "google", "conversions")
 
-# --- GRAVAÇÃO (só após confirmação do usuário na Fase 4) ---
+# --- GRAVAÇÃO (só após confirmação do usuário na Fase 3) ---
 def gravar():
     creds = Credentials.from_service_account_file(
         '.claude/sheets_credentials.json',
@@ -503,7 +505,8 @@ regravar (`batch_clear`) para não deixar linhas de execuções anteriores.
   Médico, sem rateio entre segmentos (fundação §8 é nota histórica; ver
   `segments.classify_segment`/`allocate`).
 - **Tabela de campanhas (linha 85+) não é segmentada** por Médico/Formando —
-  mostra o total da campanha (Opps/Fechado somam os dois segmentos), já que
+  mostra o total da campanha (Opps/Fechado somam todas as oportunidades
+  classificadas da campanha, incluindo Revalida), já que
   o nome da campanha normalmente já carrega a tag de segmento.
 - **Conversões Google:** podem vir com casas decimais por janela de
   atribuição — arredondar para inteiro no fim (por campanha, não somando

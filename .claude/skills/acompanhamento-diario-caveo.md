@@ -69,8 +69,7 @@ agora, nem a cada execução). Antes do primeiro `gravar()`:
 
 1. **Confirmar as bases dos blocos** — ler de volta as células de rótulo e checar
    que a planilha traz "MÉDICO" por volta da linha 43 e "FORMANDO"
-   por volta da linha 85 (ver Task 11 do plano — renomeação das planilhas reais).
-   `sheet.day_to_row` assume `BLOCK_BASE = {medico: 45, formando: 87}`
+   por volta da linha 85. `sheet.day_to_row` assume `BLOCK_BASE = {medico: 45, formando: 87}`
    (dia _d_ → 45+_d_ / 87+_d_); se os rótulos estiverem em outras linhas, ajustar
    `BLOCK_BASE` antes de gravar — caso contrário os números caem no bloco errado.
 2. **Confirmar a autenticação** — validar que a service account

@@ -34,7 +34,7 @@ COLS = {
     "fechamento_google": ("F", 42),
 }
 
-# Estágio -> linha-base no bloco MM (tabela "Estágio | Oportunidades | %").
+# Estágio -> linha-base no bloco Médico (tabela "Estágio | Oportunidades | %").
 STAGE_ROWS = {
     "Aguardando Resposta": 46,
     "Contato Realizado": 47,
