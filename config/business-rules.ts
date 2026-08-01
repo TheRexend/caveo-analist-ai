@@ -11,7 +11,7 @@
 // ============================================================================
 
 export type Channel = "all" | "meta" | "google";
-export type ContratanteKey = "all" | "rf" | "mm";
+export type ContratanteKey = "all" | "formando" | "medico" | "revalida";
 
 // ── 1. Canal — UTM source → plataforma ──────────────────────────────────────
 // Padrões usados em `UtmSou__c LIKE '<padrão>'`.
@@ -50,34 +50,25 @@ export const STAGE_GROUPS = {
   perdido: ["Perdido"],
 } as const;
 
-// ── 4. Contratante — segmento (TipCte__c) + recência (Tempo_de_Formado__c) ──
-// Modelo do cliente (2026-07): TipCte__c carrega só o segmento
-// (Formando/Médico/Revalida); a recência do médico vive em Tempo_de_Formado__c.
-// RF (Recém-Formado) = Formando + Médico recém (recência em rfRecencyValues).
-// MM (Médico Maduro) = Revalida + Médico maduro (demais recências, incl. null).
+// ── 4. Contratante — segmento (TipCte__c) ───────────────────────────────────
+// Mudança de ICP (2026-07-31): classificação direta por TipCte__c, sem regra
+// composta com recência. Tempo_de_Formado__c é um atributo informativo dentro
+// de "medico" (útil para análises pontuais) — não participa da classificação.
+// Mídia paga mira 100% em "medico"; "formando" é segmento secundário válido no
+// funil, não ruído. "revalida" é categoria à parte (não funde com "medico").
 export const CONTRATANTE_RULES = {
   recencyField: "Tempo_de_Formado__c",
-  rfSegments: ["Formando"],                          // segmento já define RF
-  mmSegments: ["Revalida"],                          // segmento já define MM
-  splitSegment: "Médico",                            // dividido pela recência
-  rfRecencyValues: ["Menos de 3 anos", "Vai se formar"],
-  allSegments: ["Formando", "Médico", "Revalida"],
+  segments: ["Formando", "Médico", "Revalida"] as const,
 } as const;
 
-/** Classifica uma opp em "rf" | "mm" | null a partir de segmento + recência. */
+/** Classifica uma opp em "formando" | "medico" | "revalida" | null a partir de TipCte__c. */
 export function classifyContratante(
   tipCte: string | null,
-  recencia: string | null,
-): "rf" | "mm" | null {
-  const R = CONTRATANTE_RULES;
-  if ((R.rfSegments as readonly string[]).includes(tipCte ?? "")) return "rf";
-  if ((R.mmSegments as readonly string[]).includes(tipCte ?? "")) return "mm";
-  if (tipCte === R.splitSegment) {
-    return recencia && (R.rfRecencyValues as readonly string[]).includes(recencia)
-      ? "rf"
-      : "mm"; // Mais de 3 anos, null, ou valor inesperado → MM
-  }
-  return null; // TipCte null/desconhecido → fora de RF/MM
+): "formando" | "medico" | "revalida" | null {
+  if (tipCte === "Formando") return "formando";
+  if (tipCte === "Médico") return "medico";
+  if (tipCte === "Revalida") return "revalida";
+  return null; // TipCte null/desconhecido → fora de segmentação
 }
 
 // ── 5. Modelo de duas datas ─────────────────────────────────────────────────
@@ -116,16 +107,6 @@ export const QUALIFICATION_RULES = {
   },
 } as const;
 
-// ── 8. Alocação de segmento em campanhas de mídia paga ──────────────────────
-// Classificação por marcador no nome da campanha. Campanha institucional (sem
-// marcador de segmento) tem investimento e leads RATEADOS entre MM/RF pela
-// participação de opps do segmento naquela campanha (SF UtmCam__c/TipCte__c).
-// Fallback (gasto no dia, 0 opps no SF) = 50/50.
-export const SEGMENT_ALLOCATION = {
-  tags: { mm: "[MM]", rf: "[RF]" },
-  emptyRatioFallback: { mm: 0.5, rf: 0.5 },
-} as const;
-
 // ============================================================================
 // BUILDERS DE SOQL — mantêm a lógica de atribuição num só lugar.
 // O dashboard consome estes builders em vez de reescrever as cláusulas.
@@ -157,17 +138,13 @@ export function cruzExpr(p: Channel): string {
 }
 
 /** Filtro de contratante (com o " AND " inicial p/ concatenar ao WHERE).
- *  Regra composta: segmento (TipCte__c) + recência (Tempo_de_Formado__c). */
+ *  Classificação direta por TipCte__c — sem regra composta com recência. */
 export function tipcteFilter(c: ContratanteKey): string {
-  const R = CONTRATANTE_RULES;
-  const rfRecency = `${R.recencyField} IN (${quoteIn(R.rfRecencyValues)})`;
-  const medicoRf = `(TipCte__c = '${R.splitSegment}' AND ${rfRecency})`;
-  const medicoMm = `(TipCte__c = '${R.splitSegment}' AND (NOT ${rfRecency}))`;
-  const inSeg = (vals: readonly string[]) => `TipCte__c IN (${quoteIn(vals)})`;
   switch (c) {
-    case "rf": return `AND (${inSeg(R.rfSegments)} OR ${medicoRf})`;
-    case "mm": return `AND (${inSeg(R.mmSegments)} OR ${medicoMm})`;
-    default:   return `AND ${inSeg(R.allSegments)}`;
+    case "formando": return `AND TipCte__c IN ('Formando')`;
+    case "medico":   return `AND TipCte__c IN ('Médico')`;
+    case "revalida": return `AND TipCte__c IN ('Revalida')`;
+    default:         return `AND TipCte__c IN (${quoteIn(CONTRATANTE_RULES.segments)})`;
   }
 }
 

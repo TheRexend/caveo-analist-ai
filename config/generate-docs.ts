@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
   CHANNEL_RULES, CRUZAMENTO_RULES, STAGE_GROUPS, CONTRATANTE_RULES,
-  DATE_MODEL, COHORT_RULES, QUALIFICATION_RULES, SEGMENT_ALLOCATION,
+  DATE_MODEL, COHORT_RULES, QUALIFICATION_RULES,
   cpcExpr, cruzExpr, tipcteFilter, WON_CLAUSE,
 } from "./business-rules.ts";
 
@@ -57,17 +57,21 @@ click ID. Meta tem prioridade sobre Google em caso de conflito.
 | Ganho | \`${STAGE_GROUPS.ganho.wonClause}\` |
 | Perdido | ${codeList(STAGE_GROUPS.perdido)} |
 
-## 4. Contratante — segmento (\`TipCte__c\`) + recência (\`${CONTRATANTE_RULES.recencyField}\`)
+## 4. Contratante — segmento (\`TipCte__c\`)
 
-O segmento vem de \`TipCte__c\`; a recência do médico, de \`${CONTRATANTE_RULES.recencyField}\`.
+Classificação direta por \`TipCte__c\` — sem regra composta com recência.
+\`${CONTRATANTE_RULES.recencyField}\` é um atributo informativo dentro de
+\`Médico\` (útil para análises pontuais), mas **não participa da classificação**.
 
 | Bucket | Regra |
 |---|---|
-| RF — Recém-Formado | \`TipCte__c\` ∈ ${codeList(CONTRATANTE_RULES.rfSegments)} **ou** (\`TipCte__c\` = \`${CONTRATANTE_RULES.splitSegment}\` **e** \`${CONTRATANTE_RULES.recencyField}\` ∈ ${codeList(CONTRATANTE_RULES.rfRecencyValues)}) |
-| MM — Médico Maduro | \`TipCte__c\` ∈ ${codeList(CONTRATANTE_RULES.mmSegments)} **ou** (\`TipCte__c\` = \`${CONTRATANTE_RULES.splitSegment}\` **e** recência fora do conjunto RF, incluindo \`null\`) |
+| Formando | \`TipCte__c = 'Formando'\` |
+| Médico | \`TipCte__c = 'Médico'\` (qualquer recência, incl. \`null\`) |
+| Revalida | \`TipCte__c = 'Revalida'\` |
 
-> \`${CONTRATANTE_RULES.splitSegment}\` sem recência (\`null\`) cai em MM (fallback).
-> Os valores antigos \`Médico Faculdades\`/\`Médicos Maduros\` foram descontinuados.
+> Mídia paga mira 100% em Médico. Formando é segmento secundário válido no
+> funil, não ruído/fora do ICP. Mudança de ICP em 2026-07-31 — ver spec
+> \`docs/superpowers/specs/2026-07-31-icp-medico-fundacao-design.md\`.
 
 ## 5. Modelo de duas datas
 
@@ -92,12 +96,12 @@ O dia do MQL/SQL é o da **primeira transição** que cruza o gate.
 | MQL | ${codeList(QUALIFICATION_RULES.mql.reachedStages)} | ${QUALIFICATION_RULES.mql.alsoWon ? "sim" : "não"} |
 | SQL | ${codeList(QUALIFICATION_RULES.sql.reachedStages)} | ${QUALIFICATION_RULES.sql.alsoWon ? "sim" : "não"} |
 
-## 8. Alocação de segmento (campanhas de mídia paga)
+## 8. Alocação de segmento (nota histórica)
 
-Marcadores no nome da campanha: MM = \`${SEGMENT_ALLOCATION.tags.mm}\`, RF = \`${SEGMENT_ALLOCATION.tags.rf}\`.
-Campanha **sem** marcador de segmento (institucional) → investimento e leads
-rateados pela participação de opps do segmento naquela campanha (SF). Fallback
-(gasto no dia, 0 opps) = ${SEGMENT_ALLOCATION.emptyRatioFallback.mm * 100}/${SEGMENT_ALLOCATION.emptyRatioFallback.rf * 100}.
+Até a virada de ICP (2026-07-31), campanhas usavam marcadores \`[RF]\`/\`[MM]\` e
+institucionais eram rateadas 50/50 pela participação de opps do segmento.
+**Não se aplica mais:** mídia paga mira 100% em Médico, sem disputa de
+orçamento entre segmentos.
 
 ## Fragmentos SOQL prontos (gerados dos builders)
 
@@ -106,7 +110,7 @@ rateados pela participação de opps do segmento naquela campanha (SF). Fallback
 | cpc (direto) | \`${cpcExpr("all")}\` | \`${cpcExpr("meta")}\` | \`${cpcExpr("google")}\` |
 | cruzamento | \`${cruzExpr("all")}\` | \`${cruzExpr("meta")}\` | \`${cruzExpr("google")}\` |
 
-Contratante: all → \`${tipcteFilter("all")}\` · rf → \`${tipcteFilter("rf")}\` · mm → \`${tipcteFilter("mm")}\`
+Contratante: all → \`${tipcteFilter("all")}\` · formando → \`${tipcteFilter("formando")}\` · medico → \`${tipcteFilter("medico")}\` · revalida → \`${tipcteFilter("revalida")}\`
 
 Ganho: \`${WON_CLAUSE}\`
 `;
