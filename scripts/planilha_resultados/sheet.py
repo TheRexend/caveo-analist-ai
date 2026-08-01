@@ -10,7 +10,7 @@ própria planilha. CPM e CTR são valores estáticos (sem fórmula) e por isso
 precisam ser calculados e gravados por esta skill.
 """
 
-BLOCK_BASE = {"mm": 0, "rf": 28}
+BLOCK_BASE = {"medico": 0, "formando": 28}
 
 # Métrica -> (coluna, linha-base no bloco MM). RF soma BLOCK_BASE["rf"].
 COLS = {
@@ -59,7 +59,7 @@ def cell_updates(segment, metrics, stages):
     processado", nunca "processado e é zero").
     """
     if segment not in BLOCK_BASE:
-        raise ValueError(f"segmento inválido: {segment!r} (use 'mm' ou 'rf')")
+        raise ValueError(f"segmento inválido: {segment!r} (use 'medico' ou 'formando')")
     base = BLOCK_BASE[segment]
     out = []
     for key, (col, row) in COLS.items():
