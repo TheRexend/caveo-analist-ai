@@ -1,28 +1,57 @@
 ---
 name: planilha-resultados
-description: Coleta e apresenta dados consolidados de Mídia Paga da Caveo (Meta Ads [LEADS] + Google Ads + Salesforce CRM) para o período do mês atual de 01 até D-1. Entrega totais por plataforma, visão Salesforce por estágio separada por Meta/Google, e breakdown por campanha com Investimento, Leads, CPL, Opps, Custo/Opp e Fechados. Use quando precisar do relatório de performance de mídia paga.
+description: Coleta e apresenta dados consolidados de Mídia Paga da Caveo (Meta Ads [LEADS] + Google Ads + Salesforce CRM) para o período do mês atual de 01 até D-1, segmentado por Médico Maduro (MM) e Recém-Formado (RF). Entrega funil Investimento→Leads (Registro Concluído)→MQL Opp→SQL Proposta Enviada→Fechamento por segmento×plataforma, visão por estágio e breakdown por campanha. Use quando precisar do relatório de performance de mídia paga.
 ---
 
 # Skill: Planilha de Resultados — Caveo Mídia Paga
 
 Coleta e consolida dados de Meta Ads, Google Ads e Salesforce para o período do mês corrente
-(dia 01 até D-1) e entrega o relatório completo de mídia paga.
+(dia 01 até D-1), segmenta por **Médico Maduro (MM)** e **Recém-Formado (RF)**, e grava na
+planilha "Relação de Leads".
 
-## Contas
+## Contas e planilha
 
-| Plataforma | Identificador |
+| Recurso | Identificador |
 |---|---|
 | Meta Ads | `act_438086148409254` (Caveo App) |
 | Google Ads | `3921127876` (Caveo Tecnologia) |
 | Salesforce | `caveo.my.salesforce.com` |
+| Planilha | `169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw`, aba `Relação de Leads` |
+| Auth Sheets | `.claude/sheets_credentials.json` (service account `reporte-ka-sheets@caveo-496716.iam.gserviceaccount.com`) |
 
-## Fonte única de regras (LER ANTES DE QUALQUER SOQL)
+## Fundação (LER ANTES DE QUALQUER SOQL)
 
 O filtro de **canal pago** (Meta/Google) usa o modelo **cpc + cruzamento** de
-**`docs/fundacao-dados.md`** (seção "Fragmentos SOQL prontos"), com **duas datas**
-(criadas por `CreatedDate`; fechamentos por `LastStageChangeDate`) e fuso `-03:00`.
-NÃO reescrever listas de `UtmSou__c` aqui. O breakdown por `StageName` individual
-(para as células da planilha) é mantido — é apresentação, não regra de canal.
+`docs/fundacao-dados.md` (seção "Fragmentos SOQL prontos"), com fuso `-03:00`.
+NÃO reescrever listas de `UtmSou__c` aqui. Segmento (MM/RF) usa
+`classify_contratante` (fundação §4, `TipCte__c` + `Tempo_de_Formado__c`) —
+**sempre** `from segments import classify_contratante`
+(`scripts/acompanhamento_diario/segments.py`); nunca aplicar a regra de
+cabeça. MQL/SQL cumulativo usa `QUALIFICATION_RULES` (fundação §7) via
+`from qualification import mql_day, sql_day`
+(`scripts/acompanhamento_diario/qualification.py`). Alocação de campanhas sem
+tag de segmento usa `SEGMENT_ALLOCATION` (fundação §8) via
+`from segments import allocate, classify_segment`. NÃO reescrever essas
+regras aqui — importar sempre dos módulos.
+
+## Estrutura da planilha "Relação de Leads"
+
+A aba tem 3 blocos verticais. O bloco **Geral** (linhas 1-26) é **100% fórmula**
+(`=MM+RF` célula a célula) — esta skill **nunca escreve nele**. Só os blocos
+**MÉDICO MADURO** (linhas 28-54) e **RECÉM-FORMADOS** (linhas 56-82) recebem
+dados desta skill. Cada bloco tem colunas Meta Ads (B) e Google Ads (F) com o
+funil Investimento → Leads → MQL Opp → SQL Proposta Enviada → Fechamento,
+seguido da tabela "Estágio | Oportunidades | %".
+
+Dentro de cada bloco, **CPL, T Conv., T Oport., T SQL, T Fechamento., a
+coluna "%" da tabela de estágio e a linha TOTAL são fórmulas da própria
+planilha** — nunca escrever nessas células (ver mapeamento completo em
+`scripts/planilha_resultados/sheet.py`, `COLS`/`STAGE_ROWS`). **CPM e CTR são
+valores estáticos** (sem fórmula) — a skill precisa calculá-los e gravá-los.
+
+A partir da **linha 85** (área em branco, sem cabeçalho pré-existente) vai a
+relação de campanhas: um bloco para Meta Ads (linhas 85-105) e, mais abaixo,
+um bloco para Google Ads (linhas 108-128) — ver Fase 4.
 
 ---
 
@@ -33,12 +62,15 @@ Calcular automaticamente sem perguntar ao usuário:
 - **START** = primeiro dia do mês corrente → `YYYY-MM-01`
 - **END** = hoje − 1 dia → `YYYY-MM-DD`
 
-Exemplo: se hoje é 11/06/2026, então START = `2026-06-01` e END = `2026-06-10`.
-
 Informar o período ao usuário em uma linha antes de iniciar a coleta:
 ```
 Coletando dados de [START] a [END]...
 ```
+
+O escopo temporal é **coorte por `CreatedDate`**: o conjunto de oportunidades
+é o das opps **criadas** no período; MQL/SQL/Fechamento avaliam o status
+dessas mesmas opps **até hoje** (cumulativo — uma opp criada dia 3 e que só
+chegou a "Proposta Enviada" dia 20 ainda conta).
 
 ---
 
@@ -61,12 +93,11 @@ Após receber os dados, **filtrar apenas campanhas cujo nome contenha `[LEADS]`*
 Para cada campanha filtrada, extrair:
 - `spend` → Investimento
 - `impressions` → Impressões
-- CPM = (`spend` / `impressions`) × 1000  *(ou usar o campo `cpm` da resposta)*
 - Link Clicks = array `actions` → objeto com `action_type = "link_click"` → `value`
-- CTR Link = (Link Clicks / `impressions`) × 100
-- Leads = array `actions` → objeto com `action_type = "lead"` → `value`
-
-Somar todos os valores das campanhas filtradas para os **Totais Meta [LEADS]**.
+- **Leads = array `actions` → objeto com `action_type = "complete_registration"` → `value`**
+  (fallback: `offsite_conversion.fb_pixel_complete_registration` se `complete_registration`
+  não vier na resposta). **"Registro Concluído" é a conversão principal — não usar
+  `action_type = "lead"` nem `onsite_web_lead`.**
 
 ### 1B. Google Ads — Performance por Campanha
 
@@ -83,324 +114,408 @@ conditions:  ["segments.date BETWEEN '[START]' AND '[END]'",
               "campaign.status = 'ENABLED'"]
 ```
 
-Para cada campanha retornada, extrair:
-- Investimento = `metrics.cost_micros` / 1.000.000
-- Impressões = `metrics.impressions`
-- CPM = (Investimento / Impressões) × 1000
-- Cliques no Link = `metrics.clicks`
-- CTR Link = `metrics.ctr` × 100  *(já é ratio, converter para %)*
-- Conversões = `metrics.conversions` *(arredondar para inteiro)*
+Para cada campanha: Investimento = `cost_micros`/1.000.000; Impressões =
+`metrics.impressions`; Cliques = `metrics.clicks`; Conversões =
+`metrics.conversions` (arredondar para inteiro no fim, não por campanha).
 
-Somar todos para os **Totais Google Ads**.
+### 1C. Salesforce — Oportunidades (linhas cruas, sem agregação)
 
-### 1C. Salesforce — Estágios por Plataforma
-
-**Ferramenta:** `mcp__salesforce-mcp__salesforce_query`
+**Ferramenta:** `mcp__salesforce-mcp__salesforce_query` — rodar 2x (`[FILTRO_META]` / `[FILTRO_GOOGLE]` da fundação):
 
 ```sql
--- rodar 2x: uma com [FILTRO_META], outra com [FILTRO_GOOGLE] da fundação
--- ([FILTRO] = cláusula "cpc OU cruzamento" da plataforma em docs/fundacao-dados.md)
-SELECT StageName, COUNT(Id) qtd
+SELECT Id, UtmCam__c, StageName, TipCte__c, Tempo_de_Formado__c
 FROM Opportunity
 WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
-  AND ([FILTRO_META | FILTRO_GOOGLE])
-GROUP BY StageName
+  AND ([FILTRO_META] | [FILTRO_GOOGLE])
 ```
 
-Classificar por plataforma pelo **filtro usado** (`[FILTRO_META]` → Meta;
-`[FILTRO_GOOGLE]` → Google), não por inspeção manual de `UtmSou__c`.
+Não agregar em SOQL — trazer as linhas crus e classificar/agrupar na Fase 2
+(`SF_OPPS`, tag `platform: "meta"|"google"` por qual das duas rodadas a linha veio).
+Esta única query alimenta: tabela de estágio por segmento, breakdown por
+campanha (Opps/Fechado) e as contagens de opps por campanha×segmento usadas
+no rateio institucional (§8).
 
-Agregar por estágio para cada plataforma:
+> **Matching campanha↔UtmCam (Google):** no Google, `UtmCam__c` guarda um
+> **código interno**, não o nome da campanha — precisa mapear antes de
+> cruzar com `GOOGLE_CAMPAIGNS` (1B). Mapeamento atual (ajustar se a conta
+> criar/renomear campanha):
+> ```python
+> GOOGLE_UTMCAM_ALIAS = {
+>     "institucional": "BOO - [Search] - [Max Conv] - Institucional",
+>     "cnpj_medico": "BOO - [RF] [Search] [Max Conv] - Cnpj médico",
+>     "pmax_plataforma_financeira_medicopj_2": "BOO - [MM] [Pmax] [Fundo] Plataforma Médico PJ - Novo",
+>     "search_MM": "BOO - [MM] [Search] - [Max Conv] - Persona Médico Maduro",
+> }
+> ```
+> Sem esse remapeamento, **toda** a tabela de campanhas Google fica com
+> Opps/Custo-Opp/Fechado em `—` (nenhum match) **e** a campanha
+> "Institucional" (sem tag `[RF]`/`[MM]`) cai em fallback 50/50 no rateio §8
+> mesmo tendo opps suficientes para um rateio real — sempre aplicar o alias
+> **antes** de montar `camp_tally`/`camp_seg_opps`. No Meta o `UtmCam__c`
+> já é o nome exato da campanha — não precisa de alias. Tags sem mapeamento
+> conhecido (`contabilidade_nivel_brasil`, `emita_notas_sem_problemas`,
+> `cnpj2` no período de referência) não têm campanha ativa correspondente —
+> deixar sem match, não adivinhar.
 
-Estágios esperados (nessa ordem na exibição):
-1. Aguardando Resposta
-2. Contato Realizado
-3. Perdido
-4. Fechado (Ganho)  ← StageName = `Fechado`
-5. Proposta Enviada
-6. Nova
-7. Standy-By
-8. Ganho não Identificado
-9. **Total** (soma de todos)
+### 1D. Salesforce — Histórico (para MQL/SQL cumulativo)
 
-### 1D. Salesforce — Opps e Fechados por Campanha
-
-**Ferramenta:** `mcp__salesforce-mcp__salesforce_query`
+**Ferramenta:** `mcp__salesforce-mcp__salesforce_query` — rodar 2x (`[FILTRO_META]` / `[FILTRO_GOOGLE]`):
 
 ```sql
--- rodar 2x: [FILTRO_META] / [FILTRO_GOOGLE] da fundação
-SELECT UtmCam__c, StageName, COUNT(Id) qtd
-FROM Opportunity
-WHERE CreatedDate >= [START]T00:00:00-03:00
-  AND CreatedDate <= [END]T23:59:59-03:00
-  AND UtmCam__c != null
-  AND ([FILTRO_META | FILTRO_GOOGLE])
-GROUP BY UtmCam__c, StageName
-ORDER BY COUNT(Id) DESC
+SELECT OpportunityId, StageName, CreatedDate,
+       Opportunity.TipCte__c, Opportunity.Tempo_de_Formado__c, Opportunity.IsWon
+FROM OpportunityHistory
+WHERE Opportunity.CreatedDate >= [START]T00:00:00-03:00
+  AND Opportunity.CreatedDate <= [END]T23:59:59-03:00
+  AND ([FILTRO_META] | [FILTRO_GOOGLE])
+ORDER BY OpportunityId, CreatedDate
 ```
 
-Para cada `UtmCam__c`, somar:
-- **Opps** = COUNT total de registros daquela campanha
-- **Fechado** = COUNT dos registros onde `StageName = 'Fechado'` **OU** `StageName = 'Ganho não Identificado'`
+> **Atenção — prefixo `Opportunity.` no filtro:** `OpportunityHistory` não
+> tem `UtmMed__c`/`UtmSou__c`/`fbc__c`/`fbclid__c`/`gclid__c`/`gbraid__c`
+> como campos próprios — são campos do objeto pai. Ao montar
+> `[FILTRO_META]`/`[FILTRO_GOOGLE]` **nesta query**, prefixar cada um desses
+> campos com `Opportunity.` (ex.: `Opportunity.UtmMed__c LIKE '%cpc%'`), ao
+> contrário da 1C (onde a query é direto em `Opportunity` e o fragmento da
+> fundação é usado literal, sem prefixo). Sem o prefixo o Salesforce devolve
+> `INVALID_FIELD` ("No such column ... on entity 'OpportunityHistory'").
+
+Trazer linhas cruas (`SF_HISTORY_RAW`, tag `platform`) — o agrupamento por
+`OpportunityId` e o cálculo de `mql_day`/`sql_day` acontecem na Fase 2, via
+`qualification.py` (mesma regra de `acompanhamento-diario-caveo`: cumulativo,
+"Ganho também conta").
 
 ---
 
-## Fase 2 — Consolidação e Apresentação
+## Fase 2 — Cálculo (script Python via Bash, usando os helpers)
 
-Cruzar os dados das quatro coletas e apresentar o relatório completo abaixo.
+Construir e rodar com o **`python3` do sistema** o script abaixo, preenchendo
+`META_CAMPAIGNS`, `GOOGLE_CAMPAIGNS`, `SF_OPPS`, `SF_HISTORY_RAW` com os dados
+reais coletados na Fase 1:
 
-### Regras de cruzamento Meta Ads × Salesforce
+```python
+import sys
+sys.path.insert(0, 'scripts/acompanhamento_diario')
+from segments import allocate, classify_segment, classify_contratante
+from qualification import mql_day, sql_day
+sys.path.insert(0, 'scripts/planilha_resultados')
+from sheet import cell_updates, write_updates
+import gspread
+from google.oauth2.service_account import Credentials
+from collections import defaultdict
 
-Para associar campanhas Meta Ads às oportunidades do Salesforce:
-- O `UtmCam__c` no Salesforce geralmente corresponde ao **nome exato da campanha** no Meta Ads.
-- Se houver match exato: usar os valores de Opps e Fechados daquela campanha.
-- Se não houver match: exibir `—` em Opps e Custo/Opp.
+# --- Dados brutos coletados na Fase 1 ---
+# META_CAMPAIGNS: campanhas [LEADS] (1A). GOOGLE_CAMPAIGNS: campanhas ENABLED (1B).
+META_CAMPAIGNS = [
+    # {"name": str, "spend": float, "impressions": int, "clicks": int, "leads": float}
+]
+GOOGLE_CAMPAIGNS = [
+    # {"name": str, "spend": float, "impressions": int, "clicks": int, "conversions": float}
+]
+# SF_OPPS: uma linha por Opportunity (1C). No Google, "utmcam" já deve vir
+# remapeado pelo GOOGLE_UTMCAM_ALIAS (ver 1C) — nunca o código interno bruto.
+SF_OPPS = [
+    # {"platform": "meta"|"google", "utmcam": str|None, "stage": str,
+    #  "tipcte": str|None, "recencia": str|None}
+]
+# SF_HISTORY_RAW: uma linha por transição de OpportunityHistory (1D)
+SF_HISTORY_RAW = [
+    # {"platform": "meta"|"google", "opp_id": str, "stage": str, "date": str,
+    #  "is_won": bool, "tipcte": str|None, "recencia": str|None}
+]
 
-### Regras de cruzamento Google Ads × Salesforce
+WON_STAGES = ("Fechado", "Ganho não Identificado")
+STAGE_LABELS = {  # StageName (SF) -> rótulo da tabela de estágio da planilha
+    "Aguardando Resposta": "Aguardando Resposta",
+    "Contato Realizado": "Contato Realizado",
+    "Perdido": "Perdido",
+    "Fechado": "Fechado Ganho",
+    "Proposta Enviada": "Proposta Enviada",
+    "Nova": "Nova",
+    "Standy-By": "Standy-By",
+    "Stand By": "Standy-By",
+    "Ganho não Identificado": "Ganho não Identificado",
+}
 
-- Mapear `UtmCam__c` (SF) → nome da campanha (Google Ads):
-  - `institucional` → campanha Search Institucional
-  - `cnpj_medico` → campanha Search CNPJ Médico
-  - `pmax_plataforma_financeira_medicopj` → campanha PMax Plataforma Financeira
-  - `menos_impostos` / `contabilidade*` → campanhas Search Contabilidade
-  - `campanha_teste` → ignorar ou sinalizar
+# --- 1. Classificar oportunidades (1C) por segmento; descartar None (TipCte__c vazio) ---
+stage_tally = {p: {"mm": defaultdict(int), "rf": defaultdict(int)} for p in ("meta", "google")}
+camp_tally = {p: defaultdict(lambda: {"opps": 0, "fechado": 0}) for p in ("meta", "google")}
+camp_seg_opps = {p: defaultdict(lambda: {"mm": 0, "rf": 0}) for p in ("meta", "google")}
+
+for o in SF_OPPS:
+    seg = classify_contratante(o["tipcte"], o["recencia"])
+    if seg is None:
+        continue
+    stage_tally[o["platform"]][seg][o["stage"]] += 1
+    if o["utmcam"]:
+        c = camp_tally[o["platform"]][o["utmcam"]]
+        c["opps"] += 1
+        if o["stage"] in WON_STAGES:
+            c["fechado"] += 1
+        camp_seg_opps[o["platform"]][o["utmcam"]][seg] += 1
+
+# --- 2. MQL/SQL cumulativo (1D) por segmento ---
+by_opp = defaultdict(list)
+for h in SF_HISTORY_RAW:
+    by_opp[(h["platform"], h["opp_id"])].append(h)
+
+mql_count = {p: {"mm": 0, "rf": 0} for p in ("meta", "google")}
+sql_count = {p: {"mm": 0, "rf": 0} for p in ("meta", "google")}
+
+for (platform, opp_id), rows in by_opp.items():
+    seg = classify_contratante(rows[0]["tipcte"], rows[0]["recencia"])
+    if seg is None:
+        continue
+    history = [{"stage": r["stage"], "date": r["date"]} for r in rows]
+    is_won = any(r["is_won"] or r["stage"] == "Ganho não Identificado" for r in rows)
+    if mql_day(history, is_won) is not None:
+        mql_count[platform][seg] += 1
+    if sql_day(history, is_won) is not None:
+        sql_count[platform][seg] += 1
+
+# --- 3. Rateio institucional (§8) para Investimento/Impressões/Cliques/Leads ---
+def split_campaigns(campaigns, platform, lead_key):
+    out = {"mm": {"spend": 0.0, "impressions": 0.0, "clicks": 0.0, "leads": 0.0},
+           "rf": {"spend": 0.0, "impressions": 0.0, "clicks": 0.0, "leads": 0.0}}
+    fallback_5050 = []
+    for c in campaigns:
+        so = camp_seg_opps[platform].get(c["name"], {"mm": 0, "rf": 0})
+        if classify_segment(c["name"]) == "institucional" and so["mm"] + so["rf"] == 0 and c["spend"]:
+            fallback_5050.append(c["name"])
+        a_money = allocate(c["name"], c["spend"], c[lead_key], so["mm"], so["rf"])
+        a_vol = allocate(c["name"], c["impressions"], c["clicks"], so["mm"], so["rf"])
+        for seg in ("mm", "rf"):
+            out[seg]["spend"] += a_money[seg]["spend"]
+            out[seg]["leads"] += a_money[seg]["leads"]
+            out[seg]["impressions"] += a_vol[seg]["spend"]
+            out[seg]["clicks"] += a_vol[seg]["leads"]
+    return out, fallback_5050
+
+meta_split, meta_fallback = split_campaigns(META_CAMPAIGNS, "meta", "leads")
+google_split, google_fallback = split_campaigns(GOOGLE_CAMPAIGNS, "google", "conversions")
+
+# --- 4. Montar métricas finais por segmento ---
+all_updates = {}
+preview = {}
+for seg in ("mm", "rf"):
+    stages = {}
+    for platform in ("meta", "google"):
+        by_label = defaultdict(int)
+        for stage_name, qtd in stage_tally[platform][seg].items():
+            label = STAGE_LABELS.get(stage_name)
+            if label:
+                by_label[label] += qtd
+        stages[platform] = dict(by_label)
+    fechamento_meta = stages["meta"].get("Fechado Ganho", 0) + stages["meta"].get("Ganho não Identificado", 0)
+    fechamento_google = stages["google"].get("Fechado Ganho", 0) + stages["google"].get("Ganho não Identificado", 0)
+
+    m_spend = round(meta_split[seg]["spend"], 2)
+    m_impr = round(meta_split[seg]["impressions"])
+    m_clicks = round(meta_split[seg]["clicks"])
+    m_leads = round(meta_split[seg]["leads"])
+    g_spend = round(google_split[seg]["spend"], 2)
+    g_impr = round(google_split[seg]["impressions"])
+    g_clicks = round(google_split[seg]["clicks"])
+    g_leads = round(google_split[seg]["leads"])
+
+    metrics = {
+        "invest_meta": m_spend, "impressoes_meta": m_impr,
+        "cpm_meta": round((m_spend / m_impr) * 1000, 2) if m_impr else 0,
+        "clicks_meta": m_clicks, "ctr_meta": round(m_clicks / m_impr, 4) if m_impr else 0,
+        "leads_meta": m_leads, "mql_meta": mql_count["meta"][seg],
+        "sql_meta": sql_count["meta"][seg], "fechamento_meta": fechamento_meta,
+        "invest_google": g_spend, "impressoes_google": g_impr,
+        "cpm_google": round((g_spend / g_impr) * 1000, 2) if g_impr else 0,
+        "clicks_google": g_clicks, "ctr_google": round(g_clicks / g_impr, 4) if g_impr else 0,
+        "leads_google": g_leads, "mql_google": mql_count["google"][seg],
+        "sql_google": sql_count["google"][seg], "fechamento_google": fechamento_google,
+    }
+    preview[seg] = {"metrics": metrics, "stages": stages}
+    for a1, val in cell_updates(seg, metrics, stages):
+        all_updates[a1] = val
+
+# --- PREVIEW (imprimir antes de gravar) ---
+for seg, data in preview.items():
+    print(f"\n=== {seg.upper()} ===")
+    print(data["metrics"])
+    print(data["stages"])
+
+if meta_fallback:
+    print("\n[!] Meta institucional em fallback 50/50 (0 opps no SF):", meta_fallback)
+if google_fallback:
+    print("\n[!] Google institucional em fallback 50/50 (0 opps no SF):", google_fallback)
+
+# --- CAMPANHAS (tabela informativa por plataforma, não segmentada — Fase 4) ---
+def campaign_rows(campaigns, platform, lead_key):
+    rows = []
+    for c in campaigns:
+        t = camp_tally[platform].get(c["name"], {"opps": 0, "fechado": 0})
+        leads = round(c[lead_key])
+        cpl = round(c["spend"] / leads, 2) if leads else None
+        opps = t["opps"] or None
+        custo_opp = round(c["spend"] / t["opps"], 2) if t["opps"] else None
+        fechado = t["fechado"] if t["opps"] else None
+        rows.append((c["name"], round(c["spend"], 2), leads, cpl, opps, custo_opp, fechado))
+    return rows
+
+meta_campaign_rows = campaign_rows(META_CAMPAIGNS, "meta", "leads")
+google_campaign_rows = campaign_rows(GOOGLE_CAMPAIGNS, "google", "conversions")
+
+# --- GRAVAÇÃO (só após confirmação do usuário na Fase 4) ---
+def gravar():
+    creds = Credentials.from_service_account_file(
+        '.claude/sheets_credentials.json',
+        scopes=['https://www.googleapis.com/auth/spreadsheets'])
+    ws = gspread.authorize(creds).open_by_key(
+        '169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw').worksheet('Relação de Leads')
+
+    write_updates(ws, list(all_updates.items()))
+
+    ws.batch_clear(['A85:G105'])
+    ws.update(values=[["Campanha", "Invest.", "Leads", "CPL", "Opps", "Custo/Opp", "Fechado"]], range_name='A85:G85')
+    for i, row in enumerate(meta_campaign_rows):
+        r = 86 + i
+        ws.update(values=[[v if v is not None else '' for v in row]], range_name=f'A{r}:G{r}')
+
+    ws.batch_clear(['A108:G128'])
+    ws.update(values=[["Campanha", "Invest.", "Conv.", "CPL", "Opps", "Custo/Opp", "Fechado"]], range_name='A108:G108')
+    for i, row in enumerate(google_campaign_rows):
+        r = 109 + i
+        ws.update(values=[[v if v is not None else '' for v in row]], range_name=f'A{r}:G{r}')
+
+    print(f"Gravadas {len(all_updates)} células de funil + "
+          f"{len(meta_campaign_rows) + len(google_campaign_rows)} linhas de campanha.")
+```
 
 ---
 
-## Formato de Saída
+## Fase 3 — Apresentação
 
-Apresentar exatamente neste formato:
+Apresentar ao usuário, por segmento (MM primeiro, depois RF):
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MÍDIA PAGA — CAVEO | [MÊS/ANO] ([START] – [END])
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-META ADS — TOTAIS (filtro: campanhas com [LEADS])
-┌──────────────────────┬──────────────┐
-│ Investimento         │ R$ XX.XXX,XX │
-│ Impressões           │ XXX.XXX      │
-│ CPM                  │ R$ XX,XX     │
-│ Cliques no Link      │ X.XXX        │
-│ CTR Link             │ X,XX%        │
-│ Leads                │ XXX          │
-│ Oportunidades        │ XX           │
-│ Oportunidades Fechadas│ XX          │
-└──────────────────────┴──────────────┘
+MÉDICO MADURO (MM)
+┌──────────────────────────┬──────────────┬──────────────┐
+│                          │ Meta Ads     │ Google Ads   │
+├──────────────────────────┼──────────────┼──────────────┤
+│ Investimento             │ R$ X.XXX,XX  │ R$ X.XXX,XX  │
+│ Impressões               │ XXX.XXX      │ XX.XXX       │
+│ CPM                      │ R$ XX,XX     │ R$ XXX,XX    │
+│ Cliques no Link          │ X.XXX        │ X.XXX        │
+│ CTR Link                 │ X,X%         │ X,X%         │
+│ Leads (Registro Concl.)  │ XXX          │ XXX          │
+│ MQL Opp (cumulativo)     │ XX           │ XX           │
+│ SQL Proposta Enviada     │ XX           │ XX           │
+│ Fechamento               │ XX           │ XX           │
+└──────────────────────────┴──────────────┴──────────────┘
 
-GOOGLE ADS — TOTAIS
-┌──────────────────────┬──────────────┐
-│ Investimento         │ R$ X.XXX,XX  │
-│ Impressões           │ XX.XXX       │
-│ CPM                  │ R$ XXX,XX    │
-│ Cliques no Link      │ X.XXX        │
-│ CTR Link             │ XX,XX%       │
-│ Conversões           │ XX           │
-│ Oportunidades        │ XX           │
-│ Oportunidades Fechadas│ XX          │
-└──────────────────────┴──────────────┘
+Estágio (MM)                    Meta Ads   Google Ads
+Aguardando Resposta              XX         XX
+Contato Realizado                XX         XX
+Perdido                          XX         XX
+Fechado Ganho                    XX         XX
+Proposta Enviada                 XX         XX
+Nova                             XX         XX
+Standy-By                        XX         XX
+Ganho não Identificado           XX         XX
 
-SALESFORCE — VISÃO POR ESTÁGIO (opps criadas no período)
-┌──────────────────────────┬──────────┬────────────┐
-│ Estágio                  │ Meta Ads │ Google Ads │
-├──────────────────────────┼──────────┼────────────┤
-│ Aguardando Resposta      │ XX       │ XX         │
-│ Contato Realizado        │ XX       │ XX         │
-│ Perdido                  │ XX       │ XX         │
-│ Fechado (Ganho)          │ XX       │ XX         │
-│ Proposta Enviada         │ XX       │ XX         │
-│ Nova                     │ XX       │ XX         │
-│ Standy-By                │ XX       │ XX         │
-│ Ganho não Identificado   │ XX       │ XX         │
-│ Total                    │ XX       │ XX         │
-└──────────────────────────┴──────────┴────────────┘
+RECÉM-FORMADOS (RF)
+[mesma estrutura acima]
 
 CAMPANHAS — META ADS (apenas [LEADS])
-┌─────────────────────────────┬──────────┬───────┬──────────┬──────┬──────────┬─────────┐
-│ Campanha                    │ Invest.  │ Leads │ CPL      │ Opps │ Custo/Opp│ Fechado │
-├─────────────────────────────┼──────────┼───────┼──────────┼──────┼──────────┼─────────┤
-│ [nome curto da campanha]    │ R$ X.XXX │ XX    │ R$ XX,XX │ XX   │ R$ XX,XX │ XX      │
-│ ...                         │ ...      │ ...   │ ...      │ ...  │ ...      │ ...     │
-└─────────────────────────────┴──────────┴───────┴──────────┴──────┴──────────┴─────────┘
+┌───────────────────────────┬──────────┬───────┬──────────┬──────┬──────────┬─────────┐
+│ Campanha                  │ Invest.  │ Leads │ CPL      │ Opps │ Custo/Opp│ Fechado │
+├───────────────────────────┼──────────┼───────┼──────────┼──────┼──────────┼─────────┤
+│ ...                       │ ...      │ ...   │ ...      │ ...  │ ...      │ ...     │
+└───────────────────────────┴──────────┴───────┴──────────┴──────┴──────────┴─────────┘
 
 CAMPANHAS — GOOGLE ADS
-┌─────────────────────────────┬──────────┬───────┬──────────┬──────┬──────────┬─────────┐
-│ Campanha                    │ Invest.  │ Conv. │ CPL      │ Opps │ Custo/Opp│ Fechado │
-├─────────────────────────────┼──────────┼───────┼──────────┼──────┼──────────┼─────────┤
-│ [nome curto da campanha]    │ R$ X.XXX │ XX    │ R$ XX,XX │ XX   │ R$ XX,XX │ XX      │
-│ ...                         │ ...      │ ...   │ ...      │ ...  │ ...      │ ...     │
-└─────────────────────────────┴──────────┴───────┴──────────┴──────┴──────────┴─────────┘
+┌───────────────────────────┬──────────┬───────┬──────────┬──────┬──────────┬─────────┐
+│ Campanha                  │ Invest.  │ Conv. │ CPL      │ Opps │ Custo/Opp│ Fechado │
+├───────────────────────────┼──────────┼───────┼──────────┼──────┼──────────┼─────────┤
+│ ...                       │ ...      │ ...   │ ...      │ ...  │ ...      │ ...     │
+└───────────────────────────┴──────────┴───────┴──────────┴──────┴──────────┴─────────┘
 ```
+
+Sinalizar explicitamente qualquer campanha institucional caída em fallback
+50/50 (0 opps no SF no período).
 
 ### Regras de formatação
 
-- Valores monetários: separador de milhar `.` e decimal `,` → `R$ 1.274,76`
-- Percentuais: uma casa decimal → `3,1%`
-- CPL (Custo por Lead) = Investimento / Leads
-- Custo/Opp = Investimento / Oportunidades
-- Se Leads = 0 ou Opps = 0: exibir `—` em CPL / Custo/Opp
-- Nomes de campanhas: encurtar suprimindo prefixos `[BOO]` e datas longas. Manter as tags de funil: `[RF]`, `[MM]`, `[FUNDO]`, `[MEIO]`, `[LEADS]` e o título descritivo.
-- Colunas "Opps" e "Fechado" sem match no Salesforce: exibir `—`
+- Valores monetários: `R$ 1.274,76`. Percentuais: uma casa decimal (`3,1%`).
+- Nomes de campanha: suprimir `[BOO]`; manter tags de funil (`[RF]`, `[MM]`,
+  `[FUNDO]`, `[MEIO]`, `[LEADS]`) e o título descritivo.
+- CPL/Custo-Opp com denominador 0: exibir `—`.
 
-Após apresentar o relatório completo, perguntar ao usuário:
+Após apresentar, perguntar:
 ```
 Deseja gravar os dados na planilha "Relação de Leads"? (responda sim para confirmar)
 ```
-Se confirmado, avançar para a **Fase 3**.
+Se confirmado, chamar `gravar()` (Fase 2).
 
 ---
 
-## Fase 3 — Gravação na Planilha
+## Fase 4 — Mapeamento de Células (referência)
 
-**Planilha:** `169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw`
-**Aba:** `Relação de Leads`
+Ver `scripts/planilha_resultados/sheet.py` (`COLS`, `STAGE_ROWS`,
+`BLOCK_BASE`) para o mapeamento autoritativo — não reescrever aqui. Resumo:
 
-### Autenticação (service account)
+| Bloco | Linhas do funil (Invest./Impr./CPM/Clicks/CTR/Leads/MQL/SQL/Fechamento) | Linhas de estágio |
+|---|---|---|
+| MÉDICO MADURO | 30/32/33/34/35/36/38/40/42 | 46-53 |
+| RECÉM-FORMADOS | 58/60/61/62/63/64/66/68/70 | 74-81 |
 
-Credenciais: `.claude/sheets_credentials.json`
-Conta de serviço: `reporte-ka-sheets@caveo-496716.iam.gserviceaccount.com`
+Coluna B = Meta Ads, coluna F = Google Ads (dentro de cada bloco). O bloco
+Geral (linhas 1-26, coluna I/J) é fórmula — nunca gravar nele.
 
-### Regras de construção do script
-
-Construir o script Python abaixo substituindo todos os `[PLACEHOLDER]` pelos valores numéricos reais coletados:
-
-- **Valores monetários** (Invest., CPM, CPL, Custo/Opp): gravar como `float` sem símbolo → `14748.91`
-- **Inteiros** (Impressões, Leads, Cliques, Opps, Conv., estágios): gravar como `int`
-- **CTR**: converter de percentual para decimal → `3,1% = 0.031` / `13,1% = 0.131`
-- **Valores ausentes (`—`)**: usar `None` — o helper `w()` escreve `''` na célula
-- **Campanhas**: construir a lista com os dados reais; incluir `None` nas colunas sem match SF
-- Antes de gravar campanhas, limpar os intervalos para remover linhas de execuções anteriores
-
-### Script de gravação (Python via Bash)
-
-```python
-import gspread
-from google.oauth2.service_account import Credentials
-
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = Credentials.from_service_account_file('.claude/sheets_credentials.json', scopes=SCOPES)
-gc = gspread.authorize(creds)
-ws = gc.open_by_key('169ePf6svWR0LLT9gwMfl7NJK2FetDvdynccAXhvtgEw').worksheet('Relação de Leads')
-
-def w(cell, value):
-    ws.update(values=[[value if value is not None else '']], range_name=cell)
-
-# ── META ADS — TOTAIS ──────────────────────────────────────────
-w('B2',  [META_INVESTIMENTO])
-w('B4',  [META_IMPRESSOES])
-w('C5',  [META_CPM])
-w('B6',  [META_CLIQUES])
-w('C7',  [META_CTR_DECIMAL])   # ex: 0.031 para 3,1%
-w('B8',  [META_LEADS])
-w('B10', [META_OPPS])
-
-# ── SALESFORCE — Meta por estágio ──────────────────────────────
-w('B16', [SF_META_AGUARDANDO])
-w('B17', [SF_META_CONTATO])
-w('B18', [SF_META_PERDIDO])
-w('B19', [SF_META_FECHADO])
-w('B20', [SF_META_PROPOSTA])
-w('B21', [SF_META_NOVA])
-w('B22', [SF_META_STANDBY])
-w('B23', [SF_META_GANHO_NI])
-w('B24', [SF_META_TOTAL])
-
-# ── META CAMPANHAS (linha 29+) ─────────────────────────────────
-# Limpar intervalo antes de gravar
-ws.batch_clear(['A29:H55'])
-
-meta_campanhas = [
-    # (nome_curto, invest, leads, cpl_ou_None, opps_ou_None, custo_opp_ou_None, fechado_ou_None)
-    # SUBSTITUIR PELAS LINHAS REAIS — uma tupla por campanha
-]
-for i, (nome, invest, leads, cpl, opps, custo_opp, fechado) in enumerate(meta_campanhas):
-    r = 29 + i
-    w(f'A{r}', nome)
-    w(f'C{r}', invest)
-    w(f'D{r}', leads)
-    w(f'E{r}', cpl)
-    w(f'F{r}', opps)
-    w(f'G{r}', custo_opp)
-    w(f'H{r}', fechado)
-
-# ── GOOGLE ADS — TOTAIS ────────────────────────────────────────
-w('F2',  [GOOGLE_INVESTIMENTO])
-w('F4',  [GOOGLE_IMPRESSOES])
-w('G5',  [GOOGLE_CPM])
-w('F6',  [GOOGLE_CLIQUES])
-w('G7',  [GOOGLE_CTR_DECIMAL])  # ex: 0.131 para 13,1%
-w('F8',  [GOOGLE_CONVERSOES])
-w('F10', [GOOGLE_OPPS])
-
-# ── SALESFORCE — Google por estágio ───────────────────────────
-w('F16', [SF_GOOGLE_AGUARDANDO])
-w('F17', [SF_GOOGLE_CONTATO])
-w('F18', [SF_GOOGLE_PERDIDO])
-w('F19', [SF_GOOGLE_FECHADO])
-w('F20', [SF_GOOGLE_PROPOSTA])
-w('F21', [SF_GOOGLE_NOVA])
-w('F22', [SF_GOOGLE_STANDBY])
-w('F23', [SF_GOOGLE_GANHO_NI])
-w('F24', [SF_GOOGLE_TOTAL])
-
-# ── GOOGLE CAMPANHAS (linha 43+) ───────────────────────────────
-# Limpar intervalo antes de gravar
-ws.batch_clear(['A43:H60'])
-
-google_campanhas = [
-    # (nome_curto, invest, conv, cpl_ou_None, opps_ou_None, custo_opp_ou_None, fechado_ou_None)
-    # SUBSTITUIR PELAS LINHAS REAIS — uma tupla por campanha
-]
-for i, (nome, invest, conv, cpl, opps, custo_opp, fechado) in enumerate(google_campanhas):
-    r = 43 + i
-    w(f'A{r}', nome)
-    w(f'C{r}', invest)
-    w(f'D{r}', conv)
-    w(f'E{r}', cpl)
-    w(f'F{r}', opps)
-    w(f'G{r}', custo_opp)
-    w(f'H{r}', fechado)
-
-print('Planilha atualizada com sucesso.')
-```
-
-### Mapeamento de Células
-
-| Dado | Célula | Dado | Célula |
-|---|---|---|---|
-| Meta — Investimento | B2 | Google — Investimento | F2 |
-| Meta — Impressões | B4 | Google — Impressões | F4 |
-| Meta — CPM | C5 | Google — CPM | G5 |
-| Meta — Cliques no Link | B6 | Google — Cliques no Link | F6 |
-| Meta — CTR Link | C7 | Google — CTR Link | G7 |
-| Meta — Leads | B8 | Google — Conversões | F8 |
-| Meta — Oportunidades | B10 | Google — Oportunidades | F10 |
-| SF Meta — Aguardando Resposta | B16 | SF Google — Aguardando Resposta | F16 |
-| SF Meta — Contato Realizado | B17 | SF Google — Contato Realizado | F17 |
-| SF Meta — Perdido | B18 | SF Google — Perdido | F18 |
-| SF Meta — Fechado (Ganho) | B19 | SF Google — Fechado (Ganho) | F19 |
-| SF Meta — Proposta Enviada | B20 | SF Google — Proposta Enviada | F20 |
-| SF Meta — Nova | B21 | SF Google — Nova | F21 |
-| SF Meta — Standy-By | B22 | SF Google — Standy-By | F22 |
-| SF Meta — Ganho não Identificado | B23 | SF Google — Ganho não Identificado | F23 |
-| SF Meta — Total | B24 | SF Google — Total | F24 |
-| Meta Camp. — Campanha | B29+ | Google Camp. — Campanha | B43+ |
-| Meta Camp. — Invest. | C29+ | Google Camp. — Invest. | C43+ |
-| Meta Camp. — Leads | D29+ | Google Camp. — Conversões | D43+ |
-| Meta Camp. — CPL | E29+ | Google Camp. — CPL | E43+ |
-| Meta Camp. — Opps | F29+ | Google Camp. — Opps | F43+ |
-| Meta Camp. — Custo/Opp | G29+ | Google Camp. — Custo/Opp | G43+ |
-| Meta Camp. — Fechado | H29+ | Google Camp. — Fechado | H43+ |
+Campanhas: Meta Ads em `A85:G105` (cabeçalho em 85, dados 86+); Google Ads em
+`A108:G128` (cabeçalho em 108, dados 109+). Limpar o intervalo antes de
+regravar (`batch_clear`) para não deixar linhas de execuções anteriores.
 
 ---
 
 ## Pontos de Atenção
 
-- **Filtro [LEADS] no Meta:** aplicado **localmente** após retorno da API. Campanhas sem `[LEADS]` no nome são excluídas dos totais e da tabela. Exemplos de campanhas excluídas: `[VISITAS NO PERFIL]`, `[SEGUIDORES]`.
-- **CPM Google:** calcular localmente pois `search_search` não retorna CPM diretamente. Formula: `(cost_micros/1e6) / impressions * 1000`.
-- **CTR Google:** `metrics.ctr` já vem como ratio (ex: `0.0688`). Multiplicar por 100 para exibir como `%`.
-- **Conversões Google:** podem vir com casas decimais por janela de atribuição. Arredondar para inteiro.
-- **Canal pago (Meta/Google):** vem do modelo **cpc + cruzamento** da fundação (`docs/fundacao-dados.md`), não de listas de `UtmSou__c`. Rodar cada query 2x (`[FILTRO_META]` / `[FILTRO_GOOGLE]`).
-- **Distribuição por estágio:** montada sobre `CreatedDate` (contrato das células desta planilha) — **exceção** ao modelo de duas datas, que se aplica ao reporte semanal. `Fechado` = `StageName` "Fechado"; "Ganho não Identificado" contabiliza como ganho (ver `WON_CLAUSE` da fundação).
-- **Oportunidades Fechadas no cabeçalho:** usar o total da coluna Google/Meta da linha `Fechado` da tabela de estágios.
+- **Leads Meta = "Registro Concluído"** (`action_type = "complete_registration"`,
+  fallback `offsite_conversion.fb_pixel_complete_registration`). Não usar
+  `lead`/`onsite_web_lead` — são o formulário nativo do Meta, não a conversão
+  principal do pixel.
+- **MQL Opp / SQL Proposta Enviada são cumulativos**, via `OpportunityHistory`
+  + `qualification.py` (fundação §7: "Ganho também conta") — **não** são o
+  mesmo número que a linha "Proposta Enviada" da tabela de estágio (que é
+  snapshot do `StageName` atual). Uma opp que passou por Proposta Enviada e
+  depois fechou ou foi perdida conta em SQL, mas não aparece mais como
+  "Proposta Enviada" na tabela de estágio.
+- **Fechamento = Fechado Ganho + Ganho não Identificado** da própria tabela de
+  estágio do bloco (mesma coorte por `CreatedDate`, sem query separada) — é
+  o `WON_CLAUSE` da fundação por definição, já que ambos os estágios são
+  terminais (o snapshot atual de uma opp ganha nunca reverte).
+- **Coorte por `CreatedDate`, status até hoje:** todo o bloco (MM/RF) usa o
+  mesmo filtro temporal — o conjunto de opps é definido pela criação no
+  período; MQL/SQL/Fechamento avaliam o status dessas opps **como estão
+  hoje**, não no dia em que cruzaram o gate. Isto é uma escolha deliberada
+  (mais simples que o modelo de duas datas da fundação, usado no reporte
+  semanal) — se os números precisarem reconciliar com um relatório baseado em
+  `LastStageChangeDate`, eles vão divergir por desenho.
+- **Bloco Geral nunca é gravado** — é 100% fórmula (`=MM+RF`) na própria
+  planilha; gravar nele quebra a soma.
+- **CPM e CTR são valores estáticos** nos blocos MM/RF (ao contrário do bloco
+  Geral, onde são fórmula) — sempre recalcular e gravar, nunca assumir que a
+  planilha atualiza sozinha.
+- **Filtro [LEADS] no Meta:** aplicado localmente após retorno da API.
+  Campanhas sem `[LEADS]` no nome (ex.: `[VISITAS NO PERFIL]`) são excluídas.
+- **Rateio institucional (§8):** campanha sem tag `[RF]`/`[MM]` — spend,
+  impressões, cliques e leads são rateados pela participação de opps do
+  segmento naquela campanha (SF); fallback 50/50 se a campanha não tiver
+  nenhuma opp no período. Sinalizar no preview.
+- **Tabela de campanhas (linha 85+) não é segmentada** por MM/RF — mostra o
+  total da campanha (Opps/Fechado somam os dois segmentos), já que o nome da
+  campanha normalmente já carrega a tag de segmento.
+- **Conversões Google:** podem vir com casas decimais por janela de
+  atribuição — arredondar para inteiro no fim (por campanha, não somando
+  decimais já truncados).
