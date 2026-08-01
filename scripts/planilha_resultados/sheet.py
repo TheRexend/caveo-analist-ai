@@ -12,7 +12,7 @@ precisam ser calculados e gravados por esta skill.
 
 BLOCK_BASE = {"medico": 0, "formando": 28}
 
-# Métrica -> (coluna, linha-base no bloco MM). RF soma BLOCK_BASE["rf"].
+# Métrica -> (coluna, linha-base no bloco Médico). Formando soma BLOCK_BASE["formando"].
 COLS = {
     "invest_meta": ("B", 30),
     "impressoes_meta": ("B", 32),
@@ -49,7 +49,7 @@ STAGE_COL = {"meta": "B", "google": "F"}
 
 
 def cell_updates(segment, metrics, stages):
-    """[(A1, valor)] para um bloco (mm/rf).
+    """[(A1, valor)] para um bloco (medico/formando).
 
     metrics: dict com um subconjunto das chaves de COLS (None/ausente é
     ignorado — mas 0 é gravado, é um valor real).
