@@ -1,12 +1,12 @@
 ---
 name: planilha-resultados
-description: Coleta e apresenta dados consolidados de Mídia Paga da Caveo (Meta Ads [LEADS] + Google Ads + Salesforce CRM) para o período do mês atual de 01 até D-1, segmentado por Médico Maduro (MM) e Recém-Formado (RF). Entrega funil Investimento→Leads (Registro Concluído)→MQL Opp→SQL Proposta Enviada→Fechamento por segmento×plataforma, visão por estágio e breakdown por campanha. Use quando precisar do relatório de performance de mídia paga.
+description: Coleta e apresenta dados consolidados de Mídia Paga da Caveo (Meta Ads [LEADS] + Google Ads + Salesforce CRM) para o período do mês atual de 01 até D-1, segmentado por Médico e Formando. Entrega funil Investimento→Leads (Registro Concluído)→MQL Opp→SQL Proposta Enviada→Fechamento por segmento×plataforma, visão por estágio e breakdown por campanha. Use quando precisar do relatório de performance de mídia paga.
 ---
 
 # Skill: Planilha de Resultados — Caveo Mídia Paga
 
 Coleta e consolida dados de Meta Ads, Google Ads e Salesforce para o período do mês corrente
-(dia 01 até D-1), segmenta por **Médico Maduro (MM)** e **Recém-Formado (RF)**, e grava na
+(dia 01 até D-1), segmenta por **Médico** e **Formando**, e grava na
 planilha "Relação de Leads".
 
 ## Contas e planilha
@@ -23,25 +23,26 @@ planilha "Relação de Leads".
 
 O filtro de **canal pago** (Meta/Google) usa o modelo **cpc + cruzamento** de
 `docs/fundacao-dados.md` (seção "Fragmentos SOQL prontos"), com fuso `-03:00`.
-NÃO reescrever listas de `UtmSou__c` aqui. Segmento (MM/RF) usa
-`classify_contratante` (fundação §4, `TipCte__c` + `Tempo_de_Formado__c`) —
-**sempre** `from segments import classify_contratante`
-(`scripts/acompanhamento_diario/segments.py`); nunca aplicar a regra de
-cabeça. MQL/SQL cumulativo usa `QUALIFICATION_RULES` (fundação §7) via
-`from qualification import mql_day, sql_day`
-(`scripts/acompanhamento_diario/qualification.py`). Alocação de campanhas sem
-tag de segmento usa `SEGMENT_ALLOCATION` (fundação §8) via
-`from segments import allocate, classify_segment`. NÃO reescrever essas
-regras aqui — importar sempre dos módulos.
+NÃO reescrever listas de `UtmSou__c` aqui. Segmento (Médico/Formando) usa
+`classify_contratante` (fundação §4, `TipCte__c`) — **sempre** `from segments
+import classify_contratante` (`scripts/acompanhamento_diario/segments.py`);
+nunca aplicar a regra de cabeça. Opps que classificam como `"revalida"` ou
+`None` são descartadas — não aparecem nesta skill. MQL/SQL cumulativo usa
+`QUALIFICATION_RULES` (fundação §7) via `from qualification import mql_day,
+sql_day` (`scripts/acompanhamento_diario/qualification.py`). Campanha sem tag
+de segmento no nome conta 100% como Médico via `from segments import
+allocate` (fundação §8 é nota histórica agora — mídia paga mira só Médico,
+sem rateio institucional). NÃO reescrever essas regras aqui — importar
+sempre dos módulos.
 
 ## Estrutura da planilha "Relação de Leads"
 
 A aba tem 3 blocos verticais. O bloco **Geral** (linhas 1-26) é **100% fórmula**
-(`=MM+RF` célula a célula) — esta skill **nunca escreve nele**. Só os blocos
-**MÉDICO MADURO** (linhas 28-54) e **RECÉM-FORMADOS** (linhas 56-82) recebem
-dados desta skill. Cada bloco tem colunas Meta Ads (B) e Google Ads (F) com o
-funil Investimento → Leads → MQL Opp → SQL Proposta Enviada → Fechamento,
-seguido da tabela "Estágio | Oportunidades | %".
+(`=Médico+Formando` célula a célula) — esta skill **nunca escreve nele**. Só os
+blocos **MÉDICO** (linhas 28-54) e **FORMANDO** (linhas 56-82) recebem dados
+desta skill. Cada bloco tem colunas Meta Ads (B) e Google Ads (F) com o funil
+Investimento → Leads → MQL Opp → SQL Proposta Enviada → Fechamento, seguido
+da tabela "Estágio | Oportunidades | %".
 
 Dentro de cada bloco, **CPL, T Conv., T Oport., T SQL, T Fechamento., a
 coluna "%" da tabela de estágio e a linha TOTAL são fórmulas da própria
@@ -123,7 +124,7 @@ Para cada campanha: Investimento = `cost_micros`/1.000.000; Impressões =
 **Ferramenta:** `mcp__salesforce-mcp__salesforce_query` — rodar 2x (`[FILTRO_META]` / `[FILTRO_GOOGLE]` da fundação):
 
 ```sql
-SELECT Id, UtmCam__c, StageName, TipCte__c, Tempo_de_Formado__c
+SELECT Id, UtmCam__c, StageName, TipCte__c
 FROM Opportunity
 WHERE CreatedDate >= [START]T00:00:00-03:00
   AND CreatedDate <= [END]T23:59:59-03:00
@@ -132,9 +133,8 @@ WHERE CreatedDate >= [START]T00:00:00-03:00
 
 Não agregar em SOQL — trazer as linhas crus e classificar/agrupar na Fase 2
 (`SF_OPPS`, tag `platform: "meta"|"google"` por qual das duas rodadas a linha veio).
-Esta única query alimenta: tabela de estágio por segmento, breakdown por
-campanha (Opps/Fechado) e as contagens de opps por campanha×segmento usadas
-no rateio institucional (§8).
+Esta única query alimenta: tabela de estágio por segmento e breakdown por
+campanha (Opps/Fechado).
 
 > **Matching campanha↔UtmCam (Google):** no Google, `UtmCam__c` guarda um
 > **código interno**, não o nome da campanha — precisa mapear antes de
@@ -149,10 +149,8 @@ no rateio institucional (§8).
 > }
 > ```
 > Sem esse remapeamento, **toda** a tabela de campanhas Google fica com
-> Opps/Custo-Opp/Fechado em `—` (nenhum match) **e** a campanha
-> "Institucional" (sem tag `[RF]`/`[MM]`) cai em fallback 50/50 no rateio §8
-> mesmo tendo opps suficientes para um rateio real — sempre aplicar o alias
-> **antes** de montar `camp_tally`/`camp_seg_opps`. No Meta o `UtmCam__c`
+> Opps/Custo-Opp/Fechado em `—` (nenhum match) — sempre aplicar o alias
+> **antes** de montar `camp_tally`. No Meta o `UtmCam__c`
 > já é o nome exato da campanha — não precisa de alias. Tags sem mapeamento
 > conhecido (`contabilidade_nivel_brasil`, `emita_notas_sem_problemas`,
 > `cnpj2` no período de referência) não têm campanha ativa correspondente —
@@ -164,7 +162,7 @@ no rateio institucional (§8).
 
 ```sql
 SELECT OpportunityId, StageName, CreatedDate,
-       Opportunity.TipCte__c, Opportunity.Tempo_de_Formado__c, Opportunity.IsWon
+       Opportunity.TipCte__c, Opportunity.IsWon
 FROM OpportunityHistory
 WHERE Opportunity.CreatedDate >= [START]T00:00:00-03:00
   AND Opportunity.CreatedDate <= [END]T23:59:59-03:00
@@ -197,7 +195,7 @@ reais coletados na Fase 1:
 ```python
 import sys
 sys.path.insert(0, 'scripts/acompanhamento_diario')
-from segments import allocate, classify_segment, classify_contratante
+from segments import allocate, classify_contratante
 from qualification import mql_day, sql_day
 sys.path.insert(0, 'scripts/planilha_resultados')
 from sheet import cell_updates, write_updates
@@ -217,12 +215,12 @@ GOOGLE_CAMPAIGNS = [
 # remapeado pelo GOOGLE_UTMCAM_ALIAS (ver 1C) — nunca o código interno bruto.
 SF_OPPS = [
     # {"platform": "meta"|"google", "utmcam": str|None, "stage": str,
-    #  "tipcte": str|None, "recencia": str|None}
+    #  "tipcte": str|None}
 ]
 # SF_HISTORY_RAW: uma linha por transição de OpportunityHistory (1D)
 SF_HISTORY_RAW = [
     # {"platform": "meta"|"google", "opp_id": str, "stage": str, "date": str,
-    #  "is_won": bool, "tipcte": str|None, "recencia": str|None}
+    #  "is_won": bool, "tipcte": str|None}
 ]
 
 WON_STAGES = ("Fechado", "Ganho não Identificado")
@@ -238,34 +236,36 @@ STAGE_LABELS = {  # StageName (SF) -> rótulo da tabela de estágio da planilha
     "Ganho não Identificado": "Ganho não Identificado",
 }
 
-# --- 1. Classificar oportunidades (1C) por segmento; descartar None (TipCte__c vazio) ---
-stage_tally = {p: {"mm": defaultdict(int), "rf": defaultdict(int)} for p in ("meta", "google")}
+# --- 1. Classificar oportunidades (1C) por segmento; descartar None (TipCte__c
+#     vazio) e "revalida" (não aparece nesta skill) do funil segmentado. O
+#     camp_tally (total por campanha) continua contando tudo que classificou. ---
+stage_tally = {p: {"medico": defaultdict(int), "formando": defaultdict(int)} for p in ("meta", "google")}
 camp_tally = {p: defaultdict(lambda: {"opps": 0, "fechado": 0}) for p in ("meta", "google")}
-camp_seg_opps = {p: defaultdict(lambda: {"mm": 0, "rf": 0}) for p in ("meta", "google")}
 
 for o in SF_OPPS:
-    seg = classify_contratante(o["tipcte"], o["recencia"])
+    seg = classify_contratante(o["tipcte"])
     if seg is None:
         continue
-    stage_tally[o["platform"]][seg][o["stage"]] += 1
     if o["utmcam"]:
         c = camp_tally[o["platform"]][o["utmcam"]]
         c["opps"] += 1
         if o["stage"] in WON_STAGES:
             c["fechado"] += 1
-        camp_seg_opps[o["platform"]][o["utmcam"]][seg] += 1
+    if seg == "revalida":
+        continue
+    stage_tally[o["platform"]][seg][o["stage"]] += 1
 
 # --- 2. MQL/SQL cumulativo (1D) por segmento ---
 by_opp = defaultdict(list)
 for h in SF_HISTORY_RAW:
     by_opp[(h["platform"], h["opp_id"])].append(h)
 
-mql_count = {p: {"mm": 0, "rf": 0} for p in ("meta", "google")}
-sql_count = {p: {"mm": 0, "rf": 0} for p in ("meta", "google")}
+mql_count = {p: {"medico": 0, "formando": 0} for p in ("meta", "google")}
+sql_count = {p: {"medico": 0, "formando": 0} for p in ("meta", "google")}
 
 for (platform, opp_id), rows in by_opp.items():
-    seg = classify_contratante(rows[0]["tipcte"], rows[0]["recencia"])
-    if seg is None:
+    seg = classify_contratante(rows[0]["tipcte"])
+    if seg not in ("medico", "formando"):
         continue
     history = [{"stage": r["stage"], "date": r["date"]} for r in rows]
     is_won = any(r["is_won"] or r["stage"] == "Ganho não Identificado" for r in rows)
@@ -274,31 +274,28 @@ for (platform, opp_id), rows in by_opp.items():
     if sql_day(history, is_won) is not None:
         sql_count[platform][seg] += 1
 
-# --- 3. Rateio institucional (§8) para Investimento/Impressões/Cliques/Leads ---
-def split_campaigns(campaigns, platform, lead_key):
-    out = {"mm": {"spend": 0.0, "impressions": 0.0, "clicks": 0.0, "leads": 0.0},
-           "rf": {"spend": 0.0, "impressions": 0.0, "clicks": 0.0, "leads": 0.0}}
-    fallback_5050 = []
+# --- 3. Campanha taggeada -> 100% no segmento da tag; institucional (sem
+#     tag) -> 100% Médico, sem rateio (mídia paga mira só Médico) ---
+def split_campaigns(campaigns, lead_key):
+    out = {"medico": {"spend": 0.0, "impressions": 0.0, "clicks": 0.0, "leads": 0.0},
+           "formando": {"spend": 0.0, "impressions": 0.0, "clicks": 0.0, "leads": 0.0}}
     for c in campaigns:
-        so = camp_seg_opps[platform].get(c["name"], {"mm": 0, "rf": 0})
-        if classify_segment(c["name"]) == "institucional" and so["mm"] + so["rf"] == 0 and c["spend"]:
-            fallback_5050.append(c["name"])
-        a_money = allocate(c["name"], c["spend"], c[lead_key], so["mm"], so["rf"])
-        a_vol = allocate(c["name"], c["impressions"], c["clicks"], so["mm"], so["rf"])
-        for seg in ("mm", "rf"):
+        a_money = allocate(c["name"], c["spend"], c[lead_key])
+        a_vol = allocate(c["name"], c["impressions"], c["clicks"])
+        for seg in ("medico", "formando"):
             out[seg]["spend"] += a_money[seg]["spend"]
             out[seg]["leads"] += a_money[seg]["leads"]
             out[seg]["impressions"] += a_vol[seg]["spend"]
             out[seg]["clicks"] += a_vol[seg]["leads"]
-    return out, fallback_5050
+    return out
 
-meta_split, meta_fallback = split_campaigns(META_CAMPAIGNS, "meta", "leads")
-google_split, google_fallback = split_campaigns(GOOGLE_CAMPAIGNS, "google", "conversions")
+meta_split = split_campaigns(META_CAMPAIGNS, "leads")
+google_split = split_campaigns(GOOGLE_CAMPAIGNS, "conversions")
 
 # --- 4. Montar métricas finais por segmento ---
 all_updates = {}
 preview = {}
-for seg in ("mm", "rf"):
+for seg in ("medico", "formando"):
     stages = {}
     for platform in ("meta", "google"):
         by_label = defaultdict(int)
@@ -340,11 +337,6 @@ for seg, data in preview.items():
     print(f"\n=== {seg.upper()} ===")
     print(data["metrics"])
     print(data["stages"])
-
-if meta_fallback:
-    print("\n[!] Meta institucional em fallback 50/50 (0 opps no SF):", meta_fallback)
-if google_fallback:
-    print("\n[!] Google institucional em fallback 50/50 (0 opps no SF):", google_fallback)
 
 # --- CAMPANHAS (tabela informativa por plataforma, não segmentada — Fase 4) ---
 def campaign_rows(campaigns, platform, lead_key):
@@ -392,14 +384,14 @@ def gravar():
 
 ## Fase 3 — Apresentação
 
-Apresentar ao usuário, por segmento (MM primeiro, depois RF):
+Apresentar ao usuário, por segmento (Médico primeiro, depois Formando):
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MÍDIA PAGA — CAVEO | [MÊS/ANO] ([START] – [END])
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-MÉDICO MADURO (MM)
+MÉDICO
 ┌──────────────────────────┬──────────────┬──────────────┐
 │                          │ Meta Ads     │ Google Ads   │
 ├──────────────────────────┼──────────────┼──────────────┤
@@ -414,7 +406,7 @@ MÉDICO MADURO (MM)
 │ Fechamento               │ XX           │ XX           │
 └──────────────────────────┴──────────────┴──────────────┘
 
-Estágio (MM)                    Meta Ads   Google Ads
+Estágio (Médico)                Meta Ads   Google Ads
 Aguardando Resposta              XX         XX
 Contato Realizado                XX         XX
 Perdido                          XX         XX
@@ -424,7 +416,7 @@ Nova                             XX         XX
 Standy-By                        XX         XX
 Ganho não Identificado           XX         XX
 
-RECÉM-FORMADOS (RF)
+FORMANDO
 [mesma estrutura acima]
 
 CAMPANHAS — META ADS (apenas [LEADS])
@@ -441,9 +433,6 @@ CAMPANHAS — GOOGLE ADS
 │ ...                       │ ...      │ ...   │ ...      │ ...  │ ...      │ ...     │
 └───────────────────────────┴──────────┴───────┴──────────┴──────┴──────────┴─────────┘
 ```
-
-Sinalizar explicitamente qualquer campanha institucional caída em fallback
-50/50 (0 opps no SF no período).
 
 ### Regras de formatação
 
@@ -467,8 +456,8 @@ Ver `scripts/planilha_resultados/sheet.py` (`COLS`, `STAGE_ROWS`,
 
 | Bloco | Linhas do funil (Invest./Impr./CPM/Clicks/CTR/Leads/MQL/SQL/Fechamento) | Linhas de estágio |
 |---|---|---|
-| MÉDICO MADURO | 30/32/33/34/35/36/38/40/42 | 46-53 |
-| RECÉM-FORMADOS | 58/60/61/62/63/64/66/68/70 | 74-81 |
+| MÉDICO | 30/32/33/34/35/36/38/40/42 | 46-53 |
+| FORMANDO | 58/60/61/62/63/64/66/68/70 | 74-81 |
 
 Coluna B = Meta Ads, coluna F = Google Ads (dentro de cada bloco). O bloco
 Geral (linhas 1-26, coluna I/J) é fórmula — nunca gravar nele.
@@ -495,27 +484,27 @@ regravar (`batch_clear`) para não deixar linhas de execuções anteriores.
   estágio do bloco (mesma coorte por `CreatedDate`, sem query separada) — é
   o `WON_CLAUSE` da fundação por definição, já que ambos os estágios são
   terminais (o snapshot atual de uma opp ganha nunca reverte).
-- **Coorte por `CreatedDate`, status até hoje:** todo o bloco (MM/RF) usa o
+- **Coorte por `CreatedDate`, status até hoje:** todo o bloco (Médico/Formando) usa o
   mesmo filtro temporal — o conjunto de opps é definido pela criação no
   período; MQL/SQL/Fechamento avaliam o status dessas opps **como estão
   hoje**, não no dia em que cruzaram o gate. Isto é uma escolha deliberada
   (mais simples que o modelo de duas datas da fundação, usado no reporte
   semanal) — se os números precisarem reconciliar com um relatório baseado em
   `LastStageChangeDate`, eles vão divergir por desenho.
-- **Bloco Geral nunca é gravado** — é 100% fórmula (`=MM+RF`) na própria
+- **Bloco Geral nunca é gravado** — é 100% fórmula (`=Médico+Formando`) na própria
   planilha; gravar nele quebra a soma.
-- **CPM e CTR são valores estáticos** nos blocos MM/RF (ao contrário do bloco
+- **CPM e CTR são valores estáticos** nos blocos Médico/Formando (ao contrário do bloco
   Geral, onde são fórmula) — sempre recalcular e gravar, nunca assumir que a
   planilha atualiza sozinha.
 - **Filtro [LEADS] no Meta:** aplicado localmente após retorno da API.
   Campanhas sem `[LEADS]` no nome (ex.: `[VISITAS NO PERFIL]`) são excluídas.
-- **Rateio institucional (§8):** campanha sem tag `[RF]`/`[MM]` — spend,
-  impressões, cliques e leads são rateados pela participação de opps do
-  segmento naquela campanha (SF); fallback 50/50 se a campanha não tiver
-  nenhuma opp no período. Sinalizar no preview.
-- **Tabela de campanhas (linha 85+) não é segmentada** por MM/RF — mostra o
-  total da campanha (Opps/Fechado somam os dois segmentos), já que o nome da
-  campanha normalmente já carrega a tag de segmento.
+- **Campanha institucional (sem tag `[RF]`/`[MM]` legada):** spend,
+  impressões, cliques e leads contam 100% como Médico — mídia paga mira só
+  Médico, sem rateio entre segmentos (fundação §8 é nota histórica; ver
+  `segments.classify_segment`/`allocate`).
+- **Tabela de campanhas (linha 85+) não é segmentada** por Médico/Formando —
+  mostra o total da campanha (Opps/Fechado somam os dois segmentos), já que
+  o nome da campanha normalmente já carrega a tag de segmento.
 - **Conversões Google:** podem vir com casas decimais por janela de
   atribuição — arredondar para inteiro no fim (por campanha, não somando
   decimais já truncados).
