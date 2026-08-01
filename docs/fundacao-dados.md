@@ -34,17 +34,21 @@ click ID. Meta tem prioridade sobre Google em caso de conflito.
 | Ganho | `IsWon = true OR StageName = 'Ganho não Identificado'` |
 | Perdido | `Perdido` |
 
-## 4. Contratante — segmento (`TipCte__c`) + recência (`Tempo_de_Formado__c`)
+## 4. Contratante — segmento (`TipCte__c`)
 
-O segmento vem de `TipCte__c`; a recência do médico, de `Tempo_de_Formado__c`.
+Classificação direta por `TipCte__c` — sem regra composta com recência.
+`Tempo_de_Formado__c` é um atributo informativo dentro de
+`Médico` (útil para análises pontuais), mas **não participa da classificação**.
 
 | Bucket | Regra |
 |---|---|
-| RF — Recém-Formado | `TipCte__c` ∈ `Formando` **ou** (`TipCte__c` = `Médico` **e** `Tempo_de_Formado__c` ∈ `Menos de 3 anos`, `Vai se formar`) |
-| MM — Médico Maduro | `TipCte__c` ∈ `Revalida` **ou** (`TipCte__c` = `Médico` **e** recência fora do conjunto RF, incluindo `null`) |
+| Formando | `TipCte__c = 'Formando'` |
+| Médico | `TipCte__c = 'Médico'` (qualquer recência, incl. `null`) |
+| Revalida | `TipCte__c = 'Revalida'` |
 
-> `Médico` sem recência (`null`) cai em MM (fallback).
-> Os valores antigos `Médico Faculdades`/`Médicos Maduros` foram descontinuados.
+> Mídia paga mira 100% em Médico. Formando é segmento secundário válido no
+> funil, não ruído/fora do ICP. Mudança de ICP em 2026-07-31 — ver spec
+> `docs/superpowers/specs/2026-07-31-icp-medico-fundacao-design.md`.
 
 ## 5. Modelo de duas datas
 
@@ -69,12 +73,12 @@ O dia do MQL/SQL é o da **primeira transição** que cruza o gate.
 | MQL | `Aguardando Resposta`, `Reunião Agendada`, `Proposta Enviada` | sim |
 | SQL | `Proposta Enviada` | sim |
 
-## 8. Alocação de segmento (campanhas de mídia paga)
+## 8. Alocação de segmento (nota histórica)
 
-Marcadores no nome da campanha: MM = `[MM]`, RF = `[RF]`.
-Campanha **sem** marcador de segmento (institucional) → investimento e leads
-rateados pela participação de opps do segmento naquela campanha (SF). Fallback
-(gasto no dia, 0 opps) = 50/50.
+Até a virada de ICP (2026-07-31), campanhas usavam marcadores `[RF]`/`[MM]` e
+institucionais eram rateadas 50/50 pela participação de opps do segmento.
+**Não se aplica mais:** mídia paga mira 100% em Médico, sem disputa de
+orçamento entre segmentos.
 
 ## Fragmentos SOQL prontos (gerados dos builders)
 
@@ -83,6 +87,6 @@ rateados pela participação de opps do segmento naquela campanha (SF). Fallback
 | cpc (direto) | `UtmMed__c LIKE '%cpc%'` | `(UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%'))` | `(UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%')` |
 | cruzamento | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (gclid__c != null OR gbraid__c != null) AND fbc__c = null AND fbclid__c = null)` |
 
-Contratante: all → `AND TipCte__c IN ('Formando','Médico','Revalida')` · rf → `AND (TipCte__c IN ('Formando') OR (TipCte__c = 'Médico' AND Tempo_de_Formado__c IN ('Menos de 3 anos','Vai se formar')))` · mm → `AND (TipCte__c IN ('Revalida') OR (TipCte__c = 'Médico' AND (NOT Tempo_de_Formado__c IN ('Menos de 3 anos','Vai se formar'))))`
+Contratante: all → `AND TipCte__c IN ('Formando','Médico','Revalida')` · formando → `AND TipCte__c IN ('Formando')` · medico → `AND TipCte__c IN ('Médico')` · revalida → `AND TipCte__c IN ('Revalida')`
 
 Ganho: `(IsWon = true OR StageName = 'Ganho não Identificado')`
