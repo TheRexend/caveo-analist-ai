@@ -1,6 +1,6 @@
-"""Universo (marcador BOO) e bloco de cada campanha nas abas Mês-a-Mês RF/MM.
+"""Universo (marcador BOO) e bloco de cada campanha nas abas Mês-a-Mês Formando/Médico.
 
-O split RF/MM por tag fica em alloc.py (reusa segments.classify_segment).
+O split Formando/Médico por tag fica em alloc.py (reusa segments.classify_segment).
 Espelha o design 2026-07-23-reporte-resultados-ka-segmentado.
 """
 
