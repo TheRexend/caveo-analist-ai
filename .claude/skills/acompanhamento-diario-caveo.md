@@ -133,7 +133,7 @@ classify_contratante`; nunca de memória). Opps que classificam como `None` ou
 > **Atenção fuso:** o Salesforce devolve `LastStageChangeDate` em **UTC**
 > (`+0000`) mesmo com o `WHERE` limitado em `-03:00`. Para montar
 > `SF_CLOSINGS`, **converter cada `LastStageChangeDate` para -03:00 antes de
-> extrair o dia** (mesma regra de 1C e 1E). Ex.: `2026-07-21T00:56:14+0000` =
+> extrair o dia** (mesma regra de 1C). Ex.: `2026-07-21T00:56:14+0000` =
 > `20/07 20:56 -03:00` → dia **20**, não 21. Sem essa conversão, fechamentos
 > entre ~21h e 23h59 (horário de Brasília) voltam com data UTC do dia
 > seguinte e ficam fora do dia processado (somem da linha certa) ou são
