@@ -595,8 +595,8 @@ query e o matching campanha↔UtmCam deixam de ter propósito nesta skill.
 
 - [ ] **Step 7: Fase 2 — reescrever o script Python embutido**
 
-Trocar o bloco inteiro (linhas 162-269, de `import sys` até o fechamento do
-```` ``` ````) por:
+Trocar o bloco de código inteiro (linhas 162-269, do `import sys` até o fim do
+script Python embutido) por:
 
 ```python
 import sys
