@@ -1,10 +1,10 @@
 """Mapeamento dia→linha e gravação na aba 'Resultados Mês Atual'.
 
-Blocos: MM (dia d → linha 45+d), RF (dia d → linha 87+d). TOTAL é fórmula =MM+RF
-e nunca é tocado. Ver Global Constraints do plano.
+Blocos: Médico (dia d → linha 45+d), Formando (dia d → linha 87+d). TOTAL é
+fórmula =MÉDICO+FORMANDO e nunca é tocado. Ver Global Constraints do plano.
 """
 
-BLOCK_BASE = {"mm": 45, "rf": 87}
+BLOCK_BASE = {"medico": 45, "formando": 87}
 
 # Métrica -> coluna (idêntico nos dois blocos). Ordem define a ordem dos updates.
 COLS = {
@@ -22,7 +22,7 @@ COLS = {
 
 def day_to_row(segment, day):
     if segment not in BLOCK_BASE:
-        raise ValueError(f"segmento inválido: {segment!r} (use 'mm' ou 'rf')")
+        raise ValueError(f"segmento inválido: {segment!r} (use 'medico' ou 'formando')")
     if not (1 <= day <= 31):
         raise ValueError(f"dia fora de 1..31: {day}")
     return BLOCK_BASE[segment] + day
@@ -55,8 +55,8 @@ def _parse_fechamento_cell(cell):
 
 
 def read_fechamentos(worksheet):
-    """{'mm': {dia: valor_ou_None}, 'rf': {...}} a partir da coluna O
-    (fechamento) dos blocos MM/RF. Espelha cell_updates/write_updates
+    """{'medico': {dia: valor_ou_None}, 'formando': {...}} a partir da coluna O
+    (fechamento) dos blocos Médico/Formando. Espelha cell_updates/write_updates
     (escrita) com uma leitura simétrica."""
     out = {}
     for seg, base in BLOCK_BASE.items():
