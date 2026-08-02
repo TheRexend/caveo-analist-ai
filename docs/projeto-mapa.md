@@ -49,7 +49,7 @@ caveo_analist_ai/
 │   │   └── ga4-analise.md             #   comportamento site/LP
 │   ├── skills/                        # ── SKILLS · subprojeto 4 ──
 │   │   ├── planilha-resultados.md      (procedimento)
-│   │   ├── reporte-resultados-ka.md    (procedimento; mensal segmentado RF/MM → abas Mês-a-Mês)
+│   │   ├── reporte-resultados-ka.md    (procedimento; mensal segmentado Formando/Médico → abas Mês-a-Mês)
 │   │   ├── reporte-semanal-caveo.md    (procedimento; aciona analista)
 │   │   ├── reporte-ga4.md              (procedimento; novo)
 │   │   ├── reporte-consolidado-mensal.md (procedimento; novo)
@@ -58,7 +58,7 @@ caveo_analist_ai/
 │   │   ├── auditoria-tracking-gtm.md   (analítica → tracking; novo)
 │   │   ├── criativos-campeoes.md       (analítica → analista; novo)
 │   │   ├── detector-defeitos.md        (analítica → analista; novo)
-│   │   ├── acompanhamento-diario-caveo.md (procedimento; diário MM/RF; grava planilha)
+│   │   ├── acompanhamento-diario-caveo.md (procedimento; diário Médico/Formando; grava planilha)
 │   │   ├── reconciliacao-fechamentos-caveo.md (procedimento; só leitura; planilha × Salesforce)
 │   │   └── brainstorming.md            (infra genérica)
 │   ├── commands/                      # ── COMANDOS DE CHAT · subprojeto 4 ──

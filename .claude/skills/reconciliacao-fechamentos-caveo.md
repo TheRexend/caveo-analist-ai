@@ -1,15 +1,15 @@
 ---
 name: reconciliacao-fechamentos-caveo
-description: Reconciliação sob demanda entre a planilha "Resultados Mês Atual" (fechamentos MM/RF) e o Salesforce atual — compara dia a dia, aponta divergência e lista oportunidades para conferência manual. Só leitura, nunca grava.
+description: Reconciliação sob demanda entre a planilha "Resultados Mês Atual" (fechamentos Médico/Formando) e o Salesforce atual — compara dia a dia, aponta divergência e lista oportunidades para conferência manual. Só leitura, nunca grava.
 ---
 
 # Skill: Reconciliação de Fechamentos — Caveo
 
 Compara os fechamentos (coluna O) gravados na planilha "Resultados Mês Atual"
 contra o estado **atual** do Salesforce, dia a dia e segmento a segmento
-(MM/RF). Aponta onde a divergência nasceu e lista as oportunidades do dia
-sinalizado para conferência manual. **Só leitura — nunca grava na planilha nem
-no Salesforce.**
+(Médico/Formando). Aponta onde a divergência nasceu e lista as oportunidades
+do dia sinalizado para conferência manual. **Só leitura — nunca grava na
+planilha nem no Salesforce.**
 
 ## Contas e planilha
 
@@ -22,9 +22,11 @@ no Salesforce.**
 ## Fundação (LER ANTES DE QUALQUER SOQL)
 
 Mesmo modelo cpc+cruzamento de `docs/fundacao-dados.md` (fuso `-03:00`), mesma
-`WON_CLAUSE` (seção 3), mesmo `classify_contratante` (seção 4) — `from segments
-import classify_contratante` (`scripts/acompanhamento_diario/segments.py`).
-NÃO reescrever essas regras aqui.
+`WON_CLAUSE` (seção 3), mesmo `classify_contratante` (seção 4, 1 argumento —
+`TipCte__c`) — `from segments import classify_contratante`
+(`scripts/acompanhamento_diario/segments.py`). Opps que classificam como
+`"revalida"` ou `None` são descartadas, mesma regra das outras skills. NÃO
+reescrever essas regras aqui.
 
 ## Fase 0 — Período
 
@@ -52,11 +54,11 @@ creds = Credentials.from_service_account_file(
 ws = gspread.authorize(creds).open_by_key(
     '19gElL0pmUO3yPZZG0-5E1ym61wHbQM5-JohK5_wPjj4').worksheet('Resultados Mês Atual')
 
-ledger = read_fechamentos(ws)  # {"mm": {dia: valor_ou_None}, "rf": {...}}
+ledger = read_fechamentos(ws)  # {"medico": {dia: valor_ou_None}, "formando": {...}}
 
 # Último dia gravado = maior dia com valor não-None em qualquer segmento.
 last_day = max(
-    (d for seg in ("mm", "rf") for d, v in ledger[seg].items() if v is not None),
+    (d for seg in ("medico", "formando") for d, v in ledger[seg].items() if v is not None),
     default=None,
 )
 if last_day is None:
@@ -74,29 +76,29 @@ fundação) combinados com `OR`:
 
 ```sql
 SELECT DAY_ONLY(convertTimezone(LastStageChangeDate)) d,
-       TipCte__c, Tempo_de_Formado__c, COUNT(Id) cnt
+       TipCte__c, COUNT(Id) cnt
 FROM Opportunity
 WHERE (IsWon = true OR StageName = 'Ganho não Identificado')
   AND LastStageChangeDate >= [START]T00:00:00-03:00
   AND LastStageChangeDate <= [END]T23:59:59-03:00
   AND ([FILTRO_META] OR [FILTRO_GOOGLE])
-GROUP BY DAY_ONLY(convertTimezone(LastStageChangeDate)), TipCte__c, Tempo_de_Formado__c
+GROUP BY DAY_ONLY(convertTimezone(LastStageChangeDate)), TipCte__c
 ```
 
-Para cada linha do resultado, `segment = classify_contratante(TipCte__c,
-Tempo_de_Formado__c)`; descartar linhas com `segment is None`. Acumular em
-`live = {"mm": {dia: n}, "rf": {dia: n}}` (dia = `int(d[8:10])`, mesma
-convenção de `day_of` da skill diária). Dias sem nenhuma linha ficam ausentes
-de `live[seg]` — tratar como `0` na comparação (Fase 3), **não** como "não
-processado" (essa distinção é só do ledger, que tem células vazias de
-verdade).
+Para cada linha do resultado, `segment = classify_contratante(TipCte__c)`;
+descartar linhas com `segment` em `(None, "revalida")`. Acumular em
+`live = {"medico": {dia: n}, "formando": {dia: n}}` (dia = `int(d[8:10])`,
+mesma convenção de `day_of` da skill diária). Dias sem nenhuma linha ficam
+ausentes de `live[seg]` — tratar como `0` na comparação (Fase 3), **não**
+como "não processado" (essa distinção é só do ledger, que tem células
+vazias de verdade).
 
 ## Fase 3 — Comparar
 
 ```python
 rows = []  # (dia, segmento, ledger, salesforce_agora, diff)
 for day in range(1, last_day + 1):
-    for seg in ("mm", "rf"):
+    for seg in ("medico", "formando"):
         led = ledger[seg].get(day)
         if led is None:
             continue  # dia não processado pela skill diária — fora da comparação
@@ -112,8 +114,7 @@ Para cada `(dia, segmento)` em `divergentes`, uma query pontual (só aquele
 dia, sem filtro de `TipCte__c`):
 
 ```sql
-SELECT Id, Name, Account.Name, StageName, LastStageChangeDate,
-       TipCte__c, Tempo_de_Formado__c
+SELECT Id, Name, Account.Name, StageName, LastStageChangeDate, TipCte__c
 FROM Opportunity
 WHERE (IsWon = true OR StageName = 'Ganho não Identificado')
   AND LastStageChangeDate >= [DIA]T00:00:00-03:00

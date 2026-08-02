@@ -1,5 +1,5 @@
 ---
-description: Reporte mensal segmentado RF/MM → abas Mês-a-Mês RF e MM
+description: Reporte mensal segmentado Formando/Médico → abas Mês-a-Mês Formando e Médico
 argument-hint: [período/escopo opcional]
 ---
 
