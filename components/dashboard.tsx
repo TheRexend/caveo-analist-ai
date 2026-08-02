@@ -25,7 +25,7 @@ import { daysBetween } from "@/lib/dates";
 import { convStatus, fmtMonth, isFullMonth, monthKey, prorateGoal } from "@/lib/format";
 import { useTheme } from "@/lib/use-theme";
 import type {
-  Campaign, CohortPoint, Contratante, DailyFunnelPoint, FunnelData, FunnelDrillKey, Goals, Metrics,
+  Campaign, CohortPoint, DailyFunnelPoint, FunnelData, FunnelDrillKey, Goals, Metrics,
   OpportunityRow, Platform, PlatformCompareData, TimelineDay,
 } from "@/lib/types";
 
@@ -41,7 +41,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; defaultTo: string }) {
   const [tab, setTab] = useState<"midia" | "ga4">("midia");
   const [platform, setPlatform] = useState<Platform>("all");
-  const [contratante, setContratante] = useState<Contratante>("all");
+  const [apenasLeads, setApenasLeads] = useState(true);
+  const [formandoAside, setFormandoAside] = useState<{ oport: number; ganho: number } | null>(null);
   const [cruzamento, setCruzamento] = useState(true);
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(defaultTo);
@@ -91,7 +92,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
     const fresh = freshRef.current;
     freshRef.current = false;
 
-    fetchDashboardAll(platform, dateFrom, dateTo, contratante, cruzamento, fresh, ctrl.signal)
+    fetchDashboardAll(platform, dateFrom, dateTo, apenasLeads, cruzamento, fresh, ctrl.signal)
       .then((d) => {
         if (ctrl.signal.aborted) return;
         setK(d.metrics);
@@ -102,6 +103,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         setCampaigns(d.campaigns);
         setCohort(d.cohort ?? []);
         setPlatformCompareData(d.platformCompare ?? null);
+        setFormandoAside(d.formandoAside ?? null);
         setDataMode(d._mock ? "mock" : "live");
       })
       .catch(() => {
@@ -109,7 +111,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
       });
 
     return () => ctrl.abort();
-  }, [platform, contratante, cruzamento, dateFrom, dateTo, refreshKey]);
+  }, [platform, apenasLeads, cruzamento, dateFrom, dateTo, refreshKey]);
 
   // ── Fetch de metas de todos os meses do intervalo ────────────────────
   useEffect(() => {
@@ -159,7 +161,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
     if (!selectedStage) return;
     const ctrl = new AbortController();
     setOppLoading(true);
-    fetchOpportunities(platform, dateFrom, dateTo, contratante, selectedStage, cruzamento, ctrl.signal)
+    fetchOpportunities(platform, dateFrom, dateTo, selectedStage, cruzamento, ctrl.signal)
       .then((rows) => {
         if (ctrl.signal.aborted) return;
         setOppRows(rows);
@@ -172,7 +174,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
         }
       });
     return () => ctrl.abort();
-  }, [selectedStage, platform, contratante, cruzamento, dateFrom, dateTo, refreshKey]);
+  }, [selectedStage, platform, cruzamento, dateFrom, dateTo, refreshKey]);
 
   // ── Metas resolvidas: volume pró-rateado, taxa/custo mensal fixa ──────
   const volGoal = useCallback(
@@ -248,8 +250,8 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
       <TopBar
         platform={platform}
         onPlatform={setPlatform}
-        contratante={contratante}
-        onContratante={setContratante}
+        apenasLeads={apenasLeads}
+        onApenasLeads={setApenasLeads}
         cruzamento={cruzamento}
         onCruzamento={setCruzamento}
         dateFrom={dateFrom}
@@ -289,9 +291,16 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
                 </h2>
                 <HealthIndicators refreshKey={refreshKey} />
               </div>
-              <span className="section-sub">
-                {dataMode === "live" ? "Dados em tempo real via API" : dataMode === "mock" ? "Dados mockados · configure credenciais" : "Carregando…"}
-              </span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                <span className="section-sub">
+                  {dataMode === "live" ? "Dados em tempo real via API" : dataMode === "mock" ? "Dados mockados · configure credenciais" : "Carregando…"}
+                </span>
+                {formandoAside && (formandoAside.oport > 0 || formandoAside.ganho > 0) && (
+                  <span className="section-sub">
+                    Formando: {formandoAside.oport} oportunidades · {formandoAside.ganho} fechamentos (fora do funil principal)
+                  </span>
+                )}
+              </div>
             </div>
 
             <AnomalyAlerts metrics={k} prev={kPrev} />
@@ -342,7 +351,7 @@ export function Dashboard({ defaultFrom, defaultTo }: { defaultFrom: string; def
 
             <CohortChart cohort={cohort} refMonth={mKey} />
 
-            <OpportunitiesChart days={dailyFunnel} platform={platform} contratante={contratante} />
+            <OpportunitiesChart days={dailyFunnel} platform={platform} />
 
             {platform === "all" && <PlatformCompare data={platformCompareData} />}
 
