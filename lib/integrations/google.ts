@@ -4,17 +4,7 @@
 import "server-only";
 import { GOOGLE } from "@/lib/env";
 import { cached } from "@/lib/cache";
-import type { Contratante, DaySource } from "@/lib/types";
-
-// GAQL não suporta parênteses no WHERE nem OR agrupado — filtro de nome feito em JS após o fetch.
-// Brackets são literais nos nomes das campanhas.
-function matchesContratante(name: string, contratante: Contratante): boolean {
-  if (contratante === "all") return true;
-  const n = name.toLowerCase();
-  if (contratante === "mm") return n.includes("[mm]") || n.includes("institucional");
-  if (contratante === "rf") return n.includes("[rf]") || n.includes("institucional");
-  return true;
-}
+import type { DaySource } from "@/lib/types";
 
 let _accessToken: string | null = null;
 let _tokenExpiry = 0;
@@ -130,17 +120,16 @@ export interface GoogleCampaignsResult {
   }>;
 }
 
-/** Campanhas com custo > 0 no período (filtradas por contratante). Retorna null se não há credenciais. */
+/** Todas as campanhas com custo > 0 no período — sem filtro por nome/segmento. Retorna null se não há credenciais. */
 export async function googleCampaigns(
   dateFrom: string,
   dateTo: string,
-  contratante: Contratante = "all",
   fresh = false,
 ): Promise<GoogleCampaignsResult | null> {
   if (!GOOGLE.devToken || !GOOGLE.creds.refresh_token) return null;
   return cached(
-    `googleCampaigns:${contratante}:${dateFrom}:${dateTo}`,
-    () => googleCampaignsUncached(dateFrom, dateTo, contratante),
+    `googleCampaigns:${dateFrom}:${dateTo}`,
+    () => googleCampaignsUncached(dateFrom, dateTo),
     { fresh },
   );
 }
@@ -148,7 +137,6 @@ export async function googleCampaigns(
 async function googleCampaignsUncached(
   dateFrom: string,
   dateTo: string,
-  contratante: Contratante,
 ): Promise<GoogleCampaignsResult | null> {
   const gaql = `
     SELECT
@@ -161,19 +149,17 @@ async function googleCampaignsUncached(
   `.trim();
   const rows = await gaqlSearch(gaql);
   return {
-    results: rows
-      .filter((r) => matchesContratante(r.campaign?.name ?? "", contratante))
-      .map((r) => ({
-        campaign: { id: r.campaign?.id ?? "?", name: r.campaign?.name ?? "" },
-        metrics: {
-          costMicros: n(r.metrics?.costMicros),
-          impressions: n(r.metrics?.impressions),
-          clicks: n(r.metrics?.clicks),
-          ctr: n(r.metrics?.ctr),
-          averageCpc: n(r.metrics?.averageCpc),
-          conversions: n(r.metrics?.conversions),
-        },
-      })),
+    results: rows.map((r) => ({
+      campaign: { id: r.campaign?.id ?? "?", name: r.campaign?.name ?? "" },
+      metrics: {
+        costMicros: n(r.metrics?.costMicros),
+        impressions: n(r.metrics?.impressions),
+        clicks: n(r.metrics?.clicks),
+        ctr: n(r.metrics?.ctr),
+        averageCpc: n(r.metrics?.averageCpc),
+        conversions: n(r.metrics?.conversions),
+      },
+    })),
   };
 }
 
@@ -181,13 +167,12 @@ async function googleCampaignsUncached(
 export async function googleDaily(
   dateFrom: string,
   dateTo: string,
-  contratante: Contratante = "all",
   fresh = false,
 ): Promise<Record<string, DaySource>> {
   if (!GOOGLE.devToken || !GOOGLE.creds.refresh_token) return {};
   return cached(
-    `googleDaily:${contratante}:${dateFrom}:${dateTo}`,
-    () => googleDailyUncached(dateFrom, dateTo, contratante),
+    `googleDaily:${dateFrom}:${dateTo}`,
+    () => googleDailyUncached(dateFrom, dateTo),
     { fresh },
   );
 }
@@ -195,7 +180,6 @@ export async function googleDaily(
 async function googleDailyUncached(
   dateFrom: string,
   dateTo: string,
-  contratante: Contratante,
 ): Promise<Record<string, DaySource>> {
   const gaql = `
     SELECT campaign.name, segments.date,
@@ -205,8 +189,7 @@ async function googleDailyUncached(
     WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
       AND metrics.cost_micros > 0
   `.trim();
-  const allRows = await gaqlSearch(gaql);
-  const rows = allRows.filter((r) => matchesContratante(r.campaign?.name ?? "", contratante));
+  const rows = await gaqlSearch(gaql);
   const byDate: Record<string, DaySource> = {};
   for (const r of rows) {
     const d = r.segments?.date;
