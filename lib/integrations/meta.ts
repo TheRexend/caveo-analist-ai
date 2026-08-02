@@ -2,7 +2,7 @@
 import "server-only";
 import { META } from "@/lib/env";
 import { cached } from "@/lib/cache";
-import type { Contratante, DaySource } from "@/lib/types";
+import type { DaySource } from "@/lib/types";
 
 export interface MetaAction {
   action_type?: string;
@@ -67,32 +67,30 @@ async function metaPaginate(path: string, params: Record<string, string>): Promi
   return rows;
 }
 
-// Filtro de nome de campanha por contratante. As condições do array são
-// combinadas com AND pela API → "[LEADS]" sempre, + "[MM]"/"[RF]" por segmento.
-function leadsFilter(contratante: Contratante): string {
-  const conds: Array<{ field: string; operator: string; value: string }> = [
-    { field: "campaign.name", operator: "CONTAIN", value: "[LEADS]" },
-  ];
-  if (contratante === "mm") conds.push({ field: "campaign.name", operator: "CONTAIN", value: "[MM]" });
-  if (contratante === "rf") conds.push({ field: "campaign.name", operator: "CONTAIN", value: "[RF]" });
+// Filtro de OBJETIVO de campanha (geração de lead), não de segmento de
+// público — mídia paga não filtra mais por tag de segmento (fundação:
+// mira 100% Médico, sem marcador por campanha).
+function leadsFilter(apenasLeads: boolean): string {
+  const conds: Array<{ field: string; operator: string; value: string }> = [];
+  if (apenasLeads) conds.push({ field: "campaign.name", operator: "CONTAIN", value: "[LEADS]" });
   return JSON.stringify(conds);
 }
 
-/** Insights por campanha filtrando nome [LEADS] (+ segmento). limit alto cobre KPIs e tabela. */
+/** Insights por campanha, opcionalmente só as de geração de lead ([LEADS]). limit alto cobre KPIs e tabela. */
 export function metaInsights(
   dateFrom: string,
   dateTo: string,
-  contratante: Contratante = "all",
+  apenasLeads = true,
   fresh = false,
 ): Promise<MetaInsightRow[]> {
   return cached(
-    `metaInsights:${contratante}:${dateFrom}:${dateTo}`,
+    `metaInsights:${apenasLeads}:${dateFrom}:${dateTo}`,
     () =>
       metaPaginate(`/${META.account}/insights`, {
         level: "campaign",
         fields: "campaign_id,campaign_name,spend,impressions,clicks,ctr,cpc,actions",
         time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
-        filtering: leadsFilter(contratante),
+        filtering: leadsFilter(apenasLeads),
         limit: "200",
       }),
     { fresh },
@@ -103,18 +101,18 @@ export function metaInsights(
 export function metaInsightsDaily(
   dateFrom: string,
   dateTo: string,
-  contratante: Contratante = "all",
+  apenasLeads = true,
   fresh = false,
 ): Promise<MetaInsightRow[]> {
   return cached(
-    `metaInsightsDaily:${contratante}:${dateFrom}:${dateTo}`,
+    `metaInsightsDaily:${apenasLeads}:${dateFrom}:${dateTo}`,
     () =>
       metaPaginate(`/${META.account}/insights`, {
         level: "account",
         fields: "spend,impressions,clicks,actions",
         time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
         time_increment: "1",
-        filtering: leadsFilter(contratante),
+        filtering: leadsFilter(apenasLeads),
         limit: "100",
       }),
     { fresh },
