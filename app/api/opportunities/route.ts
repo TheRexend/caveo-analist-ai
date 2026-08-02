@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
   const platform = (sp.get("platform") ?? "all") as Platform;
-  const contratante = (sp.get("contratante") ?? "all") as Contratante;
+  const contratante: Contratante = "medico";
   const fresh = sp.get("fresh") === "1";
   const includeCruzamento = sp.get("cruzamento") !== "0";
   const stageParam = sp.get("stage") ?? "no_crm";
