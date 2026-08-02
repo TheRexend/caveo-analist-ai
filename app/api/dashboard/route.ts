@@ -164,7 +164,7 @@ export async function GET(req: NextRequest) {
 
   const formandoAside = sfFormando
     ? {
-        oport: sfFormando.no_crm + sfFormando.em_tratamento + sfFormando.proposta,
+        oport: sfFormando.no_crm,
         ganho: sfFormando.ganho,
       }
     : undefined;
