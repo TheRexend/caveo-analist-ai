@@ -110,7 +110,7 @@ export async function sfFunnel(
   dateFrom: string,
   dateTo: string,
   platform: Platform,
-  contratante: Contratante = "all",
+  contratante: Contratante = "medico",
   fresh = false,
   includeCruzamento = true,
 ): Promise<SfFunnel | null> {
@@ -222,7 +222,7 @@ export async function sfDaily(
   dateFrom: string,
   dateTo: string,
   platform: Platform,
-  contratante: Contratante = "all",
+  contratante: Contratante = "medico",
   fresh = false,
   includeCruzamento = true,
 ): Promise<Record<string, { oport: number; ganho: number }> | null> {
@@ -283,7 +283,7 @@ export async function sfCohort(
   dateFrom: string,
   dateTo: string,
   platform: Platform,
-  contratante: Contratante = "all",
+  contratante: Contratante = "medico",
   fresh = false,
   includeCruzamento = true,
 ): Promise<import("@/lib/types").CohortPoint[] | null> {
