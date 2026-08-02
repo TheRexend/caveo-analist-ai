@@ -5,22 +5,18 @@ import {
 } from "recharts";
 import { CalendarRange } from "lucide-react";
 import { fmtDate, fmtNum } from "@/lib/format";
-import type { Contratante, DailyFunnelPoint, Platform } from "@/lib/types";
+import type { DailyFunnelPoint, Platform } from "@/lib/types";
 
 const C_OPORT = "oklch(0.72 0.15 72)"; // âmbar (oportunidades/dia)
 const C_GANHO = "oklch(0.45 0.12 280)"; // roxo (fechamentos/dia)
 
 const PLATFORM_LABEL: Record<Platform, string> = { all: "Meta + Google", meta: "Meta", google: "Google" };
-const CONTRATANTE_LABEL: Record<Contratante, string> = {
-  all: "Ambos", rf: "Recém-Formado", mm: "Médicos Maduros",
-};
 
 function OpportunitiesChartBase({
-  days, platform, contratante,
+  days, platform,
 }: {
   days: DailyFunnelPoint[];
   platform: Platform;
-  contratante: Contratante;
 }) {
   const { data, totalOport, totalGanho } = useMemo(() => {
     const rows = days.map((d) => ({ ...d, label: fmtDate(d.date) }));
@@ -37,7 +33,7 @@ function OpportunitiesChartBase({
         <div>
           <h3 className="section-title"><CalendarRange size={13} /> Oportunidades × Fechamentos por dia</h3>
           <div className="section-sub" style={{ marginTop: 3 }}>
-            Oportunidades criadas (barra) e fechamentos ganhos (linha) · {PLATFORM_LABEL[platform]} · {CONTRATANTE_LABEL[contratante]}
+            Oportunidades criadas (barra) e fechamentos ganhos (linha) · {PLATFORM_LABEL[platform]}
           </div>
         </div>
         <div className="legend-chips">
