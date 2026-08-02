@@ -1,7 +1,7 @@
 "use client";
 // Camada de fetch tipada (client-side) com timeout, abort e fallback mock.
 import type {
-  Contratante, DashboardPayload, FunnelDrillKey, GA4Payload, Goals,
+  DashboardPayload, FunnelDrillKey, GA4Payload, Goals,
   HealthPayload, OpportunityRow, Platform,
 } from "@/lib/types";
 
@@ -29,12 +29,13 @@ export function fetchDashboardAll(
   platform: Platform,
   from: string,
   to: string,
-  contratante: Contratante,
+  apenasLeads: boolean,
   cruzamento: boolean,
   fresh = false,
   signal?: AbortSignal,
 ): Promise<DashboardPayload> {
-  const qs = new URLSearchParams({ from, to, platform, contratante });
+  const qs = new URLSearchParams({ from, to, platform });
+  if (!apenasLeads) qs.set("apenasLeads", "0");
   if (!cruzamento) qs.set("cruzamento", "0");
   if (fresh) qs.set("fresh", "1");
   return getJSON<DashboardPayload>(`/api/dashboard?${qs}`, 30000, signal);
@@ -45,12 +46,11 @@ export function fetchOpportunities(
   platform: Platform,
   from: string,
   to: string,
-  contratante: Contratante,
   stage: FunnelDrillKey,
   cruzamento: boolean,
   signal?: AbortSignal,
 ): Promise<OpportunityRow[]> {
-  const qs = new URLSearchParams({ from, to, platform, contratante, stage });
+  const qs = new URLSearchParams({ from, to, platform, stage });
   if (!cruzamento) qs.set("cruzamento", "0");
   return getJSON<OpportunityRow[]>(`/api/opportunities?${qs}`, 25000, signal);
 }
