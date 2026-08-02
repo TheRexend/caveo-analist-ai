@@ -1,18 +1,18 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Moon, MoreHorizontal, RefreshCw, Sun, Target, Users } from "lucide-react";
+import { Check, ChevronDown, Moon, MoreHorizontal, RefreshCw, Sun, Target } from "lucide-react";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Theme } from "@/lib/use-theme";
-import type { Contratante, Platform } from "@/lib/types";
+import type { Platform } from "@/lib/types";
 
 type DataMode = "live" | "mock" | "loading";
 
 interface TopBarProps {
   platform: Platform;
   onPlatform: (p: Platform) => void;
-  contratante: Contratante;
-  onContratante: (c: Contratante) => void;
+  apenasLeads: boolean;
+  onApenasLeads: (v: boolean) => void;
   cruzamento: boolean;
   onCruzamento: (v: boolean) => void;
   dateFrom: string;
@@ -126,14 +126,8 @@ const PLATFORM_OPTS: SegOption<Platform>[] = [
   { val: "meta", label: "Meta Ads", dot: "var(--c-meta)" },
 ];
 
-const CONTRATANTE_OPTS: SegOption<Contratante>[] = [
-  { val: "all", label: "Ambos", ariaLabel: "Ambos os públicos" },
-  { val: "rf", label: "Recém-Formado" },
-  { val: "mm", label: "Médicos Maduros" },
-];
-
 export function TopBar({
-  platform, onPlatform, contratante, onContratante, cruzamento, onCruzamento,
+  platform, onPlatform, apenasLeads, onApenasLeads, cruzamento, onCruzamento,
   dateFrom, dateTo, onDates, onOpenGoals, onRefresh, currentMonthLabel, dataMode, theme, onToggleTheme,
 }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -153,13 +147,20 @@ export function TopBar({
 
       <div className="topbar-controls">
         <Segmented<Platform> value={platform} options={PLATFORM_OPTS} onChange={onPlatform} ariaLabel="Filtro de plataforma" />
-        <FilterDropdown<Contratante>
-          value={contratante}
-          options={CONTRATANTE_OPTS}
-          onChange={onContratante}
-          ariaLabel="Filtro de público / contratante"
-          icon={Users}
-        />
+
+        <label
+          className={`toggle toggle-apenas-leads${apenasLeads ? " on" : ""}`}
+          title={apenasLeads ? "Mostrar todas as campanhas (desativar filtro [LEADS])" : "Mostrar só campanhas de geração de lead ([LEADS])"}
+        >
+          <input
+            type="checkbox"
+            checked={apenasLeads}
+            onChange={(e) => onApenasLeads(e.target.checked)}
+            style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+          />
+          <span className="toggle-switch" />
+          Somente Leads
+        </label>
 
         <label
           className={`toggle toggle-cruzamento${cruzamento ? " on" : ""}`}
