@@ -3,13 +3,14 @@
 export type Platform = "all" | "meta" | "google";
 
 /**
- * Segmento de público. O segmento vem de TipCte__c; a recência do médico, de
- * Tempo_de_Formado__c. Ver docs/fundacao-dados.md (seção 4).
- *  - "all" → Ambos (RF + MM)
- *  - "rf"  → Recém-Formado (Formando, ou Médico com recência recente)
- *  - "mm"  → Médico Maduro (Revalida, ou Médico maduro / sem recência)
+ * Segmento real do público, vindo de TipCte__c (ver docs/fundacao-dados.md,
+ * seção 4). Só usado no lado Salesforce — mídia paga (Meta/Google) não filtra
+ * mais por segmento.
+ *  - "medico"   → ICP único de mídia paga (o funil principal do dashboard)
+ *  - "formando" → indicador à parte (oportunidades/fechamentos fora do funil
+ *                 principal), nunca somado aos números de "medico"
  */
-export type Contratante = "all" | "rf" | "mm";
+export type Contratante = "formando" | "medico";
 
 export interface Metrics {
   invest: number;
@@ -129,6 +130,8 @@ export interface DashboardPayload {
   cohort?: CohortPoint[];
   /** Presente apenas quando platform === "all". */
   platformCompare?: PlatformCompareData;
+  /** Indicador à parte — oportunidades/fechamentos Formando, fora da soma do funil principal (que é só Médico). */
+  formandoAside?: { oport: number; ganho: number };
   _mock: boolean;
 }
 
