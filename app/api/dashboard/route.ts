@@ -64,9 +64,10 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("from") ?? defFrom;
   const dateTo = sp.get("to") ?? defTo;
   const platform = (sp.get("platform") ?? "all") as Platform;
-  const contratante = (sp.get("contratante") ?? "all") as Contratante;
+  const apenasLeads = sp.get("apenasLeads") !== "0";
   const fresh = sp.get("fresh") === "1";
   const includeCruzamento = sp.get("cruzamento") !== "0";
+  const CONTRATANTE_PRINCIPAL: Contratante = "medico";
   const prev = prevRange(dateFrom, dateTo);
 
   // Mock só quando NÃO há nenhuma credencial.
@@ -84,19 +85,21 @@ export async function GET(req: NextRequest) {
     gads, gadsByDate, gadsPrev,
     sf, sfPrevF, sfD, sfCoh,
     sfMeta, sfGoogle,
+    sfFormando,
   ] = await Promise.all([
-    wantMeta ? metaInsights(dateFrom, dateTo, contratante, fresh) : Promise.resolve([] as MetaInsightRow[]),
-    wantMeta ? metaInsightsDaily(dateFrom, dateTo, contratante, fresh) : Promise.resolve([] as MetaInsightRow[]),
-    wantMeta ? metaInsights(prev.from, prev.to, contratante, fresh) : Promise.resolve([] as MetaInsightRow[]),
-    wantGoogle ? googleCampaigns(dateFrom, dateTo, contratante, fresh) : Promise.resolve(null),
-    wantGoogle ? googleDaily(dateFrom, dateTo, contratante, fresh) : Promise.resolve({} as Record<string, DaySource>),
-    wantGoogle ? googleCampaigns(prev.from, prev.to, contratante, fresh) : Promise.resolve(null),
-    sfFunnel(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
-    sfFunnel(prev.from, prev.to, platform, contratante, fresh, includeCruzamento),
-    sfDaily(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
-    sfCohort(dateFrom, dateTo, platform, contratante, fresh, includeCruzamento),
-    isAll ? sfFunnel(dateFrom, dateTo, "meta", contratante, fresh, includeCruzamento) : Promise.resolve(null),
-    isAll ? sfFunnel(dateFrom, dateTo, "google", contratante, fresh, includeCruzamento) : Promise.resolve(null),
+    wantMeta ? metaInsights(dateFrom, dateTo, apenasLeads, fresh) : Promise.resolve([] as MetaInsightRow[]),
+    wantMeta ? metaInsightsDaily(dateFrom, dateTo, apenasLeads, fresh) : Promise.resolve([] as MetaInsightRow[]),
+    wantMeta ? metaInsights(prev.from, prev.to, apenasLeads, fresh) : Promise.resolve([] as MetaInsightRow[]),
+    wantGoogle ? googleCampaigns(dateFrom, dateTo, fresh) : Promise.resolve(null),
+    wantGoogle ? googleDaily(dateFrom, dateTo, fresh) : Promise.resolve({} as Record<string, DaySource>),
+    wantGoogle ? googleCampaigns(prev.from, prev.to, fresh) : Promise.resolve(null),
+    sfFunnel(dateFrom, dateTo, platform, CONTRATANTE_PRINCIPAL, fresh, includeCruzamento),
+    sfFunnel(prev.from, prev.to, platform, CONTRATANTE_PRINCIPAL, fresh, includeCruzamento),
+    sfDaily(dateFrom, dateTo, platform, CONTRATANTE_PRINCIPAL, fresh, includeCruzamento),
+    sfCohort(dateFrom, dateTo, platform, CONTRATANTE_PRINCIPAL, fresh, includeCruzamento),
+    isAll ? sfFunnel(dateFrom, dateTo, "meta", CONTRATANTE_PRINCIPAL, fresh, includeCruzamento) : Promise.resolve(null),
+    isAll ? sfFunnel(dateFrom, dateTo, "google", CONTRATANTE_PRINCIPAL, fresh, includeCruzamento) : Promise.resolve(null),
+    sfFunnel(dateFrom, dateTo, platform, "formando", fresh, includeCruzamento),
   ]);
 
   const metaInvest = metaInvestOf(metaRows);
@@ -159,6 +162,13 @@ export async function GET(req: NextRequest) {
     ...(wantGoogle ? buildGoogleCampaigns(gads) : []),
   ];
 
+  const formandoAside = sfFormando
+    ? {
+        oport: sfFormando.no_crm + sfFormando.em_tratamento + sfFormando.proposta,
+        ganho: sfFormando.ganho,
+      }
+    : undefined;
+
   const out: DashboardPayload = {
     metrics,
     metricsPrev,
@@ -170,6 +180,7 @@ export async function GET(req: NextRequest) {
     platformCompare: isAll
       ? { meta: buildMetrics(metaInvest, metaLeads, sfMeta), google: buildMetrics(gInvest, gLeads, sfGoogle) }
       : undefined,
+    formandoAside,
     _mock: false,
   };
   return NextResponse.json(out);
