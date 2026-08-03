@@ -41,10 +41,16 @@ docs antigos de RF/MM.
   ter mudado o suficiente que vale relevantar do zero numa sessão dedicada de
   mídia paga, fora deste sub-projeto de docs.
 - **Outros 5 docs de Google Ads** (Segmentos, Segmentos Personalizados, Demand
-  Gen, Demand Gen Anúncios, Search CNPJ) — são mais conteúdo estratégico
-  (lógica de segmentação, formatos de anúncio) que blueprint de conta viva.
-  **Reescritos/fundidos para Médico único**, mesmo tratamento de
-  persona/dores-desejos.
+  Gen, Demand Gen Anúncios, Search CNPJ) — leitura completa (não só o
+  cabeçalho) revelou que não são conteúdo editorial parecido com
+  persona/dores-desejos: são **arquitetura de campanha inteira** construída em
+  cima de dois públicos concorrendo por orçamento/segmento (`CS-RF-*` vs
+  `CS-MM-*`, 2 conjuntos de campanha, faixa etária e geo diferentes por
+  segmento, um alerta explícito de que o orçamento compartilhado "drena verba
+  pro RF e sufoca o MM"). Redesenhar isso pra um público único é trabalho de
+  estratégia de mídia paga (dados de conta atualizados, decisão de
+  campanha/orçamento), não reescrita editorial de doc. **Decisão revista:
+  arquivados**, mesmo tratamento do AdGroups.
 - **Docs de LP** (`LP_Caveo_Medico_Maduro_Conteudo.md`,
   `LP_Teste_AB_Copy_Medico_Maduro_Caveo.md`, `Hero_Variacoes_Copy_LP_Caveo.md`)
   — são a copy e o desenho de um teste A/B pra `lp2.caveo.com.br`
@@ -131,22 +137,18 @@ Done. Muda:
     rotina (o contador não entende a dinâmica de plantão/hospital) — reforça o
     D2 existente com essa distinção mais precisa.
 
-### 5 docs de Google Ads (editados in-place)
+### 5 docs de Google Ads — arquivados (revisão pós-leitura completa)
 
 `Google_Ads_Segmentos_Caveo.md`, `Google_Ads_Segmentos_Personalizados_Caveo.md`,
 `Google_Ads_Demand_Gen_Caveo.md`, `Google_Ads_Demand_Gen_Anuncios_Caveo.md`,
-`Google_Ads_Search_CNPJ_Caveo.md` — cada um perde a moldura "por segmento (RF e
-MM)" / "dois públicos centrais — RF e MM" no cabeçalho e ao longo do texto,
-passando a falar de audiência única de Médico. A lógica de segmentos
-personalizados/combinados, os blueprints de campanha e a copy de anúncio já
-escrita são preservados e adaptados (não descartados) — quando um bloco for
-literalmente específico de um perfil que não existe mais como *alvo de mídia*
-(ex.: um segmento combinado desenhado só pra "recém-formado"), a tarefa de
-implementação decide, com base no conteúdo real de cada doc, se vira uma nuance
-dentro do documento unificado ou é removido por não fazer mais sentido como
-peça de mídia — isso é detalhado task a task no plano de implementação, não
-aqui, porque depende da leitura completa de cada doc (ainda não lida por
-inteiro nesta etapa de design).
+`Google_Ads_Search_CNPJ_Caveo.md` — a leitura completa (feita na etapa de
+plano, não na de design) mostrou que são arquitetura de campanha real (nomes de
+segmento `CS-RF-*`/`CS-MM-*`, conjuntos de anúncio por público, orçamento
+competindo entre RF e MM, faixa etária/geo por segmento), não conteúdo
+editorial fundível como persona/dores-desejos. Redesenhar isso pra audiência
+única de Médico é decisão de estratégia de mídia paga com dados de conta
+atuais — fora do escopo deste sub-projeto de docs. **Movidos pra
+`docs/archive/` sem edição**, mesmo tratamento do AdGroups.
 
 ### `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` (commitado + atualizado)
 
@@ -186,8 +188,9 @@ conteúdo.
   Médico único, com estágio de carreira como nuance interna, não como duas
   audiências.
 - Tabela de fontes de conhecimento: `docs/personas_recem_formados.md` +
-  `docs/personas_medico_maduro.md` → `docs/personas_medico.md`; adiciona
-  `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` e
+  `docs/personas_medico_maduro.md` → `docs/personas_medico.md`; remove
+  `docs/Hero_Variacoes_Copy_LP_Caveo.md` (arquivado, não é mais fonte viva);
+  adiciona `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` e
   `docs/Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md` à tabela.
 - Regra "nunca quebram" #4 ("RF e MM têm dores diferentes — nunca usar a mesma
   copy pra ambos sem adaptar") → adaptada pra "estágios de carreira diferentes
@@ -204,15 +207,19 @@ está implementada e não reflete a virada de ICP atual. Atualiza:
 - Tabela de status: os 4 sub-projetos da reformulação de ICP (fundação ✅,
   camada agêntica ✅, dashboard ✅, docs estratégicos — este).
 - Índice de docs estratégicos em `docs/`: lista os docs vigentes (personas,
-  dores-desejos, os 5 de Google Ads, Mapa_Tematico, a transcrição) e menciona
-  `docs/archive/` como histórico pré-virada.
+  dores-desejos, Mapa_Tematico, a transcrição) e menciona `docs/archive/`
+  (12 arquivos) como histórico pré-virada, incluindo os 7 de mídia paga/LP que
+  aguardam releitura dedicada.
 
 ### Arquivamento (`docs/archive/`, criado nesta tarefa)
 
-Move sem editar conteúdo: `personas_recem_formados.md`,
+Move sem editar conteúdo, 12 arquivos: `personas_recem_formados.md`,
 `personas_medico_maduro.md`, `Google_Ads_AdGroups_RF_Captura_Caveo.md`,
-`Google_Ads_AdGroups_MM_Captura_Caveo.md`, `LP_Caveo_Medico_Maduro_Conteudo.md`,
-`LP_Teste_AB_Copy_Medico_Maduro_Caveo.md`, `Hero_Variacoes_Copy_LP_Caveo.md`.
+`Google_Ads_AdGroups_MM_Captura_Caveo.md`, `Google_Ads_Segmentos_Caveo.md`,
+`Google_Ads_Segmentos_Personalizados_Caveo.md`, `Google_Ads_Demand_Gen_Caveo.md`,
+`Google_Ads_Demand_Gen_Anuncios_Caveo.md`, `Google_Ads_Search_CNPJ_Caveo.md`,
+`LP_Caveo_Medico_Maduro_Conteudo.md`, `LP_Teste_AB_Copy_Medico_Maduro_Caveo.md`,
+`Hero_Variacoes_Copy_LP_Caveo.md`.
 
 ### Housekeeping
 
@@ -243,17 +250,15 @@ Não há suíte automatizada pra conteúdo markdown. Verificação por tarefa:
    — só a moldura de organização mudou. Conteúdo novo (Plano de Residência,
    nuances de contador, guia de execução criativa) é rastreável de volta à
    transcrição de 30/07 ou ao Mapa_Tematico original.
-4. `docs/archive/` contém exatamente os 7 arquivos listados, sem alteração de
+4. `docs/archive/` contém exatamente os 12 arquivos listados, sem alteração de
    conteúdo em relação ao commit anterior (`git diff` vazio além do rename).
 
 ## 7. Ressalvas conhecidas
 
-- Os 5 docs de Google Ads reescritos ainda não foram lidos por inteiro nesta
-  etapa de design — a decisão de manter/descartar cada bloco específico de
-  RF/MM dentro deles é tarefa do plano de implementação, não deste spec.
-- O teste A/B de LP e os Ad Groups reais ficam arquivados sem substituto — mídia
-  paga/LP para o público Médico único precisará de uma releitura dedicada da
-  conta/página real, fora do escopo deste sub-projeto.
+- Os 7 docs de mídia paga/LP (5 de Google Ads + 2 de LP, além dos 2 AdGroups)
+  ficam arquivados sem substituto — mídia paga/LP para o público Médico único
+  precisará de uma releitura dedicada da conta/página real, com dados
+  atualizados, fora do escopo deste sub-projeto.
 - A seção "Implicações para mídia e mensagem" dos dores-desejos, ao perder o
   rótulo RF/MM, precisa de cuidado editorial pra não virar genérica — a tarefa
   de implementação deve preservar a diferenciação tática por estágio de
