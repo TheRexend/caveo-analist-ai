@@ -16,6 +16,20 @@
 | 5 — MCPs locais | 🟡 estrutura pronta; **GA4 ATIVO** (venv + deps + credencial + `.mcp.json`, testado com dados reais, property `488647966`). Sheets = scaffold; google-ads/meta-ads/gtm ainda globais — ver `mcps/README.md` |
 | 3 — Dashboard + GA4 | ✅ aba GA4 (dados reais) + melhorias B (coorte, validada), D (brand×non-brand Google), E (alertas de anomalia). Build + tsc verdes |
 
+## Status — Reformulação de ICP (2026-07-31 em diante)
+
+> Reforma **separada e posterior** à dos 6 subprojetos acima: RF/MM (segmento +
+> recência) vira Formando/Médico/Revalida (`TipCte__c` direto); mídia paga
+> passa a mirar 100% Médico. Specs em `docs/superpowers/specs/2026-07-31-*` e
+> `2026-08-02-*`.
+
+| Subprojeto | Status |
+|---|---|
+| 1 — Fundação de dados | ✅ `config/business-rules.ts`/`docs/fundacao-dados.md` migrados (`ContratanteKey`), `SEGMENT_ALLOCATION` removido |
+| 2 — Camada agêntica | ✅ `segments.py` + 4 skills operacionais migradas; 2 planilhas reais renomeadas (abas Formando/Médico) |
+| 3 — Dashboard | ✅ 100% Médico como funil principal; Formando vira indicador à parte; Meta/Google somam 100% das campanhas (sem filtro de tag de segmento); toggle "Somente Leads" |
+| 4 — Docs estratégicos | ✅ personas/dores-desejos fundidas por estágio de carreira; Mapa temático de pilares de criativo + agente `criativos.md` atualizados; 12 docs de RF/MM/mídia paga/LP arquivados em `docs/archive/` |
+
 ## Princípios estruturais
 
 1. **Dashboard e camada agêntica são desacoplados.** Dashboard usa integrações
@@ -100,8 +114,13 @@ caveo_analist_ai/
 │   ├── projeto-mapa.md                 #   ESTE arquivo (manifesto vivo)
 │   ├── fundacao-dados.md               #   GERADO de business-rules.ts
 │   ├── data-catalog.md                 #   catálogo de campos MCP (Meta/Google/SF/GA4)
-│   ├── superpowers/specs/              #   os 5 specs desta reforma
-│   └── (estratégicos: personas_*, Dores_Desejos, LP_*, Google_Ads_*, matriz-poder-interesse-caveo, ...)
+│   ├── superpowers/specs/              #   specs das duas reformas (6-subprojetos + ICP)
+│   ├── personas_medico.md              #   4 personas (Larissa/Diego/Rafael/Camila), por estágio de carreira
+│   ├── Dores_Desejos_Publicos_Caveo.md #   mapas D1-D7 em camadas, por estágio de carreira
+│   ├── Mapa_Tematico_Pilares_Criativos_Caveo.md  #   pilares Oferta×Funcionalidades + guardrails de execução
+│   ├── Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md  #   fonte primária (call c/ cliente)
+│   ├── matriz-poder-interesse-caveo.md · (demais estratégicos vigentes)
+│   └── archive/                        #   12 docs de RF/MM/mídia paga/LP pré-virada de ICP (histórico, aguardam releitura)
 │
 ├── scripts/                            # utilitários (md_to_docx, etc.)
 ├── outputs/                            # entregáveis gerados (apresentações)
