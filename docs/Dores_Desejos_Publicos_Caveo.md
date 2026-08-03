@@ -1,13 +1,19 @@
-# Dores e Desejos dos Públicos — Caveo
+# Dores e Desejos do Público — Caveo
 
-> **Versão:** 2026-06-16
-> **Escopo:** aprofundamento qualificado das dores e desejos dos dois públicos centrais da Caveo —
-> **Médicos Recém-formados** e **Médicos Maduros (plantonistas PJ)** — para embasar criativos,
-> mensagens, landing pages e segmentação de mídia.
-> **Produto:** plataforma financeira/contábil feita por médicos para médicos — abertura de PJ (CNPJ),
-> emissão ilimitada de NF, otimização tributária (até 30%), gestão de plantões e múltiplas fontes de
-> renda, dashboard em tempo real, pagamento de tributos pelo app. Promessa-tempo: ~600h/ano de
+> **Versão:** 2026-08-02 (revisão pós-virada de ICP; substitui a versão
+> 2026-06-16 organizada por RF×MM)
+> **Escopo:** aprofundamento qualificado das dores e desejos do público
+> **Médico** da Caveo — do formando ao especialista consolidado — para embasar
+> criativos, mensagens, landing pages e segmentação de mídia. A jornada muda
+> conforme o estágio de carreira; o público-alvo é um só.
+> **Produto:** plataforma financeira/contábil feita por médicos para médicos —
+> abertura de PJ (CNPJ), emissão ilimitada de NF, otimização tributária (até
+> 30%), gestão de plantões e múltiplas fontes de renda, dashboard em tempo
+> real, pagamento de tributos pelo app. Promessa-tempo: ~600h/ano de
 > burocracia → 15 min/mês. Tração: +15.000 médicos em 21 estados.
+> **Fontes:** entrevistas do time comercial da Caveo (base original) +
+> `docs/Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md` (validação e
+> refinamento com o cliente, 30/07/2026).
 
 ---
 
@@ -29,7 +35,7 @@ dor profunda por trás dele:
 
 ---
 
-## Verdades transversais (valem para os dois públicos)
+## Verdades transversais (valem para todo o público, em qualquer estágio)
 
 - **Médico não foi formado para ser empresário.** A faculdade ensina a salvar vidas, não a abrir PJ,
   emitir nota ou planejar imposto. Isso gera uma mistura de **insegurança + vergonha de não saber** que
@@ -44,10 +50,13 @@ dor profunda por trás dele:
   problema com o CRM/Receita — o medo de "manchar o nome" é desproporcional ao valor financeiro em si.
 - **Renda alta, alfabetização financeira baixa.** Ganham bem cedo, mas raramente sabem otimizar. O
   dinheiro "vaza" sem que percebam — e quando percebem, sentem que foram ingênuos.
+- **A inércia trava mais que a falta de interesse.** Em qualquer estágio, o médico já sabe (ou logo
+  descobre) que tem um problema financeiro/fiscal — o que falta é um gatilho que torne o custo de não
+  agir maior que o custo percebido de agir.
 
 ---
 
-# 🩺 Público 1 — Médicos Recém-formados
+# 🩺 Começando a carreira
 
 ## Snapshot
 
@@ -63,11 +72,11 @@ dor profunda por trás dele:
 
 ## Momento e jornada
 
-O recém-formado vive uma **transição de identidade**: deixa de ser "estudante" e vira "profissional/PJ"
-da noite para o dia. É um momento de **alta plasticidade de hábitos** — ele ainda não tem contador, não
-tem rotina fiscal, não tem vícios de processo. Quem chega primeiro e com a mensagem certa **forma o
-hábito**. Por isso o custo de aquisição aqui compra não só um lead, mas potencialmente o **LTV de uma
-carreira inteira**.
+Quem está começando a carreira vive uma **transição de identidade**: deixa de ser "estudante" e vira
+"profissional/PJ" da noite para o dia. É um momento de **alta plasticidade de hábitos** — ainda não tem
+contador, não tem rotina fiscal, não tem vícios de processo. Quem chega primeiro e com a mensagem certa
+**forma o hábito**. Por isso o custo de aquisição aqui compra não só um lead, mas potencialmente o **LTV
+de uma carreira inteira**.
 
 ## Mapa de dores em profundidade
 
@@ -113,6 +122,18 @@ carreira inteira**.
 - **Consequência:** tudo é empurrado com a barriga até virar problema.
 - **Caveo endereça:** burocracia resolvida no app, 15 min/mês.
 
+### D7 — "Vou esperar mais perto da formatura / da residência pra decidir" *(reforçado em 30/07/2026)*
+- **Dor profunda:** adiar a decisão não é falta de interesse — é evitar mais uma coisa pra pensar
+  enquanto o foco está em provas e residência. O concorrente real aqui não é outra fintech: é a inércia
+  de **"o contador do meu pai"** (contador informal, de confiança da família) ou simplesmente esperar.
+- **A fala:** *"Vou fechar com o contador do meu pai"* · *"Vou esperar a residência pra resolver isso."*
+- **Consequência:** perde plantões que exigem PJ ativa durante a residência (a PJ fica suspensa/parada
+  por decisão de adiar); quando finalmente decide, já perdeu oportunidades de rede/faturamento.
+- **Caveo endereça:** **Plano de Residência** — isenção de mensalidade por 12 meses para quem passa na
+  residência, cobrando **só no mês em que o médico efetivamente fatura** (se não faturar, não paga).
+  Remove o argumento racional de "esperar": abrir a PJ agora não custa nada enquanto não gera renda, e
+  garante que nenhuma oportunidade de plantão seja perdida por falta de CNPJ ativo.
+
 ## Mapa de desejos (funcional → emocional → identidade)
 
 | Camada | Desejo |
@@ -130,11 +151,13 @@ certo"**. Economia é argumento racional; pertencer ao grupo dos que se antecipa
 - *"É de graça mesmo? Onde está a pegadinha?"* → transparência sobre o modelo (a Caveo ganha na mensalidade depois).
 - *"Não confio em abrir CNPJ por app."* → prova social (+15.000 médicos), suporte humano especializado.
 - *"Meu pai/um conhecido é contador."* → enquadrar contador genérico × especialista em médico.
+- *"Vou esperar a residência pra decidir."* → Plano de Residência (isenção condicionada a faturar).
 
 ## Gatilhos de decisão
 
 Formatura próxima · primeiro plantão contratado · colega que já abriu PJ · prazo/oportunidade de vaga ·
-medo concreto (recebeu cobrança/aviso da Receita) · conteúdo educativo que "abre os olhos".
+medo concreto (recebeu cobrança/aviso da Receita) · conteúdo educativo que "abre os olhos" · passou na
+prova de residência (gatilho direto do Plano de Residência).
 
 ## Jobs To Be Done
 
@@ -144,7 +167,7 @@ medo concreto (recebeu cobrança/aviso da Receita) · conteúdo educativo que "a
 
 ---
 
-# 🩺 Público 2 — Médicos Maduros (plantonistas PJ estabelecidos)
+# 🩺 Carreira consolidada
 
 ## Snapshot
 
@@ -160,10 +183,15 @@ medo concreto (recebeu cobrança/aviso da Receita) · conteúdo educativo que "a
 
 ## Momento e jornada
 
-Diferente do recém-formado, o médico maduro **já tem contador e já tem rotina** — o que significa que a
-Caveo não disputa o vazio, disputa **a inércia**. A maior barreira não é convencer de que a dor existe
-(ele sente todo mês), é **vencer o medo e a preguiça de mudar**. A jornada é menos sobre "descobrir" e
-mais sobre **provar que a troca vale o incômodo** e que é segura.
+Diferente de quem está começando, o médico consolidado **já tem contador e já tem rotina** — o que
+significa que a Caveo não disputa o vazio, disputa **a inércia**. A maior barreira não é convencer de
+que a dor existe (ele sente todo mês), é **vencer o medo e a preguiça de mudar**. A jornada é menos
+sobre "descobrir" e mais sobre **provar que a troca vale o incômodo** e que é segura.
+
+Reforçado em 30/07/2026: quem já está no mercado tem menos os medos de quem está começando (não é medo
+de abrir CNPJ errado) e mais **falta de clareza da vida, da rotina, dos recebimentos e dos tributos** —
+não saber se o que paga está certo até o contador mandar o resultado do mês. Some a isso o medo de
+"ficar para trás" por não ter uma estrutura PJ bem orientada, ainda que já opere como PJ há anos.
 
 ## Mapa de dores em profundidade
 
@@ -176,10 +204,16 @@ mais sobre **provar que a troca vale o incômodo** e que é segura.
 
 ### D2 — "Meu contador é genérico e não entende a minha realidade"
 - **Dor profunda:** sentir-se **mal atendido e incompreendido** por quem deveria cuidar do seu dinheiro;
-  tratado como "mais um CNPJ".
+  tratado como "mais um CNPJ". Reforçado em 30/07/2026: essa dor tem **dois modos de falha distintos**,
+  úteis para separar ângulos de criativo — (1) **erro técnico**: o contador aplica o CNAE ou o tributo
+  errado (falha de apuração, ex.: erra o ISS do município), gerando risco fiscal real; (2) **falta de
+  entendimento de rotina**: o contador não entende a dinâmica de plantão/hospital/cooperativa, então não
+  orienta proativamente mesmo sem cometer um erro técnico.
 - **A fala:** *"Meu contador trata uma padaria e a minha PJ médica do mesmo jeito."*
-- **Consequência:** oportunidades de economia perdidas por desconhecimento do contador; retrabalho.
-- **Caveo endereça:** especialistas que entendem plantão, sociedade e consultório.
+- **Consequência:** oportunidades de economia perdidas por desconhecimento do contador; retrabalho; em
+  casos de erro técnico, risco real de autuação.
+- **Caveo endereça:** especialistas que entendem plantão, sociedade e consultório — tanto na apuração
+  técnica quanto na orientação de rotina.
 
 ### D3 — "Não tenho clareza dos meus números"
 - **Dor profunda:** **perda de controle** — não saber, em tempo real, quanto ganha, gasta e economiza.
@@ -200,7 +234,7 @@ mais sobre **provar que a troca vale o incômodo** e que é segura.
 - **Consequência:** continua pagando caro por inércia, por anos.
 - **Caveo endereça:** migração simples e assistida; "a gente cuida da troca".
 
-### D6 — "Minhas fontes de renda são uma colcha de retalhos" *(específica do maduro multi-fonte)*
+### D6 — "Minhas fontes de renda são uma colcha de retalhos" *(estrutura híbrida — cooperativa, RPA, múltiplos hospitais)*
 - **Dor profunda:** complexidade de consolidar plantões de vários hospitais + consultório + sociedade —
   cada um com sua lógica.
 - **A fala:** *"São três hospitais, o consultório e a sociedade. Ninguém junta isso direito."*
@@ -241,14 +275,14 @@ médico que já usa · conteúdo que quantifica o quanto ele perde.
 
 ---
 
-# Comparativo rápido — RF × MM
+# Comparativo rápido — por estágio de carreira
 
-| Dimensão | Recém-formado | Médico Maduro |
+| Dimensão | Começando a carreira | Carreira consolidada |
 |---|---|---|
 | **Consciência do problema** | Baixa — precisa ser educado | Alta — precisa ser convencido |
-| **Barreira principal** | Desconhecimento / paralisia | Inércia / medo de trocar |
+| **Barreira principal** | Desconhecimento / paralisia / adiamento ("contador do pai", esperar a residência) | Inércia / medo de trocar |
 | **Gatilho emocional nº1** | Sair na frente / começar certo | Parar de perder dinheiro / tranquilidade |
-| **Gatilho racional nº1** | CNPJ grátis (economia +R$1.000) | Até 30% de economia tributária |
+| **Gatilho racional nº1** | CNPJ grátis + Plano de Residência (isenção condicionada a faturar) | Até 30% de economia tributária |
 | **Tom do criativo** | Educar + criar urgência | Provar + quebrar objeção |
 | **Formato que converte** | Vídeo/depoimento, urgência sazonal | Comparação, número-choque, retargeting |
 | **Sazonalidade** | Forte (jan/jul, residência) | Difusa (picos no IR/fechamento fiscal) |
@@ -259,15 +293,21 @@ médico que já usa · conteúdo que quantifica o quanto ele perde.
 
 # Implicações para mídia e mensagem (resumo acionável)
 
-- **RF:** lidere com **antecipação/urgência** e **CNPJ grátis**; eduque (vídeo) antes de pedir conversão;
-  escale verba nas janelas de formatura. O desejo de "começar certo" supera o argumento de economia.
-- **MM:** lidere com **até 30%** para abrir, mas invista pesado em **quebra de objeção** (migração sem
-  risco, suporte humano, prova social) e **clareza/controle** para fechar. Retargeting é essencial —
-  a decisão é mais longa.
-- **Ambos:** o maior diferencial transversal é **"feito por médicos, para médicos"** — usar como selo de
-  confiança em todo criativo. Falar a **língua clínica** (anamnese, diagnóstico, check-up) cria
-  pertencimento imediato.
+- **Começando a carreira:** lidere com **antecipação/urgência** e **CNPJ grátis**; eduque (vídeo) antes
+  de pedir conversão; escale verba nas janelas de formatura. O desejo de "começar certo" supera o
+  argumento de economia. Use o **Plano de Residência** para neutralizar a objeção de adiamento
+  ("esperar a residência", "contador do pai").
+- **Carreira consolidada:** lidere com **até 30%** para abrir, mas invista pesado em **quebra de
+  objeção** (migração sem risco, suporte humano, prova social) e **clareza/controle** para fechar.
+  Retargeting é essencial — a decisão é mais longa. Separar o ângulo de "erro técnico do contador" do
+  ângulo de "falta de entendimento de rotina" ajuda a testar qual dor pesa mais em cada criativo.
+- **Em todo o público:** o maior diferencial transversal é **"feito por médicos, para médicos"** — usar
+  como selo de confiança em todo criativo. Falar a **língua clínica** (anamnese, diagnóstico, check-up)
+  cria pertencimento imediato. Preferir formato estático antes de vídeo em testes novos; evitar tom de
+  "anúncio financeiro" genérico (gera desconfiança/"pé atrás"); comparação cronológica (tempo de mensagem
+  pro contador × tempo de emitir na Caveo) e testemunho de médico real convertem melhor que atuação —
+  ver `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` para os guardrails completos de execução.
 
-> Referências internas: conceitos criativos em `docs/Ideias_Criativos_Anuncios_Caveo.docx` e
-> `docs/superpowers/specs/2026-06-15-anuncios-medicos-dores-desejos.md`; plano de mídia em
-> `docs/Google_Ads_Caveo_Analise_Reestruturacao.docx`.
+> Referências internas: conceitos criativos em `docs/Ideias_Criativos_Anuncios_Caveo.docx`,
+> `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` e
+> `docs/Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md`.
