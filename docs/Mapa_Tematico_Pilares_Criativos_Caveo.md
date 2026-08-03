@@ -1,6 +1,8 @@
 # Mapa Temático dos Pilares de Criativo — Caveo
 
-> Spec dos temas de anúncio por pilar, derivado da reunião de alinhamento com o cliente (23/07/2026).
+> Spec dos temas de anúncio por pilar, derivado da reunião de alinhamento com o cliente (23/07/2026) e
+> validado/refinado na call de acompanhamento de 30/07/2026 (ver
+> `docs/Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md`).
 > Estratégia vigente: **audiência única de médicos** (sem separar Recém-Formado × Maduro), com a **necessidade de CNPJ** como dor que une os perfis.
 
 **Lógica que separa os dois pilares:**
@@ -21,9 +23,10 @@
 | Contabilidade de médico | Entende plantão, clínica, cooperativa; de médico pra médico | Ser entendido de verdade |
 | Prova social / indicação | UGC + embaixadora (Amanda) | Confiança de colega |
 | Recebimento garantido | Segurança financeira; dinheiro do plantão na hora | Hospital que atrasa / calote |
-| Documentos na palma da mão | Regularidade sem depender do contador | "Preciso do PDF e o contador some" |
+| Documentos na palma da mão | Regularidade sem depender do contador — duas camadas: guarda/organiza os documentos **e** a Caveo atualiza proativamente os que vencem (certidões, alvarás) quando o médico precisa | "Preciso do PDF e o contador some" |
 | O que o contador cobra e a Caveo não | Checklist: certificado PF/PJ, domicílio fiscal, etc. | Taxas escondidas do tradicional |
-| Contador genérico erra com médico | "Seu contador não entende plantão/cooperativa" | Risco de declarar errado |
+| Contador genérico erra com médico | "Seu contador não entende plantão/cooperativa" — dois ângulos possíveis: **erro técnico** (CNAE/tributo aplicado errado, risco fiscal real) ou **falta de entendimento de rotina** (não orienta, mesmo sem errar tecnicamente) | Risco de declarar errado / não ser orientado de verdade |
+| Plano de Residência | Isenção de mensalidade por 12 meses pra quem passa na residência — só cobra no mês em que fatura | Medo de perder oportunidade de plantão por não ter PJ ativa durante a residência; objeção de "vou esperar a formatura/residência" e "vou fechar com o contador do meu pai" |
 | Wellhub incluso | Benefício tangível de estar na Caveo | Perk (reforço, não headline) |
 
 ---
@@ -48,3 +51,23 @@
 - **Todo tema de Funcionalidades precisa bater com o que o app realmente faz** — foi o critério que descartou "organizar o plantão" na reunião. Validar com o time de produto antes de roteirizar (ex.: cobertura de domicílio fiscal e certificados).
 - **Terminologia:** usar "segurança financeira" (não "previsibilidade") e "recebimento garantido" (nunca "antecipação de recebíveis"); traduzir jargão para benefício funcional (ex.: "quanto sobra pra você" no lugar de "otimização tributária").
 - **Identidade médica** obrigatória em todo criativo (palavra "médico" + marcador visual: jaleco, estetoscópio, contexto de hospital/plantão/consultório).
+
+## Guardrails de execução criativa *(validados em 30/07/2026)*
+
+- **Estático antes de vídeo.** Começar testando narrativa por imagem; só depois construir a mesma
+  narrativa em vídeo. Motivo: produção mais rápida de iterar e validar o ângulo antes de investir em
+  vídeo.
+- **Evitar tom de "anúncio financeiro" genérico.** Conteúdo sobre dinheiro/contabilidade que soa
+  engessado ou "de anúncio" gera desconfiança ("pé atrás") em vez de conexão — evitar estética de
+  anúncio de banco/fintech tradicional.
+- **Formato validado: comparação cronológica.** Contrastar o tempo de mandar mensagem pro contador e
+  esperar resposta **vs.** o tempo de emitir a nota direto no app da Caveo — narrativa lado a lado ou
+  sequencial, com o tempo como personagem central.
+- **Testemunho de médico real, não ator.** A especialização médica da Caveo precisa vir de um médico
+  falando de verdade (formato motion/depoimento) — um ator lendo um roteiro sobre "sou médica e já tive
+  uma contabilidade que errava" perde a credibilidade que é o maior ativo da marca. Evitar o ângulo
+  batido de "você paga caro com contabilidade" sem essa voz real por trás.
+- **Formato relacional (2 médicos conversando) é promissor mas de produção incerta.** Inspirado num
+  criativo do C6 (duas pessoas comentando uma dificuldade cotidiana e a solução) — aplicado à Caveo,
+  seria um médico comentando com outro a facilidade de emitir nota. Vale testar, mas produção real
+  (não IA) pode ser difícil de viabilizar — avaliar caso a caso.
