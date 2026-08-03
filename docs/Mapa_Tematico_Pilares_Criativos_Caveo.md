@@ -23,7 +23,7 @@
 | Contabilidade de médico | Entende plantão, clínica, cooperativa; de médico pra médico | Ser entendido de verdade |
 | Prova social / indicação | UGC + embaixadora (Amanda) | Confiança de colega |
 | Recebimento garantido | Segurança financeira; dinheiro do plantão na hora | Hospital que atrasa / calote |
-| Documentos na palma da mão | Regularidade sem depender do contador — duas camadas: guarda/organiza os documentos **e** a Caveo atualiza proativamente os que vencem (certidões, alvarás) quando o médico precisa | "Preciso do PDF e o contador some" |
+| Documentos na palma da mão | Regularidade sem depender do contador — duas camadas: guarda/organiza os documentos **e**, sob demanda, a Caveo também atualiza os que vencem (certidões, alvarás) quando o médico precisa | "Preciso do PDF e o contador some" |
 | O que o contador cobra e a Caveo não | Checklist: certificado PF/PJ, domicílio fiscal, etc. | Taxas escondidas do tradicional |
 | Contador genérico erra com médico | "Seu contador não entende plantão/cooperativa" — dois ângulos possíveis: **erro técnico** (CNAE/tributo aplicado errado, risco fiscal real) ou **falta de entendimento de rotina** (não orienta, mesmo sem errar tecnicamente) | Risco de declarar errado / não ser orientado de verdade |
 | Plano de Residência | Isenção de mensalidade por 12 meses pra quem passa na residência — só cobra no mês em que fatura | Medo de perder oportunidade de plantão por não ter PJ ativa durante a residência; objeção de "vou esperar a formatura/residência" e "vou fechar com o contador do meu pai" |
@@ -57,16 +57,19 @@
 - **Estático antes de vídeo.** Começar testando narrativa por imagem; só depois construir a mesma
   narrativa em vídeo. Motivo: produção mais rápida de iterar e validar o ângulo antes de investir em
   vídeo.
-- **Evitar tom de "anúncio financeiro" genérico.** Conteúdo sobre dinheiro/contabilidade que soa
-  engessado ou "de anúncio" gera desconfiança ("pé atrás") em vez de conexão — evitar estética de
-  anúncio de banco/fintech tradicional.
+- **Cuidado com vídeo gerado por IA/influenciador em tema financeiro.** O time de criativos já tem um
+  modelo de vídeo com influenciador de IA usado em outros clientes, mas em conteúdo financeiro isso corre
+  o risco de soar **engessado, pouco natural** e gerar "pé atrás" em quem assiste — não é uma restrição
+  de estética de anúncio em geral (o formato do C6, abaixo, é explicitamente um exemplo bom a seguir),
+  é sobre naturalidade de quem fala. Testar, mas com essa ressalva.
 - **Formato validado: comparação cronológica.** Contrastar o tempo de mandar mensagem pro contador e
   esperar resposta **vs.** o tempo de emitir a nota direto no app da Caveo — narrativa lado a lado ou
   sequencial, com o tempo como personagem central.
 - **Testemunho de médico real, não ator.** A especialização médica da Caveo precisa vir de um médico
-  falando de verdade (formato motion/depoimento) — um ator lendo um roteiro sobre "sou médica e já tive
-  uma contabilidade que errava" perde a credibilidade que é o maior ativo da marca. Evitar o ângulo
-  batido de "você paga caro com contabilidade" sem essa voz real por trás.
+  falando de verdade (formato motion/depoimento) — validado como "poderoso" pelo cliente: uma médica real
+  contando "já tive uma contabilidade que errava, a Caveo me ajudou com essa solução". Um ator lendo o
+  mesmo roteiro perde a credibilidade que é o maior ativo da marca. Evitar o ângulo batido de "você paga
+  caro com contabilidade" sem essa voz real por trás.
 - **Formato relacional (2 médicos conversando) é promissor mas de produção incerta.** Inspirado num
   criativo do C6 (duas pessoas comentando uma dificuldade cotidiana e a solução) — aplicado à Caveo,
   seria um médico comentando com outro a facilidade de emitir nota. Vale testar, mas produção real

@@ -28,7 +28,7 @@
 | 1 — Fundação de dados | ✅ `config/business-rules.ts`/`docs/fundacao-dados.md` migrados (`ContratanteKey`), `SEGMENT_ALLOCATION` removido |
 | 2 — Camada agêntica | ✅ `segments.py` + 4 skills operacionais migradas; 2 planilhas reais renomeadas (abas Formando/Médico) |
 | 3 — Dashboard | ✅ 100% Médico como funil principal; Formando vira indicador à parte; Meta/Google somam 100% das campanhas (sem filtro de tag de segmento); toggle "Somente Leads" |
-| 4 — Docs estratégicos | ✅ personas/dores-desejos fundidas por estágio de carreira; Mapa temático de pilares de criativo + agente `criativos.md` atualizados; 12 docs de RF/MM/mídia paga/LP arquivados em `docs/archive/` |
+| 4 — Docs estratégicos | ✅ personas/dores-desejos fundidas por estágio de carreira; Mapa temático de pilares de criativo + agente `criativos.md` atualizados; 16 docs/assets de RF/MM/mídia paga/LP arquivados em `docs/archive/` (inclui .docx/.html irmãos dos .md) |
 
 ## Princípios estruturais
 
@@ -120,7 +120,7 @@ caveo_analist_ai/
 │   ├── Mapa_Tematico_Pilares_Criativos_Caveo.md  #   pilares Oferta×Funcionalidades + guardrails de execução
 │   ├── Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md  #   fonte primária (call c/ cliente)
 │   ├── matriz-poder-interesse-caveo.md · (demais estratégicos vigentes)
-│   └── archive/                        #   12 docs de RF/MM/mídia paga/LP pré-virada de ICP (histórico, aguardam releitura)
+│   └── archive/                        #   16 docs/assets de RF/MM/mídia paga/LP pré-virada de ICP (histórico, aguardam releitura)
 │
 ├── scripts/                            # utilitários (md_to_docx, etc.)
 ├── outputs/                            # entregáveis gerados (apresentações)

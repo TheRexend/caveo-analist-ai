@@ -6,6 +6,11 @@
 > único: o momento de carreira muda o que dói mais, não muda quem é o cliente.
 > Recência de formatura é um atributo informativo dentro desse público, não um
 > eixo de segmentação de mídia.
+>
+> **Fontes:** as 4 personas abaixo preservam o conteúdo original (entrevistas
+> do time comercial da Caveo, 2026), só reorganizado por estágio de carreira.
+> Os itens sinalizados com *(30/07/2026)* vêm de
+> `docs/Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md`.
 
 ---
 
@@ -255,15 +260,17 @@ O que ele quer conquistar:
 ## Carreira consolidada
 
 > Médico consolidado em carreira, a partir de alguns anos de formado. Atua via
-> PJ em plantões hospitalares e/ou cooperativas médicas. Não possui clínica
-> própria — perfil sem folha de pagamento e sem complexidade de sócios. Já tem
-> contador, mas a relação costuma ser superficial ou insatisfatória. Principal
-> gatilho: transição de contabilidade, com CAC baixo e payback imediato.
+> PJ em plantões hospitalares e/ou cooperativas médicas — podendo incluir
+> consultório próprio ou sociedade em estruturas mais complexas (ver D6 em
+> `Dores_Desejos_Publicos_Caveo.md`). Já tem contador, mas a relação costuma
+> ser superficial ou insatisfatória. Principal gatilho: transição de
+> contabilidade, com CAC baixo e payback imediato.
 >
 > **Nota de definição:** este estágio não é definido pela idade, mas pelo
-> modelo de carreira. É o médico que já está consolidado nos plantões, opera
-> como PJ, e não tem clínica própria — o que delimita com precisão o perfil
-> econômico que a Caveo atende.
+> modelo de carreira — o médico que já está consolidado, operando como PJ. As
+> duas personas ilustradas aqui (Rafael, Camila) atuam via plantão/cooperativa,
+> sem clínica própria; o estágio como um todo também cobre quem tem consultório
+> ou sociedade, com complexidade adicional.
 
 ## Persona 3 — Rafael Mendes
 
@@ -532,8 +539,8 @@ argumento racional de "esperar" sem custo nenhum para decidir agora.
 **O peso emocional do vínculo com quem já resolve isso hoje é real e não pode
 ser ignorado.** Para quem está consolidado, é o contador "amigo" de longa
 data; para quem está começando, é literalmente "o contador do meu pai" — o
-principal concorrente identificado nas entrevistas com o time comercial da
-Caveo. Qualquer comunicação que ataque diretamente esse vínculo gera
+principal concorrente identificado pelo time comercial da Caveo na call de
+30/07/2026. Qualquer comunicação que ataque diretamente esse vínculo gera
 defensividade. O caminho é posicionar a troca como evolução natural da
 carreira — não como correção de um erro ou deslealdade a alguém de confiança.
 

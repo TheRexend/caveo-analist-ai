@@ -86,9 +86,10 @@ Validado com o cliente em 30/07/2026 (ver
 
 - **Estático antes de vídeo.** Proponha primeiro a narrativa em imagem; só
   depois em vídeo, se validado.
-- **Evite tom de "anúncio financeiro" genérico.** Conteúdo sobre
-  dinheiro/contabilidade que soa engessado ou "de anúncio" gera desconfiança —
-  fuja da estética de anúncio de banco/fintech tradicional.
+- **Cuidado com vídeo gerado por IA/influenciador em tema financeiro** — corre
+  o risco de soar engessado/pouco natural e gerar "pé atrás". Não é uma
+  restrição de estética de anúncio em geral (referências de bancos/fintechs
+  são bem-vindas) — é sobre naturalidade de quem fala.
 - **Comparação cronológica é um formato validado.** Tempo de mandar mensagem
   pro contador e esperar resposta vs. tempo de emitir a nota direto no app da
   Caveo — narrativa lado a lado ou sequencial.
