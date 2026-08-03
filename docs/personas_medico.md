@@ -98,6 +98,7 @@ Falas reais que bloqueiam a conversão:
 - *"Não entendo nada de contabilidade, vou me perder"*
 - *"Não sei se meu faturamento justifica o custo"*
 - *"Vou esperar mais perto da formatura / depois da residência eu resolvo"*
+- *"Vou fechar com o contador do meu pai"*
 
 ### Gatilhos de conversão
 
@@ -106,6 +107,9 @@ O que destrava a ação:
 - Colega que abriu e recomenda
 - Simulação: quanto economiza desde o 1.º plantão
 - Abertura gratuita ou custo zero no 1.º mês
+- Plano de Residência: isenção de mensalidade por 12 meses ao passar na
+  residência (cobra só no mês em que ela fatura) — remove o argumento
+  racional de "esperar" pra decidir
 
 ### Desejos
 
@@ -214,7 +218,6 @@ Falas reais que bloqueiam a conversão:
 - *"Não tenho tempo agora — depois da residência resolvo"*
 - *"Meu CNPJ está aberto, falta só organizar"*
 - *"Quanto custa? Já pago um contador"*
-- *"Vou fechar com o contador do meu pai"*
 
 ### Gatilhos de conversão
 
@@ -223,9 +226,6 @@ O que destrava a ação:
 - Diagnóstico: quanto está perdendo por mês
 - Colega residente que organizou e mostrou o resultado
 - Plataforma que funciona sem ele se envolver
-- Plano de Residência: isenção de mensalidade por 12 meses ao passar na
-  residência (cobra só no mês em que ele fatura) — remove o medo de ficar
-  pagando por uma PJ subutilizada durante a residência
 
 ### Desejos
 
@@ -254,15 +254,16 @@ O que ele quer conquistar:
 
 ## Carreira consolidada
 
-> Médico já atuando como PJ — plantonista, consultório próprio e/ou sócio de
-> clínica, a partir de alguns anos de formado. Não possui clínica própria no
-> caso do plantonista puro — perfil sem folha de pagamento e sem complexidade
-> de sócios. Já tem contador, mas a relação costuma ser superficial ou
-> insatisfatória. Principal gatilho: transição de contabilidade, com CAC baixo
-> e payback imediato.
+> Médico consolidado em carreira, a partir de alguns anos de formado. Atua via
+> PJ em plantões hospitalares e/ou cooperativas médicas. Não possui clínica
+> própria — perfil sem folha de pagamento e sem complexidade de sócios. Já tem
+> contador, mas a relação costuma ser superficial ou insatisfatória. Principal
+> gatilho: transição de contabilidade, com CAC baixo e payback imediato.
 >
 > **Nota de definição:** este estágio não é definido pela idade, mas pelo
-> modelo de carreira — o médico consolidado nos plantões, que opera como PJ.
+> modelo de carreira. É o médico que já está consolidado nos plantões, opera
+> como PJ, e não tem clínica própria — o que delimita com precisão o perfil
+> econômico que a Caveo atende.
 
 ## Persona 3 — Rafael Mendes
 
@@ -330,7 +331,6 @@ Dores estruturais do perfil:
 - Sem tempo para pesquisar e comparar opções
 - Falta de clareza da rotina financeira — não sabe se está pagando os
   tributos certos até o contador mandar o resultado do mês
-- Medo de ficar para trás por depender de uma estrutura PJ mal orientada
 
 ### Ganhos
 
@@ -511,7 +511,7 @@ O que ela quer conquistar:
 | Canal prioritário | Instagram + aulões | Instagram + YouTube + podcasts | Instagram + Google + YouTube | Instagram + Podcasts + LinkedIn |
 | Formato ideal | Reels curtos + passo a passo | Reels + conteúdo educativo rápido | Vídeo de autoridade + prova social de colega | Depoimento de médica similar + conteúdo educativo denso |
 | CTA mais eficaz | Abertura gratuita ou simulação | Diagnóstico de perda mensal | Raio-X tributário gratuito | Diagnóstico cooperativa + RPA gratuito |
-| Ciclo de decisão | Imediato (momento de urgência) | Curto, mas adiado por inércia | 2–3 semanas — não é impulsivo | Longo — pesquisa e compara muito |
+| Ciclo de decisão | Adiado até fator externo (formatura, prova de residência) | Curto, mas adiado por inércia | 2–3 semanas — não é impulsivo | Longo — pesquisa e compara muito |
 
 ---
 

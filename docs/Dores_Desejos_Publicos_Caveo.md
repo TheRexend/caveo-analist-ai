@@ -125,7 +125,7 @@ de uma carreira inteira**.
 ### D7 — "Vou esperar mais perto da formatura / da residência pra decidir" *(reforçado em 30/07/2026)*
 - **Dor profunda:** adiar a decisão não é falta de interesse — é evitar mais uma coisa pra pensar
   enquanto o foco está em provas e residência. O concorrente real aqui não é outra fintech: é a inércia
-  de **"o contador do meu pai"** (contador informal, de confiança da família) ou simplesmente esperar.
+  de **"o contador do meu pai"** (um contador de confiança da família) ou simplesmente esperar.
 - **A fala:** *"Vou fechar com o contador do meu pai"* · *"Vou esperar a residência pra resolver isso."*
 - **Consequência:** perde plantões que exigem PJ ativa durante a residência (a PJ fica suspensa/parada
   por decisão de adiar); quando finalmente decide, já perdeu oportunidades de rede/faturamento.
@@ -190,8 +190,7 @@ sobre "descobrir" e mais sobre **provar que a troca vale o incômodo** e que é 
 
 Reforçado em 30/07/2026: quem já está no mercado tem menos os medos de quem está começando (não é medo
 de abrir CNPJ errado) e mais **falta de clareza da vida, da rotina, dos recebimentos e dos tributos** —
-não saber se o que paga está certo até o contador mandar o resultado do mês. Some a isso o medo de
-"ficar para trás" por não ter uma estrutura PJ bem orientada, ainda que já opere como PJ há anos.
+não saber se o que paga está certo até o contador mandar o resultado do mês.
 
 ## Mapa de dores em profundidade
 
@@ -303,10 +302,8 @@ médico que já usa · conteúdo que quantifica o quanto ele perde.
   ângulo de "falta de entendimento de rotina" ajuda a testar qual dor pesa mais em cada criativo.
 - **Em todo o público:** o maior diferencial transversal é **"feito por médicos, para médicos"** — usar
   como selo de confiança em todo criativo. Falar a **língua clínica** (anamnese, diagnóstico, check-up)
-  cria pertencimento imediato. Preferir formato estático antes de vídeo em testes novos; evitar tom de
-  "anúncio financeiro" genérico (gera desconfiança/"pé atrás"); comparação cronológica (tempo de mensagem
-  pro contador × tempo de emitir na Caveo) e testemunho de médico real convertem melhor que atuação —
-  ver `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` para os guardrails completos de execução.
+  cria pertencimento imediato. Para os guardrails de execução criativa (formato, tom, testemunho), ver
+  `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md`.
 
 > Referências internas: conceitos criativos em `docs/Ideias_Criativos_Anuncios_Caveo.docx`,
 > `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` e
