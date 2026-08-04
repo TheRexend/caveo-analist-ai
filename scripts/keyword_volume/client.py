@@ -5,7 +5,7 @@ credenciais reais); build_client()/fetch_historical_metrics() exigem
 credenciais válidas e não têm teste automatizado de chamada real.
 """
 from google.ads.googleads.client import GoogleAdsClient
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 
 _ADS_SCOPE = "https://www.googleapis.com/auth/adwords"
 
@@ -16,7 +16,7 @@ LANGUAGE_PORTUGUESE = "languageConstants/1014"
 
 
 def build_client(config):
-    creds = service_account.Credentials.from_service_account_file(
+    creds = Credentials.from_authorized_user_file(
         config["credentials_path"], scopes=[_ADS_SCOPE]
     )
     return GoogleAdsClient(
