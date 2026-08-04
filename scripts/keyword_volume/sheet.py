@@ -55,11 +55,20 @@ def get_or_create_spreadsheet(gc, sheet_id_path, title, share_email):
 
 def get_or_create_worksheet(spreadsheet, tab_name):
     try:
-        return spreadsheet.worksheet(tab_name)
+        ws = spreadsheet.worksheet(tab_name)
     except gspread.WorksheetNotFound:
         ws = spreadsheet.add_worksheet(title=tab_name, rows="1000", cols=str(len(HEADER)))
         ws.append_row(HEADER)
         return ws
+
+    # A aba já existia (ex.: uma segunda execução no mesmo dia, já que
+    # --tab-name usa a data de hoje por padrão). write_rows() só sabe dar
+    # append — sem isso, cada re-execução duplicaria as linhas de dado.
+    # Zera de volta pra só o cabeçalho antes de devolver, deixando a escrita
+    # idempotente; uma aba nova (branch acima) não precisa disso.
+    if len(ws.get_all_values()) > 1:
+        ws.resize(rows=1)
+    return ws
 
 
 def write_rows(worksheet, rows):
