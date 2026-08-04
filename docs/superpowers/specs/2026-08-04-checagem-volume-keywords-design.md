@@ -105,10 +105,9 @@ Leads", que são funil/resultado real, não pesquisa de mercado).
 
 - Criada programaticamente via `gspread` na primeira execução (usa a mesma
   service account já usada por `sheets_credentials.json` nas outras skills).
-- **Compartilhada automaticamente** com o e-mail do usuário
-  (`matheussoaresrm@hotmail.com`, confirmar se é o e-mail correto pra
-  compartilhar — pode ser diferente do e-mail de trabalho) com permissão de
-  edição, pra aparecer no Google Drive dele sem nenhum passo manual.
+- **Compartilhada automaticamente** com o e-mail de trabalho do usuário
+  (`matheus.moreira@boomer.com.br`, confirmado) com permissão de edição, pra
+  aparecer no Google Drive dele sem nenhum passo manual.
 - O ID da planilha criada é salvo (`.env.local`, nova variável
   `KEYWORD_VOLUME_SHEET_ID`) pra reuso — próximas execuções gravam na mesma
   planilha (nova aba por data de execução, ex. `2026-08-04`) em vez de criar
