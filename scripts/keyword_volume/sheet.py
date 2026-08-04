@@ -40,6 +40,20 @@ def authorize():
     return gspread.authorize(creds)
 
 
+# gc.create() (abaixo, no branch de primeira execução) fala com a API do Google
+# Drive, não só a de Sheets — criar um arquivo novo é uma operação de Drive.
+# Isso exige a API do Drive habilitada no projeto GCP por trás de
+# .claude/sheets_credentials.json (hoje, caveo-496716) além do scope
+# drive.file já pedido em authorize(). Se a API do Drive estiver desabilitada
+# nesse projeto, gc.create() falha com 403 "Google Drive API has not been
+# used in project ... or it is disabled" — não é um bug de código, é uma
+# configuração do projeto GCP, feita uma única vez em
+# https://console.developers.google.com/apis/api/drive.googleapis.com.
+# Contorno sem depender de habilitar a API: crie manualmente uma planilha em
+# branco, compartilhe-a (Editor) com o e-mail de service account desse
+# credentials.json (client_email), e grave o ID da planilha em
+# scripts/keyword_volume/.sheet_id (gitignorado) — isso faz get_or_create_spreadsheet
+# pular direto pro branch open_by_key(), que só precisa do scope de Sheets.
 def get_or_create_spreadsheet(gc, sheet_id_path, title, share_email):
     if os.path.exists(sheet_id_path):
         with open(sheet_id_path) as f:
