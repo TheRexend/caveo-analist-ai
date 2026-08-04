@@ -53,3 +53,42 @@ def test_competition_labels_in_portuguese():
     ]
     result = {r["keyword"]: r["competition"] for r in sorted_rows(raw)}
     assert result == {"a": "Baixa", "b": "Média", "c": "Alta", "d": "Não informado"}
+
+
+def test_zero_volume_with_unspecified_competition_treated_as_missing():
+    """proto-plus devolve 0/UNSPECIFIED (nunca None) pra keyword sem histórico —
+    essa combinação exata deve virar dado ausente, não "zero buscas de verdade"."""
+    raw = [
+        {"keyword": "sem_historico", "avg_monthly_searches": 0, "competition": "UNSPECIFIED",
+         "low_top_of_page_bid_micros": 0, "high_top_of_page_bid_micros": 0},
+        {"keyword": "com_dado", "avg_monthly_searches": 10, "competition": "LOW",
+         "low_top_of_page_bid_micros": 500_000, "high_top_of_page_bid_micros": 900_000},
+    ]
+    result = {r["keyword"]: r for r in sorted_rows(raw)}
+
+    assert result["sem_historico"]["avg_monthly_searches"] is None
+    assert result["sem_historico"]["low_bid_brl"] is None
+    assert result["sem_historico"]["high_bid_brl"] is None
+    assert result["sem_historico"]["competition"] == "Não informado"
+    # e continua ordenando por último, atrás de dado real
+    assert [r["keyword"] for r in sorted_rows(raw)] == ["com_dado", "sem_historico"]
+
+
+def test_zero_volume_with_unknown_competition_treated_as_missing():
+    raw = [{"keyword": "x", "avg_monthly_searches": 0, "competition": "UNKNOWN",
+            "low_top_of_page_bid_micros": 0, "high_top_of_page_bid_micros": 0}]
+    result = sorted_rows(raw)
+    assert result[0]["avg_monthly_searches"] is None
+    assert result[0]["low_bid_brl"] is None
+    assert result[0]["high_bid_brl"] is None
+
+
+def test_zero_volume_with_real_competition_signal_stays_zero():
+    """Volume 0 com concorrência LOW/MEDIUM/HIGH é sinal real — não normaliza."""
+    raw = [{"keyword": "baixo_mas_real", "avg_monthly_searches": 0, "competition": "LOW",
+            "low_top_of_page_bid_micros": 100_000, "high_top_of_page_bid_micros": 200_000}]
+    result = sorted_rows(raw)
+    assert result[0]["avg_monthly_searches"] == 0
+    assert result[0]["competition"] == "Baixa"
+    assert result[0]["low_bid_brl"] == 0.1
+    assert result[0]["high_bid_brl"] == 0.2
