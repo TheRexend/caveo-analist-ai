@@ -43,6 +43,7 @@ mcps/**/__pycache__/
 mcps/**/credentials.json
 mcps/**/token.json
 mcps/*_credentials.json
+scripts/keyword_volume/.sheet_id
 
 # vercel
 .vercel
