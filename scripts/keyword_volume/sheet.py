@@ -8,6 +8,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 _SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
+_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 _CREDENTIALS_FILE = ".claude/sheets_credentials.json"
 
 HEADER = [
@@ -35,7 +36,7 @@ def build_sheet_rows(rows, theme_lookup):
 
 
 def authorize():
-    creds = Credentials.from_service_account_file(_CREDENTIALS_FILE, scopes=[_SHEETS_SCOPE])
+    creds = Credentials.from_service_account_file(_CREDENTIALS_FILE, scopes=[_SHEETS_SCOPE, _DRIVE_SCOPE])
     return gspread.authorize(creds)
 
 
