@@ -1,8 +1,8 @@
 import pytest
 
-from sheet import (COLS, append_rows_payload, build_date_row_map,
+from sheet import (COLS, append_rows_payload, build_date_row_map, cell_updates,
                    check_consecutive, missing_dates, partial_dates,
-                   pending_dates, row_is_empty)
+                   pending_dates, row_is_empty, write_updates)
 
 
 def test_build_date_row_map_ignora_cabecalho_e_mapeia_linhas():
@@ -134,3 +134,65 @@ def test_append_rows_payload_barra_excesso_de_linhas():
     datas = [f"2026-{m:02d}-01" for m in range(1, 13)] * 3  # 36 datas
     with pytest.raises(ValueError):
         append_rows_payload(61, datas)
+
+
+class FakeWorksheet:
+    def __init__(self):
+        self.calls = []
+
+    def batch_update(self, body, value_input_option=None):
+        self.calls.append((body, value_input_option))
+
+
+def test_cell_updates_mapeia_as_dez_colunas():
+    ups = dict(cell_updates(3, {
+        "meta_impressoes": 36710, "meta_cliques": 344, "meta_leads": 12,
+        "meta_invest": 2339.59, "google_impressoes": 56642,
+        "google_cliques": 3322, "google_leads": 136, "google_invest": 3635.67,
+        "ga4_sessoes": 3196, "ga4_bounce": 0.0087609}))
+    assert ups == {
+        "C3": 36710, "D3": 344, "E3": 12, "F3": 2339.59,
+        "H3": 56642, "I3": 3322, "J3": 136, "K3": 3635.67,
+        "M3": 3196, "N3": 0.0087609,
+    }
+
+
+def test_cell_updates_nunca_toca_rotulo_nem_formula():
+    ups = dict(cell_updates(3, {key: 0 for key in COLS}))
+    proibidas = {f"{col}3" for col in
+                 ["B", "G", "L", "O", "P", "Q", "R", "S", "T", "U", "V", "W"]}
+    assert set(ups) & proibidas == set()
+
+
+def test_cell_updates_rejeita_chave_desconhecida():
+    with pytest.raises(ValueError):
+        cell_updates(3, {"meta_impressoes": 1, "total_geral": 99})
+
+
+def test_cell_updates_mantem_zero_explicito_e_ignora_none():
+    ups = dict(cell_updates(3, {"meta_leads": 0, "meta_invest": None}))
+    assert ups["E3"] == 0
+    assert "F3" not in ups
+
+
+def test_write_updates_monta_o_body_e_conta_celulas():
+    ws = FakeWorksheet()
+    total = write_updates(ws, [("C3", 1), ("D3", 2)], value_input_option="RAW")
+    assert total == 2
+    body, option = ws.calls[0]
+    assert body == [{"range": "C3", "values": [[1]]},
+                    {"range": "D3", "values": [[2]]}]
+    assert option == "RAW"
+
+
+def test_write_updates_repassa_user_entered():
+    ws = FakeWorksheet()
+    write_updates(ws, [("A61", "11/10/2026")],
+                  value_input_option="USER_ENTERED")
+    assert ws.calls[0][1] == "USER_ENTERED"
+
+
+def test_write_updates_nao_chama_a_api_sem_updates():
+    ws = FakeWorksheet()
+    assert write_updates(ws, []) == 0
+    assert ws.calls == []

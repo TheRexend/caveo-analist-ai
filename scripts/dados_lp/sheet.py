@@ -180,3 +180,31 @@ def append_rows_payload(first_new_row, dates):
         for col, template in ROW_FORMULAS.items():
             out.append((f"{col}{row}", template.format(r=row)))
     return out
+
+
+def cell_updates(row, metrics):
+    """{chave de COLS: valor} -> [(A1, valor)], só as chaves presentes e
+    não-None, na ordem de COLS.
+
+    Chave fora de COLS é erro, não silêncio: é a última barreira contra alguém
+    tentar gravar 'total_geral' e acertar uma coluna de fórmula."""
+    unknown = set(metrics) - set(COLS)
+    if unknown:
+        raise ValueError(f"métricas desconhecidas: {sorted(unknown)}")
+    out = []
+    for key, col in COLS.items():
+        value = metrics.get(key)
+        if value is not None:
+            out.append((f"{col}{row}", value))
+    return out
+
+
+def write_updates(worksheet, updates, value_input_option="RAW"):
+    """batch_update numa worksheet gspread. Retorna nº de células gravadas.
+
+    RAW para métricas (número é número). USER_ENTERED para o payload de linha
+    nova, onde a data precisa virar serial e a fórmula precisa ser interpretada."""
+    body = [{"range": a1, "values": [[value]]} for a1, value in updates]
+    if body:
+        worksheet.batch_update(body, value_input_option=value_input_option)
+    return len(body)
