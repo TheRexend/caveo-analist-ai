@@ -1,7 +1,8 @@
 import pytest
 
-from sheet import (COLS, build_date_row_map, check_consecutive, missing_dates,
-                   partial_dates, pending_dates, row_is_empty)
+from sheet import (COLS, append_rows_payload, build_date_row_map,
+                   check_consecutive, missing_dates, partial_dates,
+                   pending_dates, row_is_empty)
 
 
 def test_build_date_row_map_ignora_cabecalho_e_mapeia_linhas():
@@ -93,3 +94,43 @@ def test_missing_dates_vazio_quando_until_ja_tem_linha():
 def test_missing_dates_rejeita_coluna_A_vazia():
     with pytest.raises(ValueError):
         missing_dates({}, "2026-08-15")
+
+
+def test_append_rows_payload_clona_data_rotulos_e_formulas():
+    ups = dict(append_rows_payload(61, ["2026-10-11"]))
+    assert ups["A61"] == "11/10/2026"
+    assert ups["B61"] == "Meta Ads"
+    assert ups["G61"] == "Google Ads"
+    assert ups["L61"] == "GA4"
+    assert ups["O61"] == "Total Geral"
+    assert ups["P61"] == "=H61+C61"
+    assert ups["Q61"] == "=I61+D61"
+    assert ups["R61"] == "=Q61/P61"
+    assert ups["S61"] == "=M61"
+    assert ups["T61"] == "=(K61+F61)/S61"
+    assert ups["U61"] == "=S61/Q61"
+    assert ups["V61"] == "=J61+E61"
+    assert ups["W61"] == "=V61/S61"
+
+
+def test_append_rows_payload_incrementa_a_linha_por_data():
+    ups = dict(append_rows_payload(61, ["2026-10-11", "2026-10-12"]))
+    assert ups["A62"] == "12/10/2026"
+    assert ups["S62"] == "=M62"
+    assert ups["T62"] == "=(K62+F62)/S62"
+
+
+def test_append_rows_payload_nao_grava_nas_colunas_de_metrica():
+    ups = dict(append_rows_payload(61, ["2026-10-11"]))
+    for col in COLS.values():
+        assert f"{col}61" not in ups
+
+
+def test_append_rows_payload_vazio_quando_nao_ha_data_nova():
+    assert append_rows_payload(61, []) == []
+
+
+def test_append_rows_payload_barra_excesso_de_linhas():
+    datas = [f"2026-{m:02d}-01" for m in range(1, 13)] * 3  # 36 datas
+    with pytest.raises(ValueError):
+        append_rows_payload(61, datas)

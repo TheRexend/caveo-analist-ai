@@ -26,6 +26,24 @@ COLS = {
     "ga4_bounce": "N",
 }
 
+# Rótulos fixos que toda linha carrega. Só são escritos ao CRIAR uma linha nova.
+ROW_LABELS = {"B": "Meta Ads", "G": "Google Ads", "L": "GA4", "O": "Total Geral"}
+
+# Bloco Total Geral. Só é escrito ao CRIAR uma linha nova, com {r} reancorado.
+ROW_FORMULAS = {
+    "P": "=H{r}+C{r}",
+    "Q": "=I{r}+D{r}",
+    "R": "=Q{r}/P{r}",
+    "S": "=M{r}",
+    "T": "=(K{r}+F{r})/S{r}",
+    "U": "=S{r}/Q{r}",
+    "V": "=J{r}+E{r}",
+    "W": "=V{r}/S{r}",
+}
+
+# Guarda contra um `until` errado gerar centenas de linhas.
+MAX_NEW_ROWS = 31
+
 # grid_row é a fatia C..N devolvida pelo gspread: índice 0 = C.
 _GRID_FIRST_COL = "C"
 
@@ -136,4 +154,29 @@ def missing_dates(date_row_map, until):
     while cursor <= end:
         out.append(cursor.isoformat())
         cursor += timedelta(days=1)
+    return out
+
+
+def append_rows_payload(first_new_row, dates):
+    """Clone completo de linha para cada data nova, em sequência a partir de
+    first_new_row: data na coluna A, rótulos em B/G/L/O e as oito fórmulas do
+    bloco Total Geral reancoradas na linha.
+
+    A linha tem que nascer inteira. Uma linha só com a data deixaria CTR, CPS,
+    Connect Rate e Tx de conversão em branco para sempre naquele dia.
+
+    Devolve [(A1, valor)] para gravar com USER_ENTERED."""
+    if len(dates) > MAX_NEW_ROWS:
+        raise ValueError(
+            f"{len(dates)} linhas novas excede o limite de {MAX_NEW_ROWS}; "
+            "confira o período antes de continuar")
+    out = []
+    for offset, iso in enumerate(dates):
+        row = first_new_row + offset
+        year, month, day = iso.split("-")
+        out.append((f"A{row}", f"{day}/{month}/{year}"))
+        for col, label in ROW_LABELS.items():
+            out.append((f"{col}{row}", label))
+        for col, template in ROW_FORMULAS.items():
+            out.append((f"{col}{row}", template.format(r=row)))
     return out
