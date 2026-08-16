@@ -170,7 +170,8 @@ Gravar estes dias na aba "Dados Landingpage"? (sim para confirmar)
 métrica cairia numa linha que ainda não existe.
 
 ```python
-from sheet import append_rows_payload, cell_updates, write_updates
+from sheet import (append_rows_payload, cell_updates, ensure_bounce_format,
+                   write_updates)
 
 # 1) criar as linhas que faltam
 if faltantes:
@@ -189,7 +190,10 @@ for iso, metrics in sorted(METRICAS.items()):
                            value_input_option='RAW')
 print(f'Gravadas {total} células.')
 
-# 3) conferir o formato das datas novas
+# 3) garantir o formato de porcentagem na coluna N
+ensure_bounce_format(ws, min(dmap.values()), max(dmap.values()))
+
+# 4) conferir o formato das datas novas
 if faltantes:
     linhas = [dmap[iso] for iso in faltantes]
     lidas = ws.get(f'A{min(linhas)}:A{max(linhas)}',
@@ -199,6 +203,12 @@ if faltantes:
 
 Se a releitura devolver **texto** em vez de número serial, a linha nova não
 herdou o formato de data — aplicar o formato explicitamente antes de encerrar.
+
+> **Por que o passo 3 existe.** O bounce é gravado em fração (`0.0263`) e só a
+> linha 2 da planilha, preenchida à mão, já vinha com o formato de porcentagem.
+> As demais linhas nasceram sem formato nenhum, e a primeira execução real
+> gravou `0,02629969419` no lugar de `2,63%`. `ensure_bounce_format` é barato e
+> idempotente — rodar sempre, não só quando cria linha.
 
 ## Fase 5 — Relatório
 

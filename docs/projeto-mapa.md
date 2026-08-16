@@ -73,6 +73,7 @@ caveo_analist_ai/
 │   │   ├── criativos-campeoes.md       (analítica → analista; novo)
 │   │   ├── detector-defeitos.md        (analítica → analista; novo)
 │   │   ├── acompanhamento-diario-caveo.md (procedimento; diário Médico/Formando; grava planilha)
+│   │   ├── dados-lp-caveo.md           (procedimento; diário Meta+Google+GA4 → aba Dados Landingpage)
 │   │   ├── reconciliacao-fechamentos-caveo.md (procedimento; só leitura; planilha × Salesforce)
 │   │   └── brainstorming.md            (infra genérica)
 │   ├── commands/                      # ── COMANDOS DE CHAT · subprojeto 4 ──
@@ -118,11 +119,24 @@ caveo_analist_ai/
 │   ├── personas_medico.md              #   4 personas (Larissa/Diego/Rafael/Camila), por estágio de carreira
 │   ├── Dores_Desejos_Publicos_Caveo.md #   mapas D1-D7 em camadas, por estágio de carreira
 │   ├── Mapa_Tematico_Pilares_Criativos_Caveo.md  #   pilares Oferta×Funcionalidades + guardrails de execução
+│   ├── Manual_Comunicacao_Oferta_Caveo.md         # ⭐ MANUAL — regra de copy de oferta, portátil, sem timestamp
+│   ├── Manual_Comunicacao_Funcionalidade_Caveo.md # ⭐ MANUAL — idem funcionalidade (5 regras invertem vs. oferta)
+│   ├── DosDonts_Oferta_Roteiros_Caveo.md  #   ata/procedência da call 2026-08-03 (por que cada regra existe)
+│   ├── DosDonts_Funcionalidade_Roteiros_Caveo.md  #   ata/procedência da call 2026-08-04 (pt2)
+│   ├── Auditoria_Roteiros_v2_Caveo.md  #   auditoria dos 12 roteiros v2 contra os checklists (P0-P5, 2026-08-05)
+│   ├── Auditoria_Criativos_PMax_Caveo.md  #   auditoria dos 8 estáticos PMax contra os manuais (P0-P3 + rodada 2 + versões corrigidas, 2026-08-07)
+│   ├── Auditoria_LP_Oferta_Funcionalidade_Caveo.md  #   auditoria de copy de LP v1 (7 seções) contra os manuais + análise de CRO (P0-P3, 2026-08-10)
+│   ├── Auditoria_LP_v2_Caveo.md        #   delta da LP v2 vs. a auditoria acima: 5 corrigidos, 9 pendentes, 8 novos + desvios do spec (2026-08-13)
+│   ├── Heros_LP_Medico_Caveo.md        # ⭐ 6 heroes p/ LP única (serve os 2 estados de PJ), escada de intensidade + plano de teste (2026-08-13) — substitui archive/Hero_Variacoes_Copy_LP_Caveo.md
+│   ├── Hot_Topics_Busca_ICP_Caveo.md   # ⭐ demanda de busca do ICP por pilar (Oferta 5.460 × Func. 470/mês), pools sujos + negativas prontas, config de PMax (2026-08-07)
+│   ├── Slides_Hot_Topics_Busca_Business_Plan_Caveo.md  #   4 slides derivados do doc acima p/ a apresentação de business plan (2026-08-07)
 │   ├── Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md  #   fonte primária (call c/ cliente)
 │   ├── matriz-poder-interesse-caveo.md · (demais estratégicos vigentes)
+│   ├── business-plan-midia-paga-tam-sam-som.md  #   TAM/SAM/SOM + CAC teórico×real, base pra apresentação ao cliente (2026-08-03)
 │   └── archive/                        #   16 docs/assets de RF/MM/mídia paga/LP pré-virada de ICP (histórico, aguardam releitura)
 │
 ├── scripts/                            # utilitários (md_to_docx, etc.)
+│   └── dados_lp/                       #   helper da skill dados-lp-caveo (sheet.py + testes)
 ├── outputs/                            # entregáveis gerados (apresentações)
 └── scratch/                            # queries ad-hoc
 ```

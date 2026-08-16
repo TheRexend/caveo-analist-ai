@@ -44,6 +44,10 @@ ROW_FORMULAS = {
 # Guarda contra um `until` errado gerar centenas de linhas.
 MAX_NEW_ROWS = 31
 
+# Formato da coluna N (bounce). Copiado da linha 2, a única que já vinha
+# formatada à mão. Ver ensure_bounce_format().
+BOUNCE_FORMAT = {"numberFormat": {"type": "PERCENT", "pattern": "0.00%"}}
+
 # grid_row é a fatia C..N devolvida pelo gspread: índice 0 = C.
 _GRID_FIRST_COL = "C"
 
@@ -197,6 +201,22 @@ def cell_updates(row, metrics):
         if value is not None:
             out.append((f"{col}{row}", value))
     return out
+
+
+def ensure_bounce_format(worksheet, first_row, last_row):
+    """Garante que a coluna N esteja formatada como porcentagem no intervalo.
+
+    O bounce é gravado em fração (0,0263). Sem esse formato a célula exibe
+    '0,0263' em vez de '2,63%'. Só a linha 2 da planilha, preenchida à mão,
+    já vinha formatada — as demais nasceram sem formato nenhum, e a primeira
+    execução real caiu exatamente nisso.
+
+    Devolve o intervalo formatado, ou None se não havia o que formatar."""
+    if last_row < first_row:
+        return None
+    cell_range = f"N{first_row}:N{last_row}"
+    worksheet.format(cell_range, BOUNCE_FORMAT)
+    return cell_range
 
 
 def write_updates(worksheet, updates, value_input_option="RAW"):

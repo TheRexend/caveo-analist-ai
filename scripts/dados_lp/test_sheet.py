@@ -1,7 +1,8 @@
 import pytest
 
-from sheet import (COLS, append_rows_payload, build_date_row_map, cell_updates,
-                   check_consecutive, missing_dates, partial_dates,
+from sheet import (BOUNCE_FORMAT, COLS, append_rows_payload,
+                   build_date_row_map, cell_updates, check_consecutive,
+                   ensure_bounce_format, missing_dates, partial_dates,
                    pending_dates, row_is_empty, write_updates)
 
 
@@ -196,3 +197,28 @@ def test_write_updates_nao_chama_a_api_sem_updates():
     ws = FakeWorksheet()
     assert write_updates(ws, []) == 0
     assert ws.calls == []
+
+
+class FakeFormattableWorksheet:
+    def __init__(self):
+        self.formats = []
+
+    def format(self, cell_range, cell_format):
+        self.formats.append((cell_range, cell_format))
+
+
+def test_ensure_bounce_format_aplica_percentual_na_coluna_N():
+    ws = FakeFormattableWorksheet()
+    assert ensure_bounce_format(ws, 3, 60) == "N3:N60"
+    assert ws.formats == [("N3:N60", BOUNCE_FORMAT)]
+
+
+def test_bounce_format_e_o_mesmo_da_linha_preenchida_a_mao():
+    assert BOUNCE_FORMAT == {
+        "numberFormat": {"type": "PERCENT", "pattern": "0.00%"}}
+
+
+def test_ensure_bounce_format_ignora_intervalo_vazio():
+    ws = FakeFormattableWorksheet()
+    assert ensure_bounce_format(ws, 5, 4) is None
+    assert ws.formats == []
