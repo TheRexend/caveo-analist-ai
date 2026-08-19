@@ -26,6 +26,11 @@
   | `cpa` = spend ÷ registros | **> 150.0** | 140.0–150.0 | **< 140.0** |
 
   CPA é **invertido**: valor alto é ruim. Os outros três, valor alto é bom.
+
+  > ⚠️ **A faixa de `hook_rate` foi revista DEPOIS da execução deste plano**, em
+  > 2026-08-19, para `< 0.15` / `0.15–0.20` / `> 0.20`. Os números acima e o
+  > bloco `BENCHMARKS` da Task 2 preservam o que foi executado na época — não
+  > copie deles. A régua vigente está no spec (§4.1) e em `framework.py`.
 - **Cascata:** `gancho` → `retencao` → `interesse` → `conversao`. O primeiro 🔴 define a causa; 🟡 **não** interrompe.
 - **Atribuição por criativo usa só cpc direto** (sem o ramo de cruzamento da fundação). Chave = `UtmCon__c`.
 - **Sem filtro de campanha** — todas as campanhas da conta são de conversão.
