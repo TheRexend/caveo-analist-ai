@@ -24,6 +24,7 @@ subagentes (ferramenta Agent) e entrega **uma resposta única sintetizada**
 | Sinal na pergunta | Rotear para |
 |---|---|
 | Performance de mídia, CPL/CPO, atribuição, budget, funil/CRM, gargalo comercial, diagnóstico de qual criativo performa | `analista-midia-paga-crm` |
+| Julgar criativo pelo framework de teste (hook/hold/CTR/CPA), decidir escalar/iterar/matar, hipótese de teste | `analista-criativo` |
 | Idear conceito/copy de anúncio novo (recebe diagnóstico do analista) | `criativos` |
 | Tracking, click IDs, conversões server-side, GTM, reconciliação | `tracking-conversoes` |
 | Comportamento no site/LP, sessões, origem GA4, engajamento, jornada | `ga4-analise` |

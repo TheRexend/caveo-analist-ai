@@ -58,6 +58,7 @@ caveo_analist_ai/
 ├── .claude/
 │   ├── agents/                        # ── AGENTES · subprojeto 2 ──
 │   │   ├── analista-midia-paga-crm.md #   mídia + CRM/inside sales + diagnóstico de criativo
+│   │   ├── analista-criativo.md       #   framework de teste + cascata + hipóteses (DOE)
 │   │   ├── criativos.md               #   ideação de conceitos (recebe handoff)
 │   │   ├── tracking-conversoes.md     #   click IDs + server-side + GTM
 │   │   └── ga4-analise.md             #   comportamento site/LP
@@ -71,6 +72,7 @@ caveo_analist_ai/
 │   │   ├── conversoes-oportunidade.md  (analítica → tracking)
 │   │   ├── auditoria-tracking-gtm.md   (analítica → tracking; novo)
 │   │   ├── criativos-campeoes.md       (analítica → analista; novo)
+│   │   ├── criativos-semanal.md        (procedimento; semanal Meta → deck .pptx de 4 blocos)
 │   │   ├── detector-defeitos.md        (analítica → analista; novo)
 │   │   ├── acompanhamento-diario-caveo.md (procedimento; diário Médico/Formando; grava planilha)
 │   │   ├── dados-lp-caveo.md           (procedimento; diário Meta+Google+GA4 → aba Dados Landingpage)
@@ -136,7 +138,9 @@ caveo_analist_ai/
 │   └── archive/                        #   16 docs/assets de RF/MM/mídia paga/LP pré-virada de ICP (histórico, aguardam releitura)
 │
 ├── scripts/                            # utilitários (md_to_docx, etc.)
-│   └── dados_lp/                       #   helper da skill dados-lp-caveo (sheet.py + testes)
+│   ├── dados_lp/                       #   helper da skill dados-lp-caveo (sheet.py + testes)
+│   ├── criativos_semanal/              #   helper da skill criativos-semanal (puros + I/O + testes)
+│   └── deck_caveo.py                   #   primitivas visuais compartilhadas dos decks
 ├── outputs/                            # entregáveis gerados (apresentações)
 └── scratch/                            # queries ad-hoc
 ```
@@ -146,6 +150,7 @@ caveo_analist_ai/
 | Agente | Aciona quando… | Não faz |
 |---|---|---|
 | `analista-midia-paga-crm` | performance de mídia, funil/CRM, atribuição, budget, diagnóstico de criativo | idear criativo, GA4, tracking |
+| `analista-criativo` | análise semanal de criativo, framework de teste (hook/hold/CTR/CPA), decidir escalar/iterar/matar, hipótese de teste | escrever copy, benchmark de funil |
 | `criativos` | recebeu handoff de criativo ruim/bom; precisa idear conceito novo | analisar performance |
 | `tracking-conversoes` | tracking/medição, click IDs, conversões server-side, GTM | análise de performance, budget |
 | `ga4-analise` | comportamento no site/LP, jornada, origem GA4 | dados de plataforma de anúncio |
