@@ -10,6 +10,15 @@ Eixos ancorados na documentação existente:
   Persona   → docs/personas_medico.md
   Desire    → docs/Dores_Desejos_Publicos_Caveo.md (mapas D1-D7)
   Awareness → 5 níveis de Eugene Schwartz (Breakthrough Advertising, 1966)
+
+ATENÇÃO — os códigos D1..D7 são ESCOPADOS POR ESTÁGIO DE CARREIRA. O documento
+de dores traz dois mapas: "Começando a carreira" e "Carreira consolidada". O D3
+de um não é o D3 do outro (início = "medo de errar imposto no começo";
+consolidado = outra dor). A célula só é inequívoca porque a PERSONA fixa o
+estágio:
+    Larissa, Diego  → começando a carreira
+    Rafael, Camila  → carreira consolidada
+Ao ler ou gravar uma célula, resolva o desire no mapa do estágio da persona.
 """
 from itertools import product
 
