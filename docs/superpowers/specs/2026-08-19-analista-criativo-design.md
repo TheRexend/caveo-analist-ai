@@ -34,6 +34,23 @@ Entregar um ciclo semanal de análise de criativo de Meta Ads que produza um
 | 10 | Janela criativa de **14 dias**, cobrindo duas coortes de entrada | 7 dias |
 | 11 | **Sem filtro de campanha** — todas as campanhas da conta são de conversão | Filtro `[LEADS]` |
 | 12 | Registro histórico em **`data/criativos_registro.jsonl`** | Tabela em Markdown em `docs/` |
+| 13 | **Faixa de hook rate revista** para `< 15%` / `15–20%` / `> 20%` (era `< 20%` / `20–30%` / `> 30%`), após ver os dados reais | Manter a faixa original; faixa `< 10%` / `10–20%` / `> 20%`; corte binário em 20% |
+
+### 2.2. Justificativa da decisão 13 (revisão da faixa de hook rate)
+
+A faixa original vinha do slide acordado com o cliente, mas na conta da Caveo
+**nenhum criativo chegava a 30%** e a maioria caía em 🔴 — a classificação não
+separava nada e o diagnóstico de "gancho" perdia poder de decisão por excesso.
+Com a faixa nova, os 6 maiores anúncios da janela de 14 dias distribuem-se em
+2 🔴 / 2 🟡 / 2 🟢.
+
+A alternativa `< 10%` foi descartada porque zerava os 🔴 — e como 🟡 não
+interrompe a cascata, o problema de abertura que a conta de fato tem ficaria
+invisível. O corte binário foi descartado por igualar 12,4% e 19,9%.
+
+**Isto é uma régua interna, calibrada na conta.** Os benchmarks públicos de 2026
+são mais duros (baseline ~25%). Ao comparar com fonte externa, dizer qual régua
+está em uso.
 
 ### 2.1. Justificativa da decisão 8 (só cpc direto)
 
@@ -118,7 +135,7 @@ médico PJ?"* — nunca *"este criativo foi bom?"*.
 
 | Etapa | KPI | Fórmula | 🔴 | 🟡 | 🟢 |
 |---|---|---|---|---|---|
-| Atenção | hook rate | views 3s ÷ impressões | < 20% | 20–30% | > 30% |
+| Atenção | hook rate | views 3s ÷ impressões | < 15% | 15–20% | > 20% |
 | Retenção | hold rate | p75 ÷ views 3s | < 10% | 10–15% | > 15% |
 | Interesse | CTR link | link_click ÷ impressões | < 1,5% | 1,5–2,5% | > 2,5% |
 | Conversão | CPA | spend ÷ registro concluído | > R$150 | R$140–150 | < R$140 |

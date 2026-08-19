@@ -45,9 +45,17 @@ def test_sem_impressao_todos_os_kpis_por_impressao_sao_indefinidos():
 
 
 def test_status_usa_faixa_como_piso_acima_da_faixa_e_verde():
-    assert status("hook_rate", 0.35) == "verde"
-    assert status("hook_rate", 0.25) == "amarelo"
-    assert status("hook_rate", 0.19) == "vermelho"
+    assert status("hook_rate", 0.25) == "verde"
+    assert status("hook_rate", 0.18) == "amarelo"
+    assert status("hook_rate", 0.14) == "vermelho"
+
+
+def test_hook_rate_nas_bordas_exatas_da_faixa():
+    # As bordas pertencem ao amarelo: 15% não é crítico e 20% ainda não é bom.
+    assert status("hook_rate", 0.15) == "amarelo"
+    assert status("hook_rate", 0.20) == "amarelo"
+    assert status("hook_rate", 0.2001) == "verde"
+    assert status("hook_rate", 0.1499) == "vermelho"
 
 
 def test_status_do_cpa_e_invertido():
@@ -129,7 +137,9 @@ def test_ctr_vermelho_nao_mata_angulo_mesmo_com_muitos_hooks():
 
 
 def test_amarelo_em_tudo_e_iterar_nao_escalar():
-    a = avaliar(_anuncio(impressoes=1000, views_3s=250, p75=30,
+    # hook 18% · hold 12,2% · CTR 2% · CPA R$145 — os quatro na faixa amarela.
+    a = avaliar(_anuncio(impressoes=1000, views_3s=180, p75=22,
                          link_clicks=20, spend=290.0, registros=2))
+    assert set(a["status"].values()) == {"amarelo"}
     assert a["nivel_quebrado"] is None
     assert a["veredito"] == "iterar"

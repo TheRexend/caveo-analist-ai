@@ -30,12 +30,19 @@ Faixas acordadas com o cliente, lidas como **piso** — acima da faixa é 🟢, 
 
 | Etapa | KPI | Fórmula | 🔴 | 🟡 | 🟢 |
 |---|---|---|---|---|---|
-| Atenção | hook rate | views 3s ÷ impressões | < 20% | 20–30% | > 30% |
+| Atenção | hook rate | views 3s ÷ impressões | < 15% | 15–20% | > 20% |
 | Retenção | hold rate | p75 ÷ views 3s | < 10% | 10–15% | > 15% |
 | Interesse | CTR link | link_click ÷ impressões | < 1,5% | 1,5–2,5% | > 2,5% |
 | Conversão | CPA | spend ÷ registro concluído | > R$150 | R$140–150 | < R$140 |
 
 **CPA é invertido**: valor alto é ruim. Os outros três, valor alto é bom.
+
+**A faixa de hook rate foi revista em 2026-08-19** (era < 20% / 20–30% / > 30%).
+A faixa original não separava nada na conta da Caveo: nenhum criativo chegava a
+30% e a maioria caía em 🔴, o que tornava o diagnóstico de gancho inútil por
+excesso. A faixa atual é calibrada no que a conta de fato entrega. Ao citar
+benchmark público de hook rate, lembre que a referência de mercado de 2026 é
+mais dura (baseline ~25%) — diga qual régua está usando.
 
 **Denominador do hold rate.** A régua oficial é **p75 ÷ views 3s**, como no
 slide do cliente. Exiba **também** p75 ÷ impressões, porque boa parte dos

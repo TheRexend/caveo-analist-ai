@@ -37,7 +37,9 @@ def kpis(anuncio):
 # Faixas acordadas com o cliente, lidas como PISO: acima da faixa é 🟢, não
 # "fora do padrão". `invertido=True` marca o KPI em que valor alto é ruim.
 BENCHMARKS = {
-    "hook_rate": {"critico": 0.20, "atencao": 0.30, "invertido": False},
+    # Revisto em 2026-08-19 (era 0.20/0.30). A faixa original deixava a conta
+    # inteira em 🔴/🟡 e não separava nada: nenhum criativo chegava a 30%.
+    "hook_rate": {"critico": 0.15, "atencao": 0.20, "invertido": False},
     "hold_rate_hook": {"critico": 0.10, "atencao": 0.15, "invertido": False},
     "ctr_link": {"critico": 0.015, "atencao": 0.025, "invertido": False},
     "cpa": {"critico": 150.0, "atencao": 140.0, "invertido": True},
