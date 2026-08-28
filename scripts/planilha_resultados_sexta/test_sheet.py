@@ -1,8 +1,9 @@
 import pytest
 
-from sheet import (BLOCK_METRIC_COLS, COLS, DAY_COLS, cell_updates,
-                   day_label_updates, partial_days, pending_days,
-                   row_for_day, row_is_empty, write_updates)
+from sheet import (BLOCK_METRIC_COLS, CLEAR_RANGES, COLS, DAY_COLS,
+                   cell_updates, day_label_updates, month_changed,
+                   month_name, partial_days, pending_days, row_for_day,
+                   row_is_empty, write_updates)
 
 
 def test_row_for_day_bloco_meta_dia_1_e_dia_31():
@@ -166,3 +167,28 @@ def test_pending_e_partial_days_bloco_google():
 
 def test_pending_days_trata_dia_sem_linha_no_grid_como_vazio():
     assert pending_days("meta", {}, 2) == [1, 2]
+
+
+def test_month_name_mapeia_janeiro_agosto_dezembro():
+    assert month_name(1) == "JANEIRO"
+    assert month_name(8) == "AGOSTO"
+    assert month_name(12) == "DEZEMBRO"
+
+
+def test_month_name_rejeita_fora_do_intervalo():
+    with pytest.raises(ValueError):
+        month_name(0)
+    with pytest.raises(ValueError):
+        month_name(13)
+
+
+def test_month_changed_false_quando_bate_ignorando_caixa_e_espaco():
+    assert month_changed(" Agosto ", 8) is False
+
+
+def test_month_changed_true_quando_mes_diferente():
+    assert month_changed("JULHO", 8) is True
+
+
+def test_clear_ranges_cobre_exatamente_os_dois_blocos():
+    assert CLEAR_RANGES == {"meta": "A3:R33", "google": "A38:W68"}

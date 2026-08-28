@@ -146,3 +146,26 @@ def partial_days(block, grid, until_day):
         if 0 < count < total:
             out.append(day)
     return out
+
+
+MESES_PT = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+            "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"]
+
+
+def month_name(month_number):
+    """1-12 -> nome do mês em maiúsculo, pt-BR — bate com o rótulo manual da
+    aba "Inside Sales"!B1 (ex. "AGOSTO")."""
+    if not 1 <= month_number <= 12:
+        raise ValueError(f"mês inválido: {month_number!r} (use 1-12)")
+    return MESES_PT[month_number - 1]
+
+
+def month_changed(active_label, month_number):
+    """True se o rótulo de mês ativo na planilha for diferente do mês
+    corrente — sinal para limpar o "Banco de dados" antes de gravar."""
+    return active_label.strip().upper() != month_name(month_number)
+
+
+# Ranges a limpar na virada de mês — as colunas graváveis + "Day" dos dois
+# blocos. Nunca cobre TikTok/Pinterest (fora do escopo desta skill).
+CLEAR_RANGES = {"meta": "A3:R33", "google": "A38:W68"}
