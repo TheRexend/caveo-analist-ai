@@ -1,9 +1,9 @@
 import pytest
 
 from sheet import (BLOCK_METRIC_COLS, CLEAR_RANGES, COLS, DAY_COLS,
-                   cell_updates, day_label_updates, month_changed,
-                   month_name, partial_days, pending_days, row_for_day,
-                   row_is_empty, write_updates)
+                   cell_updates, day_label_updates, google_channel_bucket,
+                   month_changed, month_name, partial_days, pending_days,
+                   row_for_day, row_is_empty, write_updates)
 
 
 def test_row_for_day_bloco_meta_dia_1_e_dia_31():
@@ -192,3 +192,30 @@ def test_month_changed_true_quando_mes_diferente():
 
 def test_clear_ranges_cobre_exatamente_os_dois_blocos():
     assert CLEAR_RANGES == {"meta": "A3:R33", "google": "A38:W68"}
+
+
+def test_google_channel_bucket_mapeia_campanhas_ativas():
+    assert google_channel_bucket("institucional") == "search"
+    assert google_channel_bucket("search_aberturaPJ") == "search"
+    assert google_channel_bucket("search_contabilidade") == "search"
+    assert google_channel_bucket("pmax_funcionalidade") == "pmax"
+    assert google_channel_bucket("pmax_oferta") == "pmax"
+
+
+def test_google_channel_bucket_ignora_caixa():
+    assert google_channel_bucket("PMAX_OFERTA") == "pmax"
+
+
+def test_google_channel_bucket_fallback_para_slug_desconhecido():
+    assert google_channel_bucket("cnpj_medico") == "search"
+    assert google_channel_bucket("contabilidade_nivel_brasil") == "search"
+
+
+def test_google_channel_bucket_nao_infere_por_prefixo():
+    """Decisão do cliente (2026-08-21): slug de campanha antiga/reestruturada
+    cai no fallback "search", mesmo tendo prefixo "pmax_" — não adivinhar."""
+    assert google_channel_bucket("pmax_plataforma_financeira_medicopj_2") == "search"
+
+
+def test_google_channel_bucket_fallback_para_none():
+    assert google_channel_bucket(None) == "search"

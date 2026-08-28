@@ -169,3 +169,35 @@ def month_changed(active_label, month_number):
 # Ranges a limpar na virada de mês — as colunas graváveis + "Day" dos dois
 # blocos. Nunca cobre TikTok/Pinterest (fora do escopo desta skill).
 CLEAR_RANGES = {"meta": "A3:R33", "google": "A38:W68"}
+
+
+# Mapa Opportunity.UtmCam__c (slug interno do Salesforce) -> tipo de
+# campanha Google, só pras 5 campanhas ATIVAS hoje (2026-08-21):
+#   institucional              -> BOO - Search - Institucional
+#   search_aberturaPJ          -> BOO - Search - Abertura PJ
+#   search_contabilidade       -> BOO - Search - Contabilidade Médica
+#   pmax_funcionalidade        -> BOO - Pmax - Funcionalidades
+#   pmax_oferta                -> BOO - Pmax - Oferta
+# Revisar sempre que a conta Google Ads for reestruturada — mesmo problema
+# que já quebrou o GOOGLE_UTMCAM_ALIAS da antiga skill planilha-resultados.
+UTMCAM_TO_GOOGLE_TYPE = {
+    "institucional": "search",
+    "search_aberturapj": "search",
+    "search_contabilidade": "search",
+    "pmax_funcionalidade": "pmax",
+    "pmax_oferta": "pmax",
+}
+
+# Decisão do cliente (2026-08-21): UtmCam__c de campanha antiga/reestruturada
+# sem mapeamento conhecido cai em "search" — não descartar o número do
+# dashboard, e não inferir por prefixo do slug (ver teste de regressão).
+DEFAULT_GOOGLE_TYPE = "search"
+
+
+def google_channel_bucket(utmcam):
+    """Slug de Opportunity.UtmCam__c -> "search"/"pmax"/"dgen".
+
+    None ou slug sem mapeamento conhecido -> DEFAULT_GOOGLE_TYPE."""
+    if utmcam is None:
+        return DEFAULT_GOOGLE_TYPE
+    return UTMCAM_TO_GOOGLE_TYPE.get(utmcam.strip().lower(), DEFAULT_GOOGLE_TYPE)
