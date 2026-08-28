@@ -74,8 +74,9 @@ Deriva `ANO`, `MES` de `END`. Informar: `Coletando de [START] a [END]…`.
 **`leads` = `actions[action_type=complete_registration].value`** (fallback:
 `offsite_conversion.fb_pixel_complete_registration` se `complete_registration`
 não vier na resposta). "Registro Concluído" é a conversão principal — **não
-usar** `action_type=lead` nem `onsite_web_lead` (mesma regra da skill
-`planilha-resultados`, para manter os dois reportes mensais na mesma régua).
+usar** `action_type=lead` nem `onsite_web_lead` (mesma regra de
+`docs/fundacao-dados.md`, para manter os reportes de mídia paga na mesma
+régua).
 `post_engagement` = `actions[action_type=post_engagement].value` (0 se
 ausente). Montar `META_ROWS`.
 

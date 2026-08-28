@@ -290,7 +290,7 @@ for canal in ('meta', 'google'):
 ## Fase 3 — Cálculo e preview
 
 Combinar 2A-2D em `METRICAS = {dia: {chave de COLS: valor}}`, garantindo as
-30 chaves sempre presentes (zero explícito). Imprimir a tabela dia × 30
+31 chaves sempre presentes (zero explícito). Imprimir a tabela dia × 31
 métricas e as células A1 exatas que serão gravadas
 (`cell_updates`/`day_label_updates`). Então perguntar:
 
