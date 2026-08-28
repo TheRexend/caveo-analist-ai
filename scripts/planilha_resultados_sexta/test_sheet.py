@@ -1,6 +1,8 @@
 import pytest
 
-from sheet import COLS, DAY_COLS, cell_updates, day_label_updates, row_for_day, write_updates
+from sheet import (BLOCK_METRIC_COLS, COLS, DAY_COLS, cell_updates,
+                   day_label_updates, partial_days, pending_days,
+                   row_for_day, row_is_empty, write_updates)
 
 
 def test_row_for_day_bloco_meta_dia_1_e_dia_31():
@@ -99,3 +101,68 @@ def test_write_updates_nao_chama_a_api_sem_updates():
     ws = FakeWorksheet()
     assert write_updates(ws, []) == 0
     assert ws.calls == []
+
+
+def test_block_metric_cols_bate_com_as_colunas_de_cols():
+    assert BLOCK_METRIC_COLS["meta"] == {
+        "B", "C", "D", "E", "H", "I", "J", "K", "L", "M", "N", "O", "R"}
+    assert BLOCK_METRIC_COLS["google"] == {
+        "B", "C", "D", "E", "F", "G", "J", "K", "L", "M", "N", "O",
+        "R", "S", "T", "U", "V", "W"}
+
+
+# Linhas do bloco "meta" (A..R, índice 0 = A). Day cols (A/G/Q) preenchidas
+# com "1" mesmo na linha "vazia" — só as 13 colunas de métrica importam.
+META_LINHA_VAZIA = ["1", "", "", "", "", "", "1", "", "", "", "", "", "", "", "", "", "1", ""]
+META_LINHA_CHEIA = ["1", "10", "10", "10", "10", "", "1", "10", "10", "10", "10", "10", "10", "10", "10", "", "1", "10"]
+META_LINHA_PARCIAL = ["1", "10", "10", "10", "10", "", "1", "", "", "", "", "", "", "", "", "", "1", ""]
+
+# Linhas do bloco "google" (A..W, índice 0 = A).
+GOOGLE_LINHA_VAZIA = ["1", "", "", "", "", "", "", "", "1", "", "", "", "", "", "", "", "1", "", "", "", "", "", ""]
+GOOGLE_LINHA_CHEIA = ["1", "5", "5", "5", "5", "5", "5", "", "1", "5", "5", "5", "5", "5", "5", "", "1", "5", "5", "5", "5", "5", "5"]
+GOOGLE_LINHA_PARCIAL = ["1", "5", "5", "5", "5", "5", "5", "", "1", "", "", "", "", "", "", "", "1", "", "", "", "", "", ""]
+
+
+def test_row_is_empty_ignora_colunas_de_day_e_espacador():
+    assert row_is_empty("meta", META_LINHA_VAZIA) is True
+    assert row_is_empty("google", GOOGLE_LINHA_VAZIA) is True
+
+
+def test_row_is_empty_falso_quando_ha_metrica():
+    assert row_is_empty("meta", META_LINHA_CHEIA) is False
+    assert row_is_empty("google", GOOGLE_LINHA_CHEIA) is False
+
+
+def test_row_is_empty_falso_na_linha_parcial():
+    assert row_is_empty("meta", META_LINHA_PARCIAL) is False
+    assert row_is_empty("google", GOOGLE_LINHA_PARCIAL) is False
+
+
+def test_pending_days_pega_so_linhas_vazias_ate_until():
+    grid = {3: META_LINHA_CHEIA, 4: META_LINHA_VAZIA, 5: META_LINHA_VAZIA}
+    assert pending_days("meta", grid, 3) == [2, 3]
+
+
+def test_pending_days_nao_reescreve_linha_parcial():
+    grid = {3: META_LINHA_PARCIAL}
+    assert pending_days("meta", grid, 1) == []
+
+
+def test_partial_days_avisa_linha_pela_metade():
+    grid = {3: META_LINHA_PARCIAL}
+    assert partial_days("meta", grid, 1) == [1]
+
+
+def test_partial_days_ignora_linha_vazia_e_linha_cheia():
+    grid = {3: META_LINHA_CHEIA, 4: META_LINHA_VAZIA}
+    assert partial_days("meta", grid, 2) == []
+
+
+def test_pending_e_partial_days_bloco_google():
+    grid = {38: GOOGLE_LINHA_PARCIAL, 39: GOOGLE_LINHA_VAZIA}
+    assert pending_days("google", grid, 2) == [2]
+    assert partial_days("google", grid, 2) == [1]
+
+
+def test_pending_days_trata_dia_sem_linha_no_grid_como_vazio():
+    assert pending_days("meta", {}, 2) == [1, 2]

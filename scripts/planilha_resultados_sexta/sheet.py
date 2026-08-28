@@ -52,6 +52,13 @@ COLS = {
     "google_dgen_sql": ("google", "W"),
 }
 
+# Colunas de métrica por bloco, derivadas de COLS — usadas pra saber quais
+# células checar ao decidir se uma linha está vazia/parcial/cheia.
+BLOCK_METRIC_COLS = {}
+for _key, (_block, _col) in COLS.items():
+    BLOCK_METRIC_COLS.setdefault(_block, set()).add(_col)
+del _key, _block, _col
+
 
 def row_for_day(block, day):
     """Dia-do-mês (1-31) -> nº da linha, dentro do bloco ("meta" ou "google")."""
@@ -98,3 +105,44 @@ def write_updates(worksheet, updates, value_input_option="RAW"):
     if body:
         worksheet.batch_update(body, value_input_option=value_input_option)
     return len(body)
+
+
+def _filled_count(block, grid_row):
+    """Quantas das colunas de métrica do bloco estão preenchidas nessa linha
+    (fatia A.., índice 0 = A). Ignora "Day" e espaçadores de propósito —
+    essas colunas vêm sempre preenchidas (ou vazias) independente de haver
+    dado real na linha."""
+    count = 0
+    for col in BLOCK_METRIC_COLS[block]:
+        index = ord(col) - ord("A")
+        value = grid_row[index] if index < len(grid_row) else ""
+        if str(value).strip() != "":
+            count += 1
+    return count
+
+
+def row_is_empty(block, grid_row):
+    """True se nenhuma das colunas de métrica do bloco estiver preenchida."""
+    return _filled_count(block, grid_row) == 0
+
+
+def pending_days(block, grid, until_day):
+    """Dias 1..until_day cuja linha está totalmente vazia (ou nem existe
+    ainda no `grid` lido — mesma coisa, célula em branco é célula em branco).
+
+    Linha parcialmente preenchida fica de fora: sobrescrever dado que já está
+    lá é decisão do usuário, via override de $ARGUMENTS na skill."""
+    return [day for day in range(1, until_day + 1)
+            if row_is_empty(block, grid.get(row_for_day(block, day), []))]
+
+
+def partial_days(block, grid, until_day):
+    """Dias 1..until_day com a linha pela metade. Não são gravados, mas o
+    preview precisa avisar que existem."""
+    total = len(BLOCK_METRIC_COLS[block])
+    out = []
+    for day in range(1, until_day + 1):
+        count = _filled_count(block, grid.get(row_for_day(block, day), []))
+        if 0 < count < total:
+            out.append(day)
+    return out
