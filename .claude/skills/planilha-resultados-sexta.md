@@ -93,11 +93,44 @@ vazia" é o sinal de "dia pendente" na Fase 1.
 
 ## Fase 0 — Alvo
 
-- **Padrão:** `UNTIL_DAY = dia-do-mês de D-1` (ou o último dia do mês
-  corrente, se D-1 já for mês passado). Calcular com `calendar.monthrange`.
+Duas datas mandam aqui: `HOJE = date.today()` e `D_MENOS_1 = HOJE -
+timedelta(days=1)`. O mês ativo da planilha é o rótulo de `Inside Sales!B1`
+(lido na Fase 0.5).
+
+- **Caso comum — D-1 cai no mês corrente (`HOJE.day > 1`):**
+  `UNTIL_DAY = D_MENOS_1.day`; o mês processado é `HOJE.year`/`HOJE.month`.
+  Informar `Coletando de 01 a [UNTIL_DAY] de [MÊS]...` e seguir para a Fase 0.5.
+- **Caso de borda — hoje é dia 1 (`HOJE.day == 1`):** D-1 pertence ao mês
+  **anterior**; ir para a Fase 0.1 antes de qualquer outra coisa. **Nunca**
+  usar o último dia do mês corrente como `UNTIL_DAY` aqui: seriam 28-31 dias
+  que ainda não aconteceram, a Fase 2 voltaria vazia e a Fase 3 proporia
+  gravar um mês inteiro de zeros — que depois lê como "cheio" e nunca mais é
+  revisitado.
 - **Override:** `$ARGUMENTS` aceita um dia-do-mês (`1`-`31`) e, nesse caso,
-  **força a regravação** daquele dia mesmo já preenchido.
-- Informar: `Coletando de 01 a [UNTIL_DAY] de [MÊS]...`
+  **força a regravação** daquele dia mesmo já preenchido, sobre o layout de
+  linhas do mês ativo da planilha (`B1`), sem virar mês.
+
+## Fase 0.1 — Dia 1: fechar o último dia do mês que saiu (antes de limpar)
+
+O último dia de qualquer mês só vira "ontem" no dia 1 do mês seguinte. Se a
+virada limpar a planilha antes de coletá-lo, ele fica permanentemente sem
+dado e o `SUM` da aba `Inside Sales` perde um dia todo mês. Então, quando
+`HOJE.day == 1`:
+
+1. `ULTIMO_DIA = calendar.monthrange(D_MENOS_1.year, D_MENOS_1.month)[1]`
+   (= `D_MENOS_1.day`). O mês processado neste passe é o **mês que saiu**
+   (`D_MENOS_1.year`/`D_MENOS_1.month`), não o corrente.
+2. Ler o `Banco de dados` **ainda sem limpar** — as linhas 3-33 e 38-68 ainda
+   carregam o layout do mês que saiu — e checar se `ULTIMO_DIA` está pendente
+   ou parcial, com as mesmas funções da Fase 1 (`pending_days`/`partial_days`
+   com `until_day=ULTIMO_DIA`). Usar o bloco de conexão gspread da Fase 0.5
+   (só a parte que abre `banco`/`inside_sales`; nada de `batch_clear` ainda).
+3. Se estiver pendente, perguntar ao operador e, com o "sim", rodar **um passe
+   normal de Fases 1-4 com `dias_alvo = [ULTIMO_DIA]`** e `ANO`/`MES` do mês
+   que saiu. Se ele recusar ou pular, seguir mesmo assim — não forçar —, mas
+   **dizer explicitamente no relatório da Fase 5** que o último dia do mês que
+   saiu ficou sem coleta.
+4. Só depois disso ir para a Fase 0.5 (limpeza da virada).
 
 ## Fase 0.5 — Virada de mês (checar toda execução, ação destrutiva)
 
@@ -106,7 +139,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import sys
 sys.path.insert(0, 'scripts/planilha_resultados_sexta')
-from sheet import CLEAR_RANGES, month_changed
+from sheet import CLEAR_RANGES, month_changed, month_name
 
 SHEET_ID = '13Q3c4mGocuEI-yRbMUdiNsXhZhMJX17HOG8JRdcS-ok'
 
@@ -135,13 +168,25 @@ Confirma a limpeza? (sim para confirmar)
 Só após "sim":
 
 ```python
-for rng in CLEAR_RANGES.values():
-    banco.batch_clear([rng])
+banco.batch_clear(list(CLEAR_RANGES.values()))
 inside_sales.update_acell('B1', month_name(HOJE.month))
 print('Limpeza feita, mês atualizado para', month_name(HOJE.month))
 ```
 
-**Se `mudou` for `False`:** seguir direto para a Fase 1, sem tocar em nada.
+**Se `mudou` for `False`:** seguir para a Fase 1, sem tocar em nada.
+
+**Parada obrigatória no dia 1:** se `HOJE.day == 1` — tendo havido virada ou
+não —, o mês novo ainda não tem um único dia coletável (D-1 é do mês
+anterior, já tratado na Fase 0.1). Reportar e **parar** aqui, sem inventar
+`UNTIL_DAY`:
+
+```
+Mês virou para [MÊS NOVO], planilha limpa. Nada a coletar ainda hoje — rode
+novamente amanhã.
+```
+
+Se não houve virada porque `B1` já estava no mês novo, mesma parada, trocando
+a primeira frase por `Planilha já está em [MÊS NOVO].`
 
 ## Fase 1 — Reconhecimento
 
@@ -222,7 +267,7 @@ sys.path.insert(0, 'scripts/acompanhamento_diario')
 sys.path.insert(0, 'scripts/planilha_resultados_sexta')
 import salesforce_mcp_server as sf
 from qualification import mql_day, sql_day
-from sheet import google_channel_bucket
+from sheet import UTMCAM_TO_GOOGLE_TYPE, google_channel_bucket
 
 BR = timezone(timedelta(hours=-3))
 YEAR_MONTH = f'{ANO:04d}-{MES:02d}'  # ANO/MES = mês corrente sendo processado
@@ -283,6 +328,18 @@ for canal in ('meta', 'google'):
         d_sql = dia_do_mes_se_no_periodo(sql_day(o['history'], o['is_won']))
         if d_mql in acc: acc[d_mql][f'{prefixo}_mql'] += 1
         if d_sql in acc: acc[d_sql][f'{prefixo}_sql'] += 1
+    if canal == 'google':
+        # Fallback pra "search" é decisão do cliente e está certo — mas nunca
+        # silencioso: se um slug novo aparecer, o preview tem que mostrar.
+        # `None`/vazio é o caso normal de "opp sem UTM" e não vira aviso; o que
+        # importa é slug preenchido que ninguém mapeou.
+        slugs_fallback = sorted({o['utmcam'].strip() for o in opps.values()
+                                 if o['utmcam'] and o['utmcam'].strip()
+                                 and o['utmcam'].strip().lower()
+                                 not in UTMCAM_TO_GOOGLE_TYPE})
+        if slugs_fallback:
+            print('Aviso: UtmCam__c sem mapeamento (contando como "search"):',
+                  slugs_fallback)
 ```
 
 **Se qualquer uma das quatro fontes falhar, interromper antes de gravar.**
@@ -303,17 +360,19 @@ Gravar estes dias na aba "Banco de dados - Inside Sales"? (sim para confirmar)
 ```python
 from sheet import cell_updates, day_label_updates, write_updates
 
-total = 0
+updates = []
 for dia, metrics in sorted(METRICAS.items()):
-    total += write_updates(banco, day_label_updates(dia), value_input_option='RAW')
-    total += write_updates(banco, cell_updates(dia, metrics), value_input_option='RAW')
+    updates.extend(day_label_updates(dia))
+    updates.extend(cell_updates(dia, metrics))
+total = write_updates(banco, updates, value_input_option='RAW')
 print(f'Gravadas {total} células.')
 ```
 
 ## Fase 5 — Relatório
 
 Dizer se houve virada de mês (e o que foi limpo), quantas células foram
-gravadas, e listar os dias parciais que foram pulados.
+gravadas, e listar os dias parciais que foram pulados. Se a Fase 0.1 rodou,
+dizer se o último dia do mês que saiu foi coletado ou ficou sem coleta.
 
 ## Pontos de Atenção
 
@@ -328,6 +387,11 @@ gravadas, e listar os dias parciais que foram pulados.
   alias da antiga `planilha-resultados`).
 - **Virada de mês é destrutiva** — nunca limpar `Banco de dados` sem
   confirmação explícita.
+- **`month_changed` compara texto exato (com acento).** `Inside Sales!B1` com
+  "MARCO" no lugar de "MARÇO" dispara pergunta de virada de mês em março, sem
+  que mês nenhum tenha virado. É o comportamento especificado (comparação
+  literal, sem normalizar) — se aparecer uma virada inesperada, conferir o
+  acento da célula antes de confirmar a limpeza.
 - **Fuso:** Salesforce devolve datas em UTC; sempre converter pra `-03:00`
   antes de extrair o dia (`dia_br`).
 - **`dia_do_mes_se_no_periodo` é obrigatório** no cruzamento de Salesforce —

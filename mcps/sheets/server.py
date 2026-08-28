@@ -4,8 +4,8 @@ Servidor MCP local para Google Sheets.
 Protocolo: JSON-RPC 2.0 sobre stdio (MCP spec 2024-11-05), no mesmo padrão do
 mcps/salesforce/server.py.
 
-Substitui os scripts gspread soltos das skills de relatório (planilha-resultados,
-reporte-resultados-ka) por chamadas de ferramenta.
+Substitui os scripts gspread soltos das skills de relatório
+(planilha-resultados-sexta, reporte-resultados-ka) por chamadas de ferramenta.
 
 Dependências (mcps/.venv): gspread, google-auth  (ver requirements.txt).
 Credenciais: reusa a service account das skills.
