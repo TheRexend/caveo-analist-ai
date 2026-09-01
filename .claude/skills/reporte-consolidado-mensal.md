@@ -20,8 +20,8 @@ A seção GA4 depende do MCP de GA4 (subprojeto 5). Sem ele, montar o relatório
 Mês corrente 01→D-1 (ou mês fechado, se pedido).
 
 ## Composição (rodar as partes e juntar)
-1. **Mídia + funil** → coleta como em `planilha-resultados` (Meta+Google+SF,
-   modelo cpc+cruzamento, duas datas).
+1. **Mídia + funil** → coleta pelo modelo cpc+cruzamento e visão segmentada de
+   `docs/fundacao-dados.md` (Meta+Google+SF, duas datas).
 2. **Coorte de fechamento** → via `reporte-coorte` (mês do fechamento × origem).
 3. **GA4** → via `reporte-ga4` (visão geral + LPs).
 4. **Leitura integrada** → acionar `analista-midia-paga-crm` (mídia+funil) e

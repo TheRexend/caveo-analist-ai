@@ -63,7 +63,7 @@ caveo_analist_ai/
 │   │   ├── tracking-conversoes.md     #   click IDs + server-side + GTM
 │   │   └── ga4-analise.md             #   comportamento site/LP
 │   ├── skills/                        # ── SKILLS · subprojeto 4 ──
-│   │   ├── planilha-resultados.md      (procedimento)
+│   │   ├── planilha-resultados-sexta.md (procedimento; diário sem segmentação → Banco de dados - Inside Sales; ex-planilha-resultados)
 │   │   ├── reporte-resultados-ka.md    (procedimento; mensal segmentado Formando/Médico → abas Mês-a-Mês)
 │   │   ├── reporte-semanal-caveo.md    (procedimento; aciona analista)
 │   │   ├── reporte-ga4.md              (procedimento; novo)
