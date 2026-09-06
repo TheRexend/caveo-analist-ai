@@ -75,7 +75,8 @@ caveo_analist_ai/
 │   │   ├── criativos-semanal.md        (procedimento; semanal Meta → deck .pptx de 4 blocos)
 │   │   ├── detector-defeitos.md        (analítica → analista; novo)
 │   │   ├── acompanhamento-diario-caveo.md (procedimento; diário Médico/Formando; grava planilha)
-│   │   ├── dados-lp-caveo.md           (procedimento; diário Meta+Google+GA4 → aba Dados Landingpage)
+│   │   ├── dados-lp-caveo.md           (procedimento; diário Meta+Google+SF+GA4 → aba Dados Landingpage)
+│   │   ├── fechamentos-midia-paga-boomer.md (procedimento; SF Ganho cpc+cruzamento → upsert aba "Clientes Dash Boomer ")
 │   │   ├── reconciliacao-fechamentos-caveo.md (procedimento; só leitura; planilha × Salesforce)
 │   │   └── brainstorming.md            (infra genérica)
 │   ├── commands/                      # ── COMANDOS DE CHAT · subprojeto 4 ──
@@ -129,8 +130,13 @@ caveo_analist_ai/
 │   ├── Auditoria_Criativos_PMax_Caveo.md  #   auditoria dos 8 estáticos PMax contra os manuais (P0-P3 + rodada 2 + versões corrigidas, 2026-08-07)
 │   ├── Auditoria_LP_Oferta_Funcionalidade_Caveo.md  #   auditoria de copy de LP v1 (7 seções) contra os manuais + análise de CRO (P0-P3, 2026-08-10)
 │   ├── Auditoria_LP_v2_Caveo.md        #   delta da LP v2 vs. a auditoria acima: 5 corrigidos, 9 pendentes, 8 novos + desvios do spec (2026-08-13)
+│   ├── Auditoria_Estaticos_BigNumbers_Caveo.md  #   auditoria dos 5 estáticos de big numbers (R$100mi/500mil h/20mil médicos) — números não fecham entre si + CTA proibido em 5/5 (2026-08-19)
+│   ├── BigNumbers_Conceitos_Caveo.md   # ⭐ banco de 6 ângulos de big number só com números já autorizados (plantão como moeda, R$0, 6 anos, 7 em cada 10, 72h×1min, ∞) + plano de teste (2026-08-19)
 │   ├── Heros_LP_Medico_Caveo.md        # ⭐ 6 heroes p/ LP única (serve os 2 estados de PJ), escada de intensidade + plano de teste (2026-08-13) — substitui archive/Hero_Variacoes_Copy_LP_Caveo.md
 │   ├── Hot_Topics_Busca_ICP_Caveo.md   # ⭐ demanda de busca do ICP por pilar (Oferta 5.460 × Func. 470/mês), pools sujos + negativas prontas, config de PMax (2026-08-07)
+│   ├── Hot_Topics_Mercado_Employee_PJ_Caveo.md  # ⭐ mesmo levantamento para o mercado employee PJ (não-médico):
+│   │                                            #   mercado 7,5x maior em busca mas sem marcador de ICP; cunha única =
+│   │                                            #   desenquadramento MEI→ME; negativas + estrutura de campanha (2026-08-24)
 │   ├── Slides_Hot_Topics_Busca_Business_Plan_Caveo.md  #   4 slides derivados do doc acima p/ a apresentação de business plan (2026-08-07)
 │   ├── Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md  #   fonte primária (call c/ cliente)
 │   ├── matriz-poder-interesse-caveo.md · (demais estratégicos vigentes)
@@ -139,6 +145,7 @@ caveo_analist_ai/
 │
 ├── scripts/                            # utilitários (md_to_docx, etc.)
 │   ├── dados_lp/                       #   helper da skill dados-lp-caveo (sheet.py + testes)
+│   ├── clientes_dash_boomer/           #   helper da skill fechamentos-midia-paga-boomer (sheet.py + testes)
 │   ├── criativos_semanal/              #   helper da skill criativos-semanal (puros + I/O + testes)
 │   └── deck_caveo.py                   #   primitivas visuais compartilhadas dos decks
 ├── outputs/                            # entregáveis gerados (apresentações)
