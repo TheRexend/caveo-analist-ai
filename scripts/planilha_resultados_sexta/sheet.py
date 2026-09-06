@@ -3,17 +3,19 @@
 Diferente de scripts/dados_lp/sheet.py: aqui a linha é o DIA-DO-MÊS (1-31),
 fixo por bloco — não uma data absoluta que cresce sem fim. O bloco "meta"
 (Meta Ads Awareness + Demais Campanhas + GA4) ocupa as linhas 3-33; o bloco
-"google" (Search + PMax + DGen) ocupa as linhas 38-68. As mesmas 31 linhas
-são recicladas todo mês — não há lógica de "criar linha nova" aqui.
+"google" (Search + PMax + DGen) ocupa as linhas 38-68; o bloco "historico"
+(comparativo A-1/M-1) ocupa as MESMAS linhas 3-33 do bloco "meta", só que
+nas colunas T:V. As mesmas 31 linhas são recicladas todo mês — não há
+lógica de "criar linha nova" aqui.
 """
 
-FIRST_ROW = {"meta": 3, "google": 38}
-LAST_ROW = {"meta": 33, "google": 68}
+FIRST_ROW = {"meta": 3, "google": 38, "historico": 3}
+LAST_ROW = {"meta": 33, "google": 68, "historico": 33}
 
 # "Day" (dia-do-mês) — uma coluna por sub-seção do bloco. Escritas junto com
 # as métricas em toda gravação: são idempotentes (dia N é sempre dia N), não
 # precisam de um caminho especial de "linha nova" como em scripts/dados_lp.
-DAY_COLS = {"meta": ("A", "G", "Q"), "google": ("A", "I", "Q")}
+DAY_COLS = {"meta": ("A", "G", "Q"), "google": ("A", "I", "Q"), "historico": ("T",)}
 
 # Métrica -> (bloco, coluna). NÃO inclui as colunas de "Day" (DAY_COLS) nem os
 # espaçadores em branco (F/P no bloco meta, H/P no bloco google) — de
@@ -50,6 +52,8 @@ COLS = {
     "google_dgen_conv": ("google", "U"),
     "google_dgen_mql": ("google", "V"),
     "google_dgen_sql": ("google", "W"),
+    "leads_a1": ("historico", "U"),
+    "leads_m1": ("historico", "V"),
 }
 
 # Colunas de métrica por bloco, derivadas de COLS — usadas pra saber quais
@@ -167,8 +171,10 @@ def month_changed(active_label, month_number):
 
 
 # Ranges a limpar na virada de mês — as colunas graváveis + "Day" dos dois
-# blocos. Nunca cobre TikTok/Pinterest (fora do escopo desta skill).
-CLEAR_RANGES = {"meta": "A3:R33", "google": "A38:W68"}
+# blocos, incluindo o bloco "historico" (T:V, dentro das mesmas linhas do
+# bloco "meta") — A-1/M-1 do mês que saiu não fazem sentido pro mês novo.
+# Nunca cobre TikTok/Pinterest (fora do escopo desta skill).
+CLEAR_RANGES = {"meta": "A3:V33", "google": "A38:W68"}
 
 
 # Mapa Opportunity.UtmCam__c (slug interno do Salesforce) -> tipo de

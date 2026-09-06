@@ -1,6 +1,6 @@
 ---
 name: planilha-resultados-sexta
-description: Coleta dados consolidados de Meta Ads, Google Ads, GA4 e Salesforce (MQL/SQL do dia) e grava na aba "Banco de dados - Inside Sales" da planilha "[CAVEO] | Nova Planilha de ROAS e Resultados". Preenche retroativo os dias-do-mês pendentes, sem segmentação por Médico/Formando. Detecta e limpa (com confirmação) a virada de mês. Use para atualizar o dashboard de ROAS e Resultados.
+description: Coleta dados consolidados de Meta Ads, Google Ads, GA4 e Salesforce (MQL/SQL do dia) e grava na aba "Banco de dados - Inside Sales" da planilha "[CAVEO] | Nova Planilha de ROAS e Resultados". Preenche retroativo os dias-do-mês pendentes, sem segmentação por Médico/Formando. Detecta mês anterior incompleto e faz o backfill do mês inteiro antes de limpar (com confirmação) a virada de mês. Use para atualizar o dashboard de ROAS e Resultados.
 ---
 
 # Skill: Planilha de Resultados (Sexta) — Caveo
@@ -20,7 +20,6 @@ atribuída ao canal.
 | Salesforce | `caveo.my.salesforce.com` |
 | Planilha | `13Q3c4mGocuEI-yRbMUdiNsXhZhMJX17HOG8JRdcS-ok` |
 | Aba de escrita | `Banco de dados - Inside Sales` |
-| Aba de leitura (mês ativo) | `Inside Sales`, célula `B1` |
 | Auth Sheets | `.claude/sheets_credentials.json` (service account `reporte-ka-sheets@caveo-496716.iam.gserviceaccount.com`) |
 | Helper | `scripts/planilha_resultados_sexta/sheet.py` |
 
@@ -51,7 +50,7 @@ Demais Campanhas.
 | J (Demais) | `meta_impressoes` | `impressions` |
 | K (Demais) | `meta_cliques` | `actions[link_click]` |
 | L (Demais) | `meta_lpv` | `actions[landing_page_view]` |
-| M (Demais) | `meta_leads` | `actions[complete_registration]` (fallback `offsite_conversion.fb_pixel_complete_registration`) — "Registro Concluído", **não** `lead`/`onsite_web_lead` |
+| M (Demais) | `meta_leads` | `actions[lead]` — lead padrão, **não** `complete_registration`/`onsite_web_lead` |
 | N (Demais) | `meta_mql` | Salesforce — dia da 1ª transição que cruza o gate MQL, opps atribuídas a Meta |
 | O (Demais) | `meta_sql` | Salesforce — idem, gate SQL |
 
@@ -76,6 +75,25 @@ campanha desse tipo.
 |---|---|---|
 | R (bloco meta) | `ga4_sessoes` | `sessions` do property `488647966`, total do site (sem filtro de página) |
 
+### Histórico — comparativo A-1/M-1 (colunas T:V, dentro do bloco meta)
+
+Pra cada dia-do-mês D do mês ATIVO da planilha, U e V trazem o volume de
+leads das plataformas (Meta + Google, mesma régua de `meta_leads` +
+`google_*_conv` somados — **sem** MQL/SQL/Salesforce) no dia D de um período
+de referência no passado. Ver Fase 2E para a coleta.
+
+| Coluna | Chave | Régua |
+|---|---|---|
+| T | (day, sem chave em `COLS`) | dia-do-mês, idêntico às outras colunas "Day" |
+| U | `leads_a1` | `meta_leads(dia D) + Σ google_*_conv(dia D)`, no mês/ano `MES_ATIVO`/`ANO_ATIVO - 1` ("A-1" = um ano atrás) |
+| V | `leads_m1` | idem, no mês imediatamente anterior a `MES_ATIVO` ("M-1" = um mês atrás) |
+
+**Dia sem correspondente no mês de referência (ex. linha 31 buscando M-1 num
+mês de 30 dias, ou linhas 29-31 buscando A-1 num fevereiro comum): deixar
+em branco — não é "zero leads", é "esse dia não existe" naquele período.**
+Não é bug essas linhas aparecerem como "parciais" pra sempre nesses meses —
+é o esperado (ver Pontos de Atenção).
+
 ## Colunas fora do alcance da skill
 
 TikTok Ads (linhas 74-104) e Pinterest Ads (linhas 109-139): a aba `Inside
@@ -91,55 +109,33 @@ Todo dia dentro do período processado grava as métricas com `0` quando não
 houve ocorrência. Célula nunca fica em branco por falta de dado — "célula
 vazia" é o sinal de "dia pendente" na Fase 1.
 
+**Única exceção: `leads_a1`/`leads_m1` (colunas U/V do bloco Histórico).**
+Dia sem correspondente no mês de referência fica em branco de propósito —
+não existiu, não é "zero leads". Ver seção "Histórico" acima.
+
 ## Fase 0 — Alvo
 
 Duas datas mandam aqui: `HOJE = date.today()` e `D_MENOS_1 = HOJE -
-timedelta(days=1)`. O mês ativo da planilha é o rótulo de `Inside Sales!B1`
-(lido na Fase 0.5).
+timedelta(days=1)`.
 
-- **Caso comum — D-1 cai no mês corrente (`HOJE.day > 1`):**
-  `UNTIL_DAY = D_MENOS_1.day`; o mês processado é `HOJE.year`/`HOJE.month`.
-  Informar `Coletando de 01 a [UNTIL_DAY] de [MÊS]...` e seguir para a Fase 0.5.
-- **Caso de borda — hoje é dia 1 (`HOJE.day == 1`):** D-1 pertence ao mês
-  **anterior**; ir para a Fase 0.1 antes de qualquer outra coisa. **Nunca**
-  usar o último dia do mês corrente como `UNTIL_DAY` aqui: seriam 28-31 dias
-  que ainda não aconteceram, a Fase 2 voltaria vazia e a Fase 3 proporia
-  gravar um mês inteiro de zeros — que depois lê como "cheio" e nunca mais é
-  revisitado.
-- **Override:** `$ARGUMENTS` aceita um dia-do-mês (`1`-`31`) e, nesse caso,
-  **força a regravação** daquele dia mesmo já preenchido, sobre o layout de
-  linhas do mês ativo da planilha (`B1`), sem virar mês.
+**A skill não lê nem escreve `Inside Sales!B1`.** Essa aba passou a ter um
+bloco de 3 colunas por mês (hoje: B/C/D = Agosto, arquivado; E/F/G =
+Setembro), criado manualmente pelo time conforme o mês avança — o rótulo da
+primeira coluna fica parado ali como cabeçalho do arquivo histórico, não
+indica mais "o mês ativo" (ver "Pontos de Atenção" pra o incidente que
+motivou essa mudança, 2026-09-04). Ler `B1` pra detectar virada dá falso
+positivo (ele nunca muda) ou falso negativo, dependendo de quando o time
+mexeu na aba por último.
 
-## Fase 0.1 — Dia 1: fechar o último dia do mês que saiu (antes de limpar)
-
-O último dia de qualquer mês só vira "ontem" no dia 1 do mês seguinte. Se a
-virada limpar a planilha antes de coletá-lo, ele fica permanentemente sem
-dado e o `SUM` da aba `Inside Sales` perde um dia todo mês. Então, quando
-`HOJE.day == 1`:
-
-1. `ULTIMO_DIA = calendar.monthrange(D_MENOS_1.year, D_MENOS_1.month)[1]`
-   (= `D_MENOS_1.day`). O mês processado neste passe é o **mês que saiu**
-   (`D_MENOS_1.year`/`D_MENOS_1.month`), não o corrente.
-2. Ler o `Banco de dados` **ainda sem limpar** — as linhas 3-33 e 38-68 ainda
-   carregam o layout do mês que saiu — e checar se `ULTIMO_DIA` está pendente
-   ou parcial, com as mesmas funções da Fase 1 (`pending_days`/`partial_days`
-   com `until_day=ULTIMO_DIA`). Usar o bloco de conexão gspread da Fase 0.5
-   (só a parte que abre `banco`/`inside_sales`; nada de `batch_clear` ainda).
-3. Se estiver pendente, perguntar ao operador e, com o "sim", rodar **um passe
-   normal de Fases 1-4 com `dias_alvo = [ULTIMO_DIA]`** e `ANO`/`MES` do mês
-   que saiu. Se ele recusar ou pular, seguir mesmo assim — não forçar —, mas
-   **dizer explicitamente no relatório da Fase 5** que o último dia do mês que
-   saiu ficou sem coleta.
-4. Só depois disso ir para a Fase 0.5 (limpeza da virada).
-
-## Fase 0.5 — Virada de mês (checar toda execução, ação destrutiva)
+Abrir a conexão gspread (só o `Banco de dados`, não precisa mais de
+`Inside Sales`):
 
 ```python
 import gspread
 from google.oauth2.service_account import Credentials
 import sys
 sys.path.insert(0, 'scripts/planilha_resultados_sexta')
-from sheet import CLEAR_RANGES, month_changed, month_name
+from sheet import CLEAR_RANGES
 
 SHEET_ID = '13Q3c4mGocuEI-yRbMUdiNsXhZhMJX17HOG8JRdcS-ok'
 
@@ -148,30 +144,108 @@ creds = Credentials.from_service_account_file(
     scopes=['https://www.googleapis.com/auth/spreadsheets'])
 gc = gspread.authorize(creds)
 sh = gc.open_by_key(SHEET_ID)
-inside_sales = sh.worksheet('Inside Sales')
 banco = sh.worksheet('Banco de dados - Inside Sales')
-
-active_label = inside_sales.acell('B1').value or ''
-mudou = month_changed(active_label, HOJE.month)  # HOJE = date.today()
-print('rótulo atual:', active_label, '| mês corrente:', HOJE.month, '| mudou:', mudou)
 ```
+
+**Perguntar sempre ao operador** (decisão explícita do cliente — nunca
+inferir sozinho), logo no início de toda execução:
+
+```
+Hoje é [HOJE, por extenso]. O "Banco de dados - Inside Sales" já está
+processando [nome do mês de HOJE.month]/[HOJE.year] (sem virada pendente)?
+Ou ainda está registrando um mês anterior e precisa virar antes?
+```
+
+- **Resposta "sim, já está no mês corrente":** `mudou = False`.
+  `UNTIL_DAY = D_MENOS_1.day`; o mês processado é `HOJE.year`/`HOJE.month`.
+  Informar `Coletando de 01 a [UNTIL_DAY] de [MÊS]...` e seguir direto para
+  a Fase 1 — a Fase 0.5 não tem nada a fazer. Se isso cair num
+  `HOJE.day == 1` (a virada anterior já tinha sido feita e ninguém coletou
+  ainda hoje), `UNTIL_DAY` aponta pro último dia do mês anterior — já
+  coletado antes daquela virada —, então não sobra dia-alvo; seguir mesmo
+  assim para a Fase 1, que reporta `dias_alvo` vazio e para sozinha.
+- **Resposta "não, ainda está em [MES_SAIU]/[ANO_SAIU]":** `mudou = True`
+  — usar o mês/ano que o operador informar (perguntar o ano também se não
+  for óbvio pelo contexto, ex. virada dezembro→janeiro). Ir direto para a
+  Fase 0.1 antes de qualquer outra coisa, **independente do dia do mês**:
+  não é só o caso de "hoje é dia 1" — se a coleta ficar alguns dias sem
+  rodar depois da virada do calendário, o mês anterior pode ter vários dias
+  sem coleta, não só o último.
+- **Override de dia único:** `$ARGUMENTS` aceita um dia-do-mês (`1`-`31`) e,
+  nesse caso, **força a regravação** daquele dia mesmo já preenchido, sobre
+  o layout de linhas do mês ativo do `Banco de dados` (confirmado com o
+  operador acima), sem virar mês.
+- **Override de mês completo:** `$ARGUMENTS` aceita também `mes-completo`
+  (ou `completo`) — roda o backfill da Fase 0.1 sob demanda pro mês ATIVO
+  do `Banco de dados`, mesmo com `mudou == False`. Serve pra fechar um mês
+  que ficou incompleto sem esperar a virada do calendário acontecer sozinha.
+
+## Fase 0.1 — Mês anterior incompleto (fechar antes de virar)
+
+Todo dia sem coleta do mês que está saindo, se a virada limpar a planilha
+antes de gravá-lo, fica permanentemente sem dado — célula limpa não volta.
+Esta fase roda sempre que o operador confirmar `mudou == True` (Fase 0),
+**antes de qualquer limpeza**, e cobre o mês INTEIRO que saiu, não só o
+último dia:
+
+1. `MES_SAIU`/`ANO_SAIU` = o que o operador informou na Fase 0 (não
+   inferir de nenhuma célula da planilha). `ULTIMO_DIA =
+   calendar.monthrange(ANO_SAIU, MES_SAIU)[1]`.
+2. Ler o `Banco de dados` **ainda sem limpar** — as linhas 3-33 e 38-68
+   ainda carregam o layout do mês que saiu — e checar `pending_days` e
+   `partial_days` dos dois blocos com `until_day=ULTIMO_DIA` (mesmas
+   funções da Fase 1, cobrindo 1..`ULTIMO_DIA` inteiro, não só o último
+   dia). Usar a conexão gspread já aberta na Fase 0 (`banco`); nada de
+   `batch_clear` ainda.
+3. Se `pendentes` ou `parciais` vier não-vazio: reportar a lista completa
+   (ex. "Agosto incompleto: dias 28-31 pendentes") e perguntar ao operador
+   se quer rodar o backfill agora.
+   - **Com "sim":** um passe normal de Fases 1-4, com `ANO`/`MES` =
+     `ANO_SAIU`/`MES_SAIU` e `dias_alvo = pendentes + parciais` — parciais
+     entram aqui porque fechar o mês é decisão explícita do operador, a
+     mesma licença do override de dia único (não vale a regra "parcial
+     nunca sobrescreve sozinho" da Fase 1 normal).
+   - **Com recusa ou pulo:** seguir mesmo assim — não forçar —, mas
+     **dizer explicitamente no relatório da Fase 5** quais dias do mês que
+     saiu ficaram sem coleta ou parciais.
+4. Só depois disso ir para a Fase 0.5 (limpeza da virada). Depois de limpar,
+   se `HOJE.day > 1`, seguir na mesma execução para a Fase 1 já mirando o
+   mês novo (`UNTIL_DAY = D_MENOS_1.day`); se `HOJE.day == 1`, parar (nada
+   do mês novo aconteceu ainda).
+
+**Sob demanda, fora da virada:** `$ARGUMENTS = mes-completo` (ou
+`completo`) roda os passos 1-3 pro mês ATIVO do `Banco de dados` (confirmado
+com o operador) mesmo com `mudou == False` — fecha um mês incompleto sem
+esperar o calendário virar.
+
+## Fase 0.5 — Virada de mês (ação destrutiva, só depois da Fase 0.1)
+
+`mudou`, `MES_SAIU`/`ANO_SAIU` e a conexão gspread (`banco`) já vêm da Fase
+0/0.1. Se `mudou == True`, a Fase 0.1 já tratou o mês que está saindo
+(backfill completo, com ou sem recusa do operador) antes de chegar aqui —
+esta fase nunca limpa a planilha sem passar por ela primeiro.
 
 **Se `mudou` for `True`:** avisar o usuário exatamente assim e PARAR até
 confirmação:
 
 ```
-A planilha ainda está no mês [rótulo atual], mas hoje é [mês corrente]. Preciso
-limpar as linhas 3-33 e 38-68 do "Banco de dados" antes de gravar o mês novo.
-Confirma a limpeza? (sim para confirmar)
+Confirmado: o Banco de dados ainda está em [MES_SAIU]/[ANO_SAIU], mas hoje
+é [mês corrente]. Preciso limpar as linhas 3-33 e 38-68 antes de gravar o
+mês novo. Confirma a limpeza? (sim para confirmar)
 ```
 
 Só após "sim":
 
 ```python
 banco.batch_clear(list(CLEAR_RANGES.values()))
-inside_sales.update_acell('B1', month_name(HOJE.month))
-print('Limpeza feita, mês atualizado para', month_name(HOJE.month))
+print('Limpeza feita — Banco de dados pronto para', HOJE.month, '/', HOJE.year)
 ```
+
+**Não escrever em `Inside Sales!B1` nem em nenhuma célula de `Inside
+Sales`** — essa aba não é mais controlada por esta skill (ver Fase 0 e
+"Pontos de Atenção"). Avisar o operador, no relatório final, que o time
+pode precisar adicionar o bloco de colunas do mês novo em `Inside Sales`
+manualmente, se ainda não tiver feito.
 
 **Se `mudou` for `False`:** seguir para a Fase 1, sem tocar em nada.
 
@@ -185,13 +259,14 @@ Mês virou para [MÊS NOVO], planilha limpa. Nada a coletar ainda hoje — rode
 novamente amanhã.
 ```
 
-Se não houve virada porque `B1` já estava no mês novo, mesma parada, trocando
-a primeira frase por `Planilha já está em [MÊS NOVO].`
+Se o operador já respondeu na Fase 0 que não havia virada pendente, mesma
+parada, trocando a primeira frase por `Banco de dados já está em [MÊS
+NOVO].`
 
 ## Fase 1 — Reconhecimento
 
 ```python
-grid_meta = {r + 3: row for r, row in enumerate(banco.get('A3:R33'))}
+grid_meta = {r + 3: row for r, row in enumerate(banco.get('A3:V33'))}
 grid_google = {r + 38: row for r, row in enumerate(banco.get('A38:W68'))}
 
 from sheet import partial_days, pending_days
@@ -206,8 +281,40 @@ print('parciais (serão pulados):', parciais)
 print('dias-alvo:', dias_alvo)
 ```
 
+`grid_meta` agora vai até V (não mais R) porque o bloco `historico` (T:V)
+mora nas mesmas linhas do bloco `meta` — ver Fase 1B.
+
 Com `$ARGUMENTS = dia`: `dias_alvo = [dia]` direto, ignorando pendente/parcial
 (força regravação). Se `dias_alvo` vier vazio (sem override), avisar e parar.
+
+No backfill de mês completo (Fase 0.1, automático por virada ou via
+`$ARGUMENTS = mes-completo`): `UNTIL_DAY = ULTIMO_DIA` do mês sendo fechado
+e `dias_alvo = pendentes + parciais` — parciais **entram**, não são
+pulados. A exclusão de parciais do bloco acima só vale pro fluxo diário
+normal.
+
+## Fase 1B — Reconhecimento do Histórico (A-1/M-1, mês inteiro)
+
+Independente de `dias_alvo` acima — A-1/M-1 são datas passadas que já
+aconteceram por completo, então não ficam presas ao `UNTIL_DAY` de hoje.
+
+```python
+import calendar
+
+ULTIMO_DIA_ATIVO = calendar.monthrange(ANO, MES)[1]  # ANO/MES do mês sendo processado nesta passada
+pendentes_hist = pending_days('historico', grid_meta, ULTIMO_DIA_ATIVO)
+parciais_hist = partial_days('historico', grid_meta, ULTIMO_DIA_ATIVO)
+dias_alvo_hist = sorted(set(pendentes_hist) | set(parciais_hist))
+print('histórico pendente:', pendentes_hist)
+print('histórico parcial:', parciais_hist)
+```
+
+Se `dias_alvo_hist` vier vazio: bloco já completo pro mês ativo, pular a
+Fase 2E inteira (nada a coletar). Parciais aqui **entram** em
+`dias_alvo_hist` (mesma lógica do backfill de mês completo) — não faz
+sentido pedir confirmação separada pra "sobrescrever" um valor de A-1/M-1,
+já que o número certo pra aquele dia é sempre o mesmo, não muda com o
+tempo.
 
 ## Fase 2 — Coleta (para cada dia de `dias_alvo`, `MIN_DIA`/`MAX_DIA` = extremos)
 
@@ -227,8 +334,7 @@ Por linha (campanha) do dia: olhar `objetivo_por_campanha[campaign_id]`. Se
 `impressions`→`meta_aw_impressoes`. Caso contrário: somar `spend`→`meta_invest`,
 `reach`→`meta_alcance`, `impressions`→`meta_impressoes`, o `value` da action
 `link_click`→`meta_cliques`, o `value` da action `landing_page_view`→`meta_lpv`,
-o `value` da action `complete_registration` (fallback
-`offsite_conversion.fb_pixel_complete_registration`)→`meta_leads`.
+o `value` da action `lead`→`meta_leads`.
 `meta_aw_seguidores` = sempre `0` (ver Pontos de Atenção).
 
 ### 2B. Google — uma chamada cobre `MIN_DIA`-`MAX_DIA`
@@ -344,11 +450,59 @@ for canal in ('meta', 'google'):
 
 **Se qualquer uma das quatro fontes falhar, interromper antes de gravar.**
 
+### 2E. Histórico — A-1/M-1 (só roda se `dias_alvo_hist` da Fase 1B não vier vazio)
+
+Reaproveita Meta e Google — não é uma quinta fonte, é a mesma régua de
+`meta_leads`/`google_*_conv` aplicada a datas passadas em vez de hoje.
+**Se falhar, também interrompe antes de gravar** — não é aceitável gravar
+metade do comparativo (só A-1 sem M-1, por exemplo).
+
+```python
+MES_A1, ANO_A1 = MES, ANO - 1
+MES_M1, ANO_M1 = (12, ANO - 1) if MES == 1 else (MES - 1, ANO)
+
+ULTIMO_A1 = calendar.monthrange(ANO_A1, MES_A1)[1]
+ULTIMO_M1 = calendar.monthrange(ANO_M1, MES_M1)[1]
+
+dias_a1 = [d for d in dias_alvo_hist if d <= ULTIMO_A1]  # dia não existe no mês -> fica de fora, célula em branco
+dias_m1 = [d for d in dias_alvo_hist if d <= ULTIMO_M1]
+```
+
+**Meta (uma chamada por dia, igual à 2A):** pra cada dia em `dias_a1` e
+depois em `dias_m1`, `mcp__meta-ads-mcp__get_insights` com
+`time_range={"since": DATA, "until": DATA}` na data correspondente
+(`ANO_A1-MES_A1-dia` / `ANO_M1-MES_M1-dia`). Somar o `value` da action
+`lead` só das campanhas **fora** de `objetivo_por_campanha[...] ==
+"OUTCOME_AWARENESS"` (mesmo filtro da 2A) → `meta_leads_dia`. Reaproveitar
+`objetivo_por_campanha` da 2A **só se** ela já cobrir campanhas antigas o
+bastante — campanha de 2025 pode não aparecer num fetch de 200 campanhas
+recentes; se um `campaign_id` do insight não estiver no mapa, tratar como
+"Demais Campanhas" (não Awareness) por padrão, e avisar no relatório.
+
+**Google (uma chamada por janela, igual à 2B):** uma
+`mcp__google-ads-mcp__search_search` cobrindo `MIN(dias_a1)`-`MAX(dias_a1)`
+no ano/mês `ANO_A1`/`MES_A1`, e outra cobrindo `MIN(dias_m1)`-`MAX(dias_m1)`
+em `ANO_M1`/`MES_M1` — mesmos fields da 2B. Somar `metrics.conversions` de
+TODOS os `advertising_channel_type` juntos por dia (sem separar
+Search/PMax/DGen aqui — o comparativo é um número só) →
+`google_conv_dia`.
+
+**Combinar por dia:** `leads_a1[dia] = meta_leads_dia(A-1) +
+google_conv_dia(A-1)` pra `dia` em `dias_a1`; idem `leads_m1[dia]` com as
+séries M-1 e `dias_m1`. Dia fora de `dias_a1`/`dias_m1` (mês de referência
+mais curto) não entra no dict — vira `None` em `cell_updates`, que já pula
+chave `None` sozinho (fica em branco, não grava `0`).
+
 ## Fase 3 — Cálculo e preview
 
-Combinar 2A-2D em `METRICAS = {dia: {chave de COLS: valor}}`, garantindo as
-31 chaves sempre presentes (zero explícito). Imprimir a tabela dia × 31
-métricas e as células A1 exatas que serão gravadas
+Combinar 2A-2D em `METRICAS = {dia: {chave de COLS: valor}}` pros dias de
+`dias_alvo`, garantindo as 31 chaves de sempre presentes (zero explícito,
+exceto `leads_a1`/`leads_m1` — ver Fase 2E). Se a Fase 2E rodou, mesclar
+`leads_a1`/`leads_m1` no `METRICAS[dia]` correspondente — o conjunto de
+dias vira `sorted(set(dias_alvo) | set(dias_alvo_hist))`, porque um dia
+pode estar só em `dias_alvo_hist` (ex. dia 20 do mês ativo ainda não
+aconteceu, mas o comparativo A-1/M-1 daquele dia-do-mês já existe). Imprimir
+a tabela dia × métricas e as células A1 exatas que serão gravadas
 (`cell_updates`/`day_label_updates`). Então perguntar:
 
 ```
@@ -372,10 +526,20 @@ print(f'Gravadas {total} células.')
 
 Dizer se houve virada de mês (e o que foi limpo), quantas células foram
 gravadas, e listar os dias parciais que foram pulados. Se a Fase 0.1 rodou,
-dizer se o último dia do mês que saiu foi coletado ou ficou sem coleta.
+dizer quais dias do mês que saiu ficaram sem coleta ou parciais (ou que o
+mês foi fechado por completo). Se a Fase 2E rodou, dizer quantos dias do
+Histórico foram preenchidos e quais dias ficaram em branco de propósito
+(fora do alcance do mês de referência A-1 ou M-1).
 
 ## Pontos de Atenção
 
+- **A regra de D-1 só vale com a planilha em dia.** Se a coleta ficar
+  parada por vários dias depois de uma virada de calendário, `mudou`
+  continua `True` até alguém rodar a skill — e nesse meio-tempo o mês que
+  saiu pode acumular vários dias sem coleta, não só o último. É pra isso
+  que existe a Fase 0.1 (automática) e o override `mes-completo` (sob
+  demanda): nunca confirmar a limpeza da Fase 0.5 sem antes checar o mês
+  INTEIRO que está saindo.
 - **"Seguidores" (Awareness) não tem métrica de Ads Insights nativa** — é
   dado de Page Insights, API diferente. Gravar sempre `0` até existir uma
   campanha `OUTCOME_AWARENESS` ativa que permita validar a fonte certa.
@@ -387,13 +551,33 @@ dizer se o último dia do mês que saiu foi coletado ou ficou sem coleta.
   alias da antiga `planilha-resultados`).
 - **Virada de mês é destrutiva** — nunca limpar `Banco de dados` sem
   confirmação explícita.
-- **`month_changed` compara texto exato (com acento).** `Inside Sales!B1` com
-  "MARCO" no lugar de "MARÇO" dispara pergunta de virada de mês em março, sem
-  que mês nenhum tenha virado. É o comportamento especificado (comparação
-  literal, sem normalizar) — se aparecer uma virada inesperada, conferir o
-  acento da célula antes de confirmar a limpeza.
+- **`Inside Sales` não indica mais o mês ativo (incidente 2026-09-04).** A
+  aba passou a ter um bloco de 3 colunas por mês (B/C/D, E/F/G, ...),
+  adicionado manualmente pelo time — o rótulo da primeira coluna (`B1`)
+  fica parado como cabeçalho do arquivo histórico. A skill escreveu
+  "SETEMBRO" em `B1` na virada de 2026-09-03 e o time reverteu pra "AGOSTO"
+  ao criar o bloco novo (comportamento correto do lado deles, given a nova
+  estrutura) — o que quebraria a detecção automática de virada se ela ainda
+  lesse essa célula. Por isso a Fase 0 agora **pergunta sempre ao operador**
+  em vez de inferir de qualquer célula de `Inside Sales`, e a Fase 0.5
+  nunca mais escreve lá. `month_changed`/`MESES_PT`/`month_name` em
+  `sheet.py` ficaram órfãos dessa mudança — ainda existem e têm teste, mas
+  nenhuma fase desta skill os chama mais.
 - **Fuso:** Salesforce devolve datas em UTC; sempre converter pra `-03:00`
   antes de extrair o dia (`dia_br`).
 - **`dia_do_mes_se_no_periodo` é obrigatório** no cruzamento de Salesforce —
   sem ele, uma transição de um mês anterior com o mesmo dia-do-mês seria
   contada na linha errada.
+- **Histórico (T:V) não tem MQL/SQL, só leads de plataforma.** É Meta
+  `actions[lead]` (Demais Campanhas) + Google `conversions`, igual às
+  colunas M/E-M-U — nunca puxar Salesforce aqui, e nunca incluir Awareness.
+- **Linhas 29-31 do Histórico ficam "parciais" pra sempre em meses cujo A-1
+  ou M-1 é mais curto** (ex. mês ativo de 31 dias com M-1 de 30, ou A-1
+  caindo num fevereiro comum). Não é bug e não precisa de force/override —
+  U ou V daquele dia sempre vai ficar em branco porque a data de referência
+  não existe, e `partial_days` vai continuar reportando isso a cada
+  execução. Só a Fase 2E decide se roda (baseada em `dias_alvo_hist`), não
+  precisa de confirmação manual pra essas linhas.
+- **`CLEAR_RANGES["meta"]` agora cobre até V (não só R)** — se alguém
+  reverter isso pra `A3:R33` sem querer, a virada de mês para de limpar o
+  Histórico e o mês novo herda A-1/M-1 do mês anterior, errado.

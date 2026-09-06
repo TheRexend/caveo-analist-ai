@@ -16,6 +16,11 @@ def test_row_for_day_bloco_google_dia_1_e_dia_31():
     assert row_for_day("google", 31) == 68
 
 
+def test_row_for_day_bloco_historico_compartilha_linhas_do_meta():
+    assert row_for_day("historico", 1) == 3
+    assert row_for_day("historico", 31) == 33
+
+
 def test_row_for_day_rejeita_bloco_invalido():
     with pytest.raises(ValueError):
         row_for_day("tiktok", 1)
@@ -42,7 +47,7 @@ def test_cell_updates_mapeia_todas_as_trinta_e_uma_colunas():
         "google_pmax_mql": 24, "google_pmax_sql": 25,
         "google_dgen_invest": 26, "google_dgen_impressoes": 27,
         "google_dgen_cliques": 28, "google_dgen_conv": 29, "google_dgen_mql": 30,
-        "google_dgen_sql": 31,
+        "google_dgen_sql": 31, "leads_a1": 32, "leads_m1": 33,
     }
     ups = dict(cell_updates(1, metrics))
     assert ups == {
@@ -51,6 +56,7 @@ def test_cell_updates_mapeia_todas_as_trinta_e_uma_colunas():
         "B38": 14, "C38": 15, "D38": 16, "E38": 17, "F38": 18, "G38": 19,
         "J38": 20, "K38": 21, "L38": 22, "M38": 23, "N38": 24, "O38": 25,
         "R38": 26, "S38": 27, "T38": 28, "U38": 29, "V38": 30, "W38": 31,
+        "U3": 32, "V3": 33,
     }
 
 
@@ -67,17 +73,19 @@ def test_cell_updates_mantem_zero_explicito_e_ignora_none():
 
 def test_cell_updates_nunca_toca_colunas_de_day_nem_espacador():
     ups = dict(cell_updates(1, {key: 0 for key in COLS}))
-    proibidas = {"A3", "F3", "G3", "P3", "Q3", "A38", "H38", "I38", "P38", "Q38"}
+    proibidas = {"A3", "F3", "G3", "P3", "Q3", "T3", "A38", "H38", "I38", "P38", "Q38"}
     assert set(ups) & proibidas == set()
 
 
 def test_day_label_updates_grava_as_tres_colunas_de_cada_bloco():
     ups = dict(day_label_updates(5))
-    assert ups == {"A7": 5, "G7": 5, "Q7": 5, "A42": 5, "I42": 5, "Q42": 5}
+    assert ups == {"A7": 5, "G7": 5, "Q7": 5, "A42": 5, "I42": 5, "Q42": 5,
+                    "T7": 5}
 
 
-def test_day_cols_tem_exatamente_tres_colunas_por_bloco():
-    assert DAY_COLS == {"meta": ("A", "G", "Q"), "google": ("A", "I", "Q")}
+def test_day_cols_cobre_os_tres_blocos():
+    assert DAY_COLS == {"meta": ("A", "G", "Q"), "google": ("A", "I", "Q"),
+                         "historico": ("T",)}
 
 
 class FakeWorksheet:
@@ -110,6 +118,7 @@ def test_block_metric_cols_bate_com_as_colunas_de_cols():
     assert BLOCK_METRIC_COLS["google"] == {
         "B", "C", "D", "E", "F", "G", "J", "K", "L", "M", "N", "O",
         "R", "S", "T", "U", "V", "W"}
+    assert BLOCK_METRIC_COLS["historico"] == {"U", "V"}
 
 
 # Linhas do bloco "meta" (A..R, índice 0 = A). Day cols (A/G/Q) preenchidas
@@ -122,6 +131,13 @@ META_LINHA_PARCIAL = ["1", "10", "10", "10", "10", "", "1", "", "", "", "", "", 
 GOOGLE_LINHA_VAZIA = ["1", "", "", "", "", "", "", "", "1", "", "", "", "", "", "", "", "1", "", "", "", "", "", ""]
 GOOGLE_LINHA_CHEIA = ["1", "5", "5", "5", "5", "5", "5", "", "1", "5", "5", "5", "5", "5", "5", "", "1", "5", "5", "5", "5", "5", "5"]
 GOOGLE_LINHA_PARCIAL = ["1", "5", "5", "5", "5", "5", "5", "", "1", "", "", "", "", "", "", "", "1", "", "", "", "", "", ""]
+
+# O bloco "historico" compartilha as MESMAS linhas físicas do bloco "meta"
+# (índice 0 = A também aqui) — só U (A-1, índice 20) e V (M-1, índice 21)
+# são métrica. Por isso a linha é META_LINHA_VAZIA (A..R) + S/T/U/V.
+HISTORICO_LINHA_VAZIA = META_LINHA_VAZIA + ["", "1", "", ""]
+HISTORICO_LINHA_CHEIA = META_LINHA_VAZIA + ["", "1", "20", "15"]
+HISTORICO_LINHA_PARCIAL = META_LINHA_VAZIA + ["", "1", "20", ""]
 
 
 def test_row_is_empty_ignora_colunas_de_day_e_espacador():
@@ -169,6 +185,19 @@ def test_pending_days_trata_dia_sem_linha_no_grid_como_vazio():
     assert pending_days("meta", {}, 2) == [1, 2]
 
 
+def test_row_is_empty_bloco_historico():
+    assert row_is_empty("historico", HISTORICO_LINHA_VAZIA) is True
+    assert row_is_empty("historico", HISTORICO_LINHA_CHEIA) is False
+    assert row_is_empty("historico", HISTORICO_LINHA_PARCIAL) is False
+
+
+def test_pending_e_partial_days_bloco_historico():
+    grid = {3: HISTORICO_LINHA_CHEIA, 4: HISTORICO_LINHA_PARCIAL,
+            5: HISTORICO_LINHA_VAZIA}
+    assert pending_days("historico", grid, 3) == [3]
+    assert partial_days("historico", grid, 3) == [2]
+
+
 def test_month_name_mapeia_janeiro_agosto_dezembro():
     assert month_name(1) == "JANEIRO"
     assert month_name(8) == "AGOSTO"
@@ -190,8 +219,8 @@ def test_month_changed_true_quando_mes_diferente():
     assert month_changed("JULHO", 8) is True
 
 
-def test_clear_ranges_cobre_exatamente_os_dois_blocos():
-    assert CLEAR_RANGES == {"meta": "A3:R33", "google": "A38:W68"}
+def test_clear_ranges_cobre_meta_mais_historico_e_google():
+    assert CLEAR_RANGES == {"meta": "A3:V33", "google": "A38:W68"}
 
 
 def test_google_channel_bucket_mapeia_campanhas_ativas():
