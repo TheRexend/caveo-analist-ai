@@ -38,17 +38,22 @@ def test_check_consecutive_tabela_vazia_nao_quebra():
     assert check_consecutive({}) == []
 
 
-# Fatias de C..N (índice 0 = C, 11 = N). Atenção: G e L são colunas de RÓTULO e
-# vêm sempre preenchidas, mesmo numa linha sem nenhum dado — e o gspread corta
-# os vazios do fim, por isso a linha vazia tem só 10 itens.
-LINHA_VAZIA = ["", "", "", "", "Google Ads", "", "", "", "", "GA4"]
-LINHA_CHEIA = ["36708", "344", "12", "2339,59", "Google Ads", "56623", "3340",
-               "140", "3651,51", "GA4", "3365", "2,00%"]
-LINHA_PARCIAL = ["36708", "344", "12", "2339,59", "Google Ads", "", "", "", "",
-                 "GA4"]
+# Fatias de C..T (índice 0 = C, 17 = T). Atenção: J (7) e R (15) são colunas de
+# RÓTULO e vêm sempre preenchidas, mesmo numa linha sem nenhum dado — e o gspread
+# corta os vazios do fim, por isso a linha vazia para no rótulo de GA4.
+LINHA_VAZIA = ["", "", "", "", "", "", "", "Google Ads",
+               "", "", "", "", "", "", "", "GA4"]
+LINHA_CHEIA = ["36708", "344", "12", "2339,59", "8", "3", "1", "Google Ads",
+               "56623", "3340", "140", "3651,51", "20", "6", "2", "GA4",
+               "3365", "2,00%"]
+# O parcial de verdade desde 2026-08-18: plataforma e GA4 gravados, as seis
+# colunas de Salesforce (G/H/I e O/P/Q) ainda vazias.
+LINHA_PARCIAL = ["36708", "344", "12", "2339,59", "", "", "", "Google Ads",
+                 "56623", "3340", "140", "3651,51", "", "", "", "GA4",
+                 "3365", "2,00%"]
 
 
-def test_row_is_empty_ignora_rotulos_das_colunas_G_e_L():
+def test_row_is_empty_ignora_rotulos_das_colunas_J_e_R():
     assert row_is_empty(LINHA_VAZIA) is True
 
 
@@ -76,6 +81,13 @@ def test_partial_dates_avisa_linha_pela_metade():
     assert partial_dates(dmap, {2: LINHA_PARCIAL}, "2026-08-15") == ["2026-08-13"]
 
 
+def test_partial_dates_pega_dia_sem_as_colunas_de_salesforce():
+    """O estado exato das linhas 2..6 quando F/G/H e O/P/Q foram criadas."""
+    dmap = {"2026-08-13": 2}
+    assert partial_dates(dmap, {2: LINHA_PARCIAL}, "2026-08-13") == ["2026-08-13"]
+    assert pending_dates(dmap, {2: LINHA_PARCIAL}, "2026-08-13") == []
+
+
 def test_partial_dates_ignora_linha_vazia_e_linha_cheia():
     dmap = {"2026-08-13": 2, "2026-08-14": 3}
     grid = {2: LINHA_CHEIA, 3: LINHA_VAZIA}
@@ -101,24 +113,28 @@ def test_append_rows_payload_clona_data_rotulos_e_formulas():
     ups = dict(append_rows_payload(61, ["2026-10-11"]))
     assert ups["A61"] == "11/10/2026"
     assert ups["B61"] == "Meta Ads"
-    assert ups["G61"] == "Google Ads"
-    assert ups["L61"] == "GA4"
-    assert ups["O61"] == "Total Geral"
-    assert ups["P61"] == "=H61+C61"
-    assert ups["Q61"] == "=I61+D61"
-    assert ups["R61"] == "=Q61/P61"
-    assert ups["S61"] == "=M61"
-    assert ups["T61"] == "=(K61+F61)/S61"
-    assert ups["U61"] == "=S61/Q61"
-    assert ups["V61"] == "=J61+E61"
-    assert ups["W61"] == "=V61/S61"
+    assert ups["J61"] == "Google Ads"
+    assert ups["R61"] == "GA4"
+    assert ups["U61"] == "Total Geral"
+    assert ups["V61"] == "=K61+C61"
+    assert ups["W61"] == "=L61+D61"
+    assert ups["X61"] == "=W61/V61"
+    assert ups["Y61"] == "=S61"
+    assert ups["Z61"] == "=(N61+F61)/Y61"
+    assert ups["AA61"] == "=Y61/W61"
+    assert ups["AB61"] == "=M61+E61"
+    assert ups["AC61"] == "=AB61/Y61"
+    assert ups["AD61"] == "=G61+O61"
+    assert ups["AE61"] == "=H61+P61"
+    assert ups["AF61"] == "=I61+Q61"
 
 
 def test_append_rows_payload_incrementa_a_linha_por_data():
     ups = dict(append_rows_payload(61, ["2026-10-11", "2026-10-12"]))
     assert ups["A62"] == "12/10/2026"
-    assert ups["S62"] == "=M62"
-    assert ups["T62"] == "=(K62+F62)/S62"
+    assert ups["Y62"] == "=S62"
+    assert ups["Z62"] == "=(N62+F62)/Y62"
+    assert ups["AF62"] == "=I62+Q62"
 
 
 def test_append_rows_payload_nao_grava_nas_colunas_de_metrica():
@@ -145,23 +161,36 @@ class FakeWorksheet:
         self.calls.append((body, value_input_option))
 
 
-def test_cell_updates_mapeia_as_dez_colunas():
+def test_cell_updates_mapeia_as_dezesseis_colunas():
     ups = dict(cell_updates(3, {
         "meta_impressoes": 36710, "meta_cliques": 344, "meta_leads": 12,
-        "meta_invest": 2339.59, "google_impressoes": 56642,
+        "meta_invest": 2339.59, "meta_mql": 8, "meta_sql": 3,
+        "meta_fechamentos": 1, "google_impressoes": 56642,
         "google_cliques": 3322, "google_leads": 136, "google_invest": 3635.67,
+        "google_mql": 20, "google_sql": 6, "google_fechamentos": 2,
         "ga4_sessoes": 3196, "ga4_bounce": 0.0087609}))
     assert ups == {
         "C3": 36710, "D3": 344, "E3": 12, "F3": 2339.59,
-        "H3": 56642, "I3": 3322, "J3": 136, "K3": 3635.67,
-        "M3": 3196, "N3": 0.0087609,
+        "G3": 8, "H3": 3, "I3": 1,
+        "K3": 56642, "L3": 3322, "M3": 136, "N3": 3635.67,
+        "O3": 20, "P3": 6, "Q3": 2,
+        "S3": 3196, "T3": 0.0087609,
     }
+
+
+def test_cell_updates_aceita_so_o_bloco_de_salesforce():
+    """Backfill cirúrgico: não toca nas células de plataforma já gravadas."""
+    ups = dict(cell_updates(2, {"meta_mql": 8, "meta_sql": 3,
+                                "meta_fechamentos": 1, "google_mql": 20,
+                                "google_sql": 6, "google_fechamentos": 2}))
+    assert ups == {"G2": 8, "H2": 3, "I2": 1, "O2": 20, "P2": 6, "Q2": 2}
 
 
 def test_cell_updates_nunca_toca_rotulo_nem_formula():
     ups = dict(cell_updates(3, {key: 0 for key in COLS}))
     proibidas = {f"{col}3" for col in
-                 ["B", "G", "L", "O", "P", "Q", "R", "S", "T", "U", "V", "W"]}
+                 ["B", "J", "R", "U", "V", "W", "X", "Y", "Z",
+                  "AA", "AB", "AC", "AD", "AE", "AF"]}
     assert set(ups) & proibidas == set()
 
 
@@ -174,6 +203,13 @@ def test_cell_updates_mantem_zero_explicito_e_ignora_none():
     ups = dict(cell_updates(3, {"meta_leads": 0, "meta_invest": None}))
     assert ups["E3"] == 0
     assert "F3" not in ups
+
+
+def test_investimento_meta_e_a_coluna_F_nao_a_I():
+    """Regressão: a I é fechamentos Meta. Trocar as duas some com a venda e
+    joga dinheiro na coluna de resultado."""
+    ups = dict(cell_updates(3, {"meta_invest": 1757.0, "meta_fechamentos": 1}))
+    assert ups == {"F3": 1757.0, "I3": 1}
 
 
 def test_write_updates_monta_o_body_e_conta_celulas():
@@ -207,10 +243,10 @@ class FakeFormattableWorksheet:
         self.formats.append((cell_range, cell_format))
 
 
-def test_ensure_bounce_format_aplica_percentual_na_coluna_N():
+def test_ensure_bounce_format_aplica_percentual_na_coluna_T():
     ws = FakeFormattableWorksheet()
-    assert ensure_bounce_format(ws, 3, 60) == "N3:N60"
-    assert ws.formats == [("N3:N60", BOUNCE_FORMAT)]
+    assert ensure_bounce_format(ws, 3, 60) == "T3:T60"
+    assert ws.formats == [("T3:T60", BOUNCE_FORMAT)]
 
 
 def test_bounce_format_e_o_mesmo_da_linha_preenchida_a_mao():
