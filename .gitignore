@@ -37,6 +37,10 @@ yarn-error.log*
 # local sqlite (metas) — em prod usa Postgres
 /data/*.db
 
+# exports pontuais (relatórios/planilhas gerados ad-hoc, não são estado do agente)
+/data/*.xlsx
+/data/*.csv
+
 # MCPs locais — venv, cache e credenciais nunca vão ao git
 mcps/.venv/
 mcps/**/__pycache__/
