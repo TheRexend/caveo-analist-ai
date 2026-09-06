@@ -1,5 +1,12 @@
 # 4 Variações de Hero — Landing Page Caveo (Médico Maduro)
 
+> ⚠️ **APOSENTADO em 2026-08-13. Não usar como fonte de copy.**
+> Escrito antes dos manuais de comunicação. As 4 variações violam o teto da
+> promessa (Oferta §1) por usarem "até 30%", usam a família banida "FEITO POR
+> MÉDICOS, PARA MÉDICOS" (§3.1) e têm CTAs fora da lista aprovada (§7.1).
+> Substituído por **`docs/Heros_LP_Medico_Caveo.md`**, que explica na §1 por que
+> cada recurso daqui caiu. Mantido só como histórico.
+
 > **Cliente:** Caveo · **Agência:** Boomer · **Versão:** 2026-06-16
 > **Página:** https://lp2.caveo.com.br/ · **Público:** Médico Maduro (plantonista PJ)
 > **Briefing:** copy de Hero impactante e agressiva, ancorada na indignação central do segmento ("pago imposto demais") e no medo de trocar de contador. Documento complementar ao levantamento `LP_Teste_AB_Copy_Medico_Maduro_Caveo.md`.
