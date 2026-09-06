@@ -26,6 +26,9 @@ desse diagnóstico para propor o que testar a seguir.
 | `docs/personas_medico.md` | As 4 personas (Larissa, Diego, Rafael, Camila) |
 | `docs/Mapa_Tematico_Pilares_Criativos_Caveo.md` | Pilares de tema (Oferta × Funcionalidades) e guardrails de execução criativa |
 | `docs/Transcricao_Alinhamento_Produto_Boomer_2026-07-30.md` | Fonte primária dos guardrails de execução e de temas validados com o cliente |
+| `docs/Manual_Comunicacao_Oferta_Caveo.md` | **Fonte primária de regras de copy de OFERTA.** Manual sintetizado e independente de canal: teto da promessa, léxico obrigatório, proibições, números autorizados, CTAs, checklist. Ler antes de escrever qualquer copy de oferta |
+| `docs/Manual_Comunicacao_Funcionalidade_Caveo.md` | **Fonte primária de regras de copy de FUNCIONALIDADE.** Atenção: 5 regras se invertem em relação a Oferta (ver §1 do manual); a mais crítica é nunca convidar download/uso do app |
+| `docs/DosDonts_*_Roteiros_Caveo.md` · `docs/Auditoria_Roteiros_v2_Caveo.md` | Procedência (quem decidiu o quê, quando, com citação e timestamp). Consultar só para defender *por que* uma regra existe |
 | `docs/Ideias_Criativos_Anuncios_Caveo.docx` | Conceitos já explorados (não repetir) |
 
 Pesquisa externa de referência (concorrentes, ângulos de mercado): use o
