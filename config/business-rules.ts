@@ -98,7 +98,7 @@ export const COHORT_RULES = {
 // explícita ao estágio-limiar registrada.
 export const QUALIFICATION_RULES = {
   mql: {
-    reachedStages: ["Aguardando Resposta", "Reunião Agendada", "Proposta Enviada"],
+    reachedStages: ["Contato Realizado", "Aguardando Resposta", "Reunião Agendada", "Proposta Enviada"],
     alsoWon: true,
   },
   sql: {

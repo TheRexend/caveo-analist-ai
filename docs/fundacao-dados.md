@@ -70,7 +70,7 @@ O dia do MQL/SQL é o da **primeira transição** que cruza o gate.
 
 | Nível | Já atingiu (qualquer um) | Ganho também conta |
 |---|---|---|
-| MQL | `Aguardando Resposta`, `Reunião Agendada`, `Proposta Enviada` | sim |
+| MQL | `Contato Realizado`, `Aguardando Resposta`, `Reunião Agendada`, `Proposta Enviada` | sim |
 | SQL | `Proposta Enviada` | sim |
 
 ## 8. Alocação de segmento (nota histórica)

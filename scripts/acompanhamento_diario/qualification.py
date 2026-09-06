@@ -5,7 +5,7 @@ se JÁ atingiu o estágio. O dia é o da PRIMEIRA transição que cruza o gate.
 """
 
 # Espelho de QUALIFICATION_RULES (fonte de verdade: config/business-rules.ts).
-MQL_REACHED = ("Aguardando Resposta", "Reunião Agendada", "Proposta Enviada")
+MQL_REACHED = ("Contato Realizado", "Aguardando Resposta", "Reunião Agendada", "Proposta Enviada")
 SQL_REACHED = ("Proposta Enviada",)
 # Ganho (WON_CLAUSE da fundação): estágio "Fechado" (IsWon) ou "Ganho não Identificado".
 # ATENÇÃO — acoplamento: WON_STAGES é um proxy por NOME de estágio para o

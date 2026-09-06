@@ -1,11 +1,19 @@
 from qualification import mql_day, sql_day
 
 
-def test_mql_no_dia_que_atinge_aguardando():
+def test_mql_no_dia_do_contato_realizado_nao_do_aguardando():
     h = [{"stage": "Nova", "date": "2026-07-01"},
          {"stage": "Contato Realizado", "date": "2026-07-02"},
          {"stage": "Aguardando Resposta", "date": "2026-07-03"}]
-    assert mql_day(h, is_won=False) == "2026-07-03"
+    # Contato Realizado é o primeiro portão de MQL: vence o Aguardando posterior.
+    assert mql_day(h, is_won=False) == "2026-07-02"
+    assert sql_day(h, is_won=False) is None
+
+
+def test_contato_realizado_sozinho_dispara_mql_sem_sql():
+    h = [{"stage": "Nova", "date": "2026-07-01"},
+         {"stage": "Contato Realizado", "date": "2026-07-02"}]
+    assert mql_day(h, is_won=False) == "2026-07-02"
     assert sql_day(h, is_won=False) is None
 
 
@@ -29,9 +37,8 @@ def test_won_sem_transicao_de_estagio_usa_data_do_ganho():
     assert sql_day(h, is_won=True) == "2026-07-10"
 
 
-def test_nunca_qualifica_quando_nao_atinge_e_nao_ganho():
-    h = [{"stage": "Nova", "date": "2026-07-01"},
-         {"stage": "Contato Realizado", "date": "2026-07-02"}]
+def test_nunca_qualifica_quando_para_em_nova_e_nao_ganho():
+    h = [{"stage": "Nova", "date": "2026-07-01"}]
     assert mql_day(h, is_won=False) is None
     assert sql_day(h, is_won=False) is None
 
@@ -41,6 +48,14 @@ def test_retrocede_e_reavanca_conta_a_primeira_transicao():
          {"stage": "Contato Realizado", "date": "2026-07-04"},
          {"stage": "Aguardando Resposta", "date": "2026-07-06"}]
     assert mql_day(h, is_won=False) == "2026-07-03"
+
+
+def test_perdido_apos_contato_realizado_permanece_mql():
+    # Cumulativo: já atingiu o portão, perder depois não desfaz o MQL.
+    h = [{"stage": "Contato Realizado", "date": "2026-07-02"},
+         {"stage": "Perdido", "date": "2026-07-09"}]
+    assert mql_day(h, is_won=False) == "2026-07-02"
+    assert sql_day(h, is_won=False) is None
 
 
 def test_ordem_de_entrada_nao_importa():
