@@ -71,12 +71,10 @@ Deriva `ANO`, `MES` de `END`. Informar: `Coletando de [START] a [END]…`.
 `level="campaign"`, `time_range={"since": START, "until": END}`,
 `fields="campaign_name,spend,impressions,actions"`. Por campanha extrair:
 `spend`; `impressions`; `link_clicks` = `actions[action_type=link_click].value`;
-**`leads` = `actions[action_type=complete_registration].value`** (fallback:
-`offsite_conversion.fb_pixel_complete_registration` se `complete_registration`
-não vier na resposta). "Registro Concluído" é a conversão principal — **não
-usar** `action_type=lead` nem `onsite_web_lead` (mesma regra de
-`docs/fundacao-dados.md`, para manter os reportes de mídia paga na mesma
-régua).
+**`leads` = `actions[action_type=lead].value`** — lead padrão, **não**
+`complete_registration`/`onsite_web_lead` (alinhado com as demais skills de
+mídia paga: `planilha-resultados-sexta`, `acompanhamento-diario-caveo` e
+`dados-lp-caveo`).
 `post_engagement` = `actions[action_type=post_engagement].value` (0 se
 ausente). Montar `META_ROWS`.
 
@@ -264,4 +262,4 @@ embutidos). Nunca tocar em células de fórmula.
 - **Coluna inexistente = parar:** mês novo sem trio de colunas → PARA sem gravar (evita sobrescrever o mês anterior).
 - **Duas datas:** MQL/SQL por `CreatedDate`; Vendas/Faturamento por `LastStageChangeDate`.
 - **Universo BOO:** exclui webinar/comunidade e as campanhas "Turbo" (pausadas). Se "Turbo" voltar como captação médico, revisar.
-- **Métricas a validar na 1ª rodada:** Meta Cliques=`link_click`, Leads=`actions[complete_registration]` (Registro Concluído, não `lead`); Google Leads=`conversions`. Ajustar se o cliente definir diferente.
+- **Métricas a validar na 1ª rodada:** Meta Cliques=`link_click`, Leads=`actions[lead]` (lead padrão, não `complete_registration`); Google Leads=`conversions`. Ajustar se o cliente definir diferente.
