@@ -332,7 +332,7 @@ Expected: PASS (3 testes)
 ```
 Salvar em `docs/agentic-sync/manifest.json`.
 
-- [ ] **Step 9: Ajustar `.gitignore` para versionar os mirrors `.agents/skills/*.md`**
+- [ ] **Step 9: Ajustar `.gitignore` para versionar os mirrors `.agents/skills/*.md` e `.codex/agents/*.toml`**
 
 Trocar a linha `.agents/` (dentro do bloco "Cruft de workspace e
 dependências vendorizadas") por:
@@ -344,10 +344,21 @@ dependências vendorizadas") por:
 !.agents/skills/*.md
 ```
 
+E a linha `.codex/` pelo mesmo padrão (mesma classe de problema — `.codex/`
+inteiro estava marcado como cruft vendorizado, o que também esconderia os
+mirrors de agente gerados pela Task 11):
+
+```gitignore
+.codex/*
+!.codex/agents/
+.codex/agents/*
+!.codex/agents/*.toml
+```
+
 Isso mantém ignorado tudo que é cache de terceiros (`.agents/skills/shadcn/`,
 `.agents/skills/supabase/`, etc. — subpastas) e passa a versionar só os
-arquivos `.md` que este projeto gera diretamente em `.agents/skills/`
-(nossos mirrors pra Codex/Gemini).
+arquivos `.md`/`.toml` que este projeto gera diretamente em
+`.agents/skills/` e `.codex/agents/` (nossos mirrors pra Codex/Gemini).
 
 - [ ] **Step 10: Verificar que a exceção funciona**
 

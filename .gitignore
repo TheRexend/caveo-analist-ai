@@ -73,7 +73,10 @@ scratch/
 !.agents/skills/
 .agents/skills/*
 !.agents/skills/*.md
-.codex/
+.codex/*
+!.codex/agents/
+.codex/agents/*
+!.codex/agents/*.toml
 .superpowers/
 skills-lock.json
 package-lock.json
