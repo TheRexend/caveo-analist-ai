@@ -53,6 +53,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 """Valida que os 4 docs de referência de schema existem e têm um exemplo parseável."""
 
 import re
+import textwrap
 from pathlib import Path
 
 import yaml
@@ -63,9 +64,21 @@ YAML_TOOLS = ["claude", "hermes", "gemini"]
 TOML_TOOLS = ["codex"]
 
 
+def _strip_frontmatter_delimiters(block: str) -> str:
+    """Se o bloco é frontmatter (```yaml\n---\n...\n---\n```), devolve só o
+    miolo — yaml.safe_load rejeita dois marcadores `---` como "documento
+    duplo", mas um SKILL.md/agent.md real também nunca manda os delimitadores
+    pro parser, só o texto entre eles."""
+    lines = block.strip("\n").split("\n")
+    if lines and lines[0].strip() == "---" and lines[-1].strip() == "---":
+        lines = lines[1:-1]
+    return "\n".join(lines)
+
+
 def _fenced_blocks(text: str, lang: str) -> list:
     pattern = rf"```{lang}\n(.*?)```"
-    return re.findall(pattern, text, flags=re.DOTALL)
+    raw_blocks = [textwrap.dedent(block) for block in re.findall(pattern, text, flags=re.DOTALL)]
+    return [_strip_frontmatter_delimiters(block) for block in raw_blocks]
 
 
 def test_all_schema_files_exist():
