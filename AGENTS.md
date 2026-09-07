@@ -1,39 +1,59 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Instruções de projeto para Codex CLI, Hermes Agent e Gemini CLI (os 3 lêem
+este arquivo — ver `docs/agentic-sync/schemas/gemini.md` sobre como o
+Gemini CLI foi configurado pra isso). A versão Claude Code equivalente é
+`CLAUDE.md`; qualquer mudança em um dos dois deve ser propagada via
+`/sync-agentes` (skill `.claude/skills/sync-agentes.md`).
 
-## Purpose
+## Propósito
 
-This project is a dedicated workspace for developing Codex **skills** and **agents** for the Caveo analyst AI context. Skills are markdown-based instruction files that extend Codex's behavior via the `/skill-name` slash command pattern. Agents are sub-agent definitions invoked through the `Agent` tool.
+Workspace dedicado a desenvolver skills e agentes de IA para o contexto de
+análise de mídia paga/CRM/tracking/GA4 da Caveo. Índice vivo do projeto:
+`docs/projeto-mapa.md`. Regras de negócio: `docs/fundacao-dados.md`
+(gerada de `config/business-rules.ts`).
 
-## Skill Format
+## Papel do agente orquestrador (sessão raiz)
 
-Skills live in `.Codex/skills/` (project-local) or `~/.Codex/skills/` (global). Each skill is a `.md` file with a YAML frontmatter header followed by the instruction body:
+A sessão principal atua como orquestrador: tarefa óbvia/de domínio único
+vai direto ao especialista; tarefa ambígua ou que cruza domínios aciona
+os agentes especializados abaixo e entrega uma resposta única sintetizada
+(resolve contradições, prioriza) — não blocos soltos.
 
-```markdown
----
-name: skill-name
-description: One-line description shown in skill picker and used for routing decisions
----
+| Sinal na pergunta | Agente especializado |
+|---|---|
+| Performance de mídia, CPL/CPO, atribuição, budget, funil/CRM, gargalo comercial, diagnóstico de qual criativo performa | `analista-midia-paga-crm` |
+| Julgar criativo pelo framework de teste (hook/hold/CTR/CPA), decidir escalar/iterar/matar, hipótese de teste | `analista-criativo` |
+| Idear conceito/copy de anúncio novo (recebe diagnóstico do analista) | `criativos` |
+| Tracking, click IDs, conversões server-side, GTM, reconciliação | `tracking-conversoes` |
+| Comportamento no site/LP, sessões, origem GA4, engajamento, jornada | `ga4-analise` |
 
-Instruction body — what Codex should do when this skill is invoked.
-```
+Cada agente tem uma definição equivalente nos 4 formatos (Claude Code:
+`.claude/agents/<nome>.md`; Gemini CLI: `.gemini/agents/<nome>.md`; Codex
+CLI: `.codex/agents/<nome>.toml`; Hermes: skill + template de
+`delegate_task`, aproximação documentada, sem paridade real — ver
+`docs/agentic-sync/schemas/hermes.md`).
 
-- The `description` field is critical: it is used by the runtime to decide when to auto-invoke a skill and what the user sees in `/help`.
-- Skill files must be saved before they are available in the session.
-- Use the `skill-creator` plugin (already enabled globally) to scaffold and test new skills.
+Quando um agente encerra com um bloco `HANDOFF → <agente>`, o orquestrador
+lê o bloco e aciona o agente destino com aquele contexto, depois sintetiza.
 
-## Agent Pattern
+## Guardião de organização
 
-Custom agents are invoked via the `Agent` tool with a `subagent_type` matching a registered agent name. Agent definitions describe capabilities, available tools, and behavioral constraints. When designing agents for this project, document:
+Ao criar/mover arquivos ou mudar regras, o orquestrador zela por:
+1. **Estrutura** — specs em `docs/superpowers/specs/`, agentes em
+   `.claude/agents/` (+ espelhos por ferramenta), skills em
+   `.claude/skills/` (+ espelhos em `.agents/skills/` e Hermes), regras em
+   `config/`.
+2. **Sincronia da fundação** — se `config/business-rules.ts` mudar, rodar
+   `npm run docs:check` (falha = rodar `npm run docs:rules`).
+3. **Sincronia multi-IA** — toda skill/agente/regra criado ou editado
+   deve ser propagado às outras ferramentas via `/sync-agentes` antes de
+   encerrar a sessão — nunca aplicado sozinho, sempre com aprovação.
+4. **Anti-duplicação** — antes de criar algo novo, checar
+   `docs/projeto-mapa.md`: "isso já existe em X?".
 
-1. The agent's scope and trigger conditions
-2. Which tools it should and should not use
-3. Expected input/output contract
+## Skills e agentes disponíveis
 
-## Permissions & Settings
-
-- Project-level permissions: `.Codex/settings.local.json`
-- Global permissions: `~/.Codex/settings.json`
-- The global config has `skill-creator@Codex-plugins-official` enabled — use the `/skill-creator` skill to build and iterate on new skills.
-- `Read(//Users/matheus/.Codex/**)` is allowed at project level, enabling skills and settings to be read directly during development.
+Ver `docs/projeto-mapa.md` para a lista completa e atualizada de skills e
+agentes. Este arquivo não duplica a lista — ela muda com frequência e o
+`sync-agentes` garante que o espelho aqui reflete o que está em `.claude/`.
