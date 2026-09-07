@@ -1,3 +1,14 @@
 {
-  "artifacts": {}
+  "artifacts": {
+    "agent:ga4-analise": {
+      "claude": "94b3e3a188ba7e7e7b089c7689552a2528f3fc76bb06235314314b391a4e0b2e",
+      "codex": "427ab41e770c70263aa72f2116ee5086e5d5d4d97acd11f8b9dad9dc15ab1547",
+      "gemini": "9099b23cf2b6d91a615e6cebb4fa5774a9808e35f85d9b3a93b20be84cdbeecb"
+    },
+    "skill:reporte-ga4": {
+      "claude": "2ad7940d04f3ef226120969619ff99e3ef74f3d5292f5fe13358995cac6ff51c",
+      "codex_gemini": "2ad7940d04f3ef226120969619ff99e3ef74f3d5292f5fe13358995cac6ff51c",
+      "hermes": null
+    }
+  }
 }

@@ -1371,8 +1371,10 @@ python3 scripts/sync_agentes/cli.py scan > /tmp/scan-report.json
 python3 -c "
 import json
 report = json.load(open('/tmp/scan-report.json'))
-assert len(report) == 22, f'esperado 22 artefatos (1 root + 16 skills + 5 agents), veio {len(report)}'
-print('OK: scan cobre os 22 artefatos existentes sem erro')
+# 1 root + 17 skills + 6 agents — inclui a sync-agentes/guardiao-multi-ia
+# criadas nas Tasks 5 e 7 deste mesmo plano.
+assert len(report) == 24, f'esperado 24 artefatos, veio {len(report)}'
+print('OK: scan cobre os 24 artefatos existentes sem erro')
 "
 python3 -c "
 import json
