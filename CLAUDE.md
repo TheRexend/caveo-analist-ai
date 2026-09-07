@@ -37,8 +37,9 @@ lê o bloco e aciona o agente destino com aquele contexto, depois sintetiza.
 Ao criar/mover arquivos ou mudar regras, a raiz zela por:
 1. **Estrutura** — specs em `docs/superpowers/specs/`, agentes em `.claude/agents/`, skills em `.claude/skills/`, comandos em `.claude/commands/`, regras em `config/`. Sinalizar o que fugir do padrão (ver árvore em `docs/projeto-mapa.md`).
 2. **Sincronia da fundação** — se `config/business-rules.ts` mudar, rodar `npm run docs:check` (falha = rodar `npm run docs:rules`) e avisar quais skills/agentes referenciam a regra alterada.
-3. **Anti-duplicação** — antes de criar algo novo, checar o mapa: "isso já existe em X?". Regras de negócio vivem só na fundação; benchmarks só no agente analista.
-4. **Onboarding** — `docs/projeto-mapa.md` é o mapa de "onde está o quê".
+3. **Sincronia multi-IA** — toda skill, agente ou regra de orquestração criado ou editado nesta sessão: sugerir rodar `/sync-agentes` antes de encerrar (ver `docs/agentic-sync/` e `.claude/skills/sync-agentes.md`). A sugestão é automática; a execução exige aprovação explícita e nunca sobrescreve sozinha em caso de conflito.
+4. **Anti-duplicação** — antes de criar algo novo, checar o mapa: "isso já existe em X?". Regras de negócio vivem só na fundação; benchmarks só no agente analista.
+5. **Onboarding** — `docs/projeto-mapa.md` é o mapa de "onde está o quê".
 
 ## Skill Format
 
