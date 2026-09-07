@@ -69,7 +69,10 @@ next-env.d.ts
 /dashboard/
 outputs/
 scratch/
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/*.md
 .codex/
 .superpowers/
 skills-lock.json
