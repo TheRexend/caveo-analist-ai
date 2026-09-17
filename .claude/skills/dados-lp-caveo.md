@@ -213,12 +213,16 @@ cliques → L, `conversions` (arredondar só no fim) → M, `cost_micros`/1e6 �
 
 ### 2C. GA4 — uma chamada cobre o intervalo
 
-`mcp__ga4__ga4_run_report` com `metrics=["sessions","bounceRate"]`,
+`mcp__ga4__ga4_run_report` com
+`metrics=["sessions","bounceRate","engagedSessions","eventCount"]`,
 `dimensions=["date","hostName"]`, `date_start`/`date_end` no intervalo,
-`limit=500`.
+`limit=500`. As duas últimas métricas não vão para a planilha — servem só ao
+gate de consolidação abaixo.
 
 Filtrar **apenas** `hostName == "lp2.caveo.com.br"`. Descartar
-`lp.caveo.com.br` e `welcome.caveo.com.br`.
+`lp.caveo.com.br` e `welcome.caveo.com.br`. **Sempre passar `hostName` nas
+`dimensions`**: sem ele o GA4 agrega todos os hosts e as sessões vêm infladas
+(em 15/09/2026 o total dava 1.347 contra 1.317 de `lp2` sozinho).
 
 > A dimensão `date` do GA4 volta como `YYYYMMDD` (ex.: `20260813`), sem hífen —
 > converter para ISO antes de casar com as datas-alvo.
@@ -226,6 +230,37 @@ Filtrar **apenas** `hostName == "lp2.caveo.com.br"`. Descartar
 Sessões → S. `bounceRate` → T, **em fração** (`0.0088`), porque a célula já é
 formatada como porcentagem. Dia sem linha para `lp2` grava `0` em S e T, e é
 avisado no preview.
+
+#### Gate de consolidação — o bounce de D-1 é LIXO (não pular)
+
+`bounceRate` e `engagedSessions` **não fecham em D-1**. Coletados no dia
+seguinte, voltam com `engagedSessions` perto de zero e bounce de ~95-100%.
+Assentam em ~1 dia para os 0,5%-2,5% reais.
+
+**Regra:** para cada dia-alvo, se `engagedSessions / sessions < 0,20`
+**e** `eventCount` estiver na ordem de grandeza normal do dia (milhares),
+o dado **não consolidou**. Nesse caso:
+
+- **não gravar S nem T daquele dia** — gravar só as catorze colunas de
+  Meta/Google/Salesforce;
+- listar a data no preview como `GA4 pendente de consolidação`;
+- reprocessar essa data via `$ARGUMENTS` na execução seguinte (o backfill
+  cirúrgico de S/T com `cell_updates(row, {'ga4_sessoes':…, 'ga4_bounce':…})`
+  já é suportado e não toca em C..Q).
+
+Como a linha fica com C..Q preenchidas, a Fase 1 deixa de vê-la como pendente —
+por isso o reprocessamento é **obrigatório** e precisa ser anunciado no
+relatório da Fase 5, não deixado a cargo da memória do operador.
+
+> **Não diagnosticar isso como tag/GTM quebrado.** O sinal que separa os dois
+> casos é `eventCount` e `userEngagementDuration`: na consolidação pendente eles
+> vêm **normais** (em 13/09/2026: 9.652 eventos e 19.204s com apenas 2 sessões
+> engajadas) e no dia seguinte o mesmo dia já lia 1,21% de bounce. Tag quebrada
+> derruba o `eventCount` junto.
+>
+> Custo de ter ignorado isso: em 15/09/2026 havia **14 linhas** da aba com
+> bounce de 95-100% congelado (17/08, 20/08, 24-26/08, 29/08-01/09, 07-10/09 e
+> 13/09), corrigidas por backfill naquela data.
 
 ### 2D. Salesforce — MQL, SQL e fechamentos por dia × canal
 
@@ -366,3 +401,8 @@ está gravado.
 Dizer quantas células foram gravadas, quantas linhas foram criadas (**com as
 datas**, o usuário pediu esse aviso explicitamente), e listar as datas parciais
 que foram puladas.
+
+Listar também, **em destaque**, as datas que ficaram com `S`/`T` em branco pelo
+gate de consolidação da Fase 2C, dizendo que precisam ser reprocessadas via
+`$ARGUMENTS` na próxima execução. A Fase 1 não vai cobrá-las sozinha (a linha já
+tem C..Q), então esse aviso é o único mecanismo que impede o bounce de sumir.
