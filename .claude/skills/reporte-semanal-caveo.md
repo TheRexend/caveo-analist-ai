@@ -188,7 +188,7 @@ duplicar a lógica de gate):
 ```python
 import sys
 sys.path.insert(0, 'scripts/acompanhamento_diario')
-from qualification import mql_day, sql_day
+from qualification import mql_day, sql_day, fechamento_day
 
 # ===== dados da Fase 1 (PREENCHER) =====
 # SF_HISTORY_CUR = [{"history":[{"stage","date"}], "is_won": bool}, ...]  (1 item por Oportunidade)
@@ -198,10 +198,11 @@ def counts(history_list):
     total = len(history_list)  # "Leads Total" = Oportunidades criadas no período (mesma população do gate)
     mql = sum(1 for o in history_list if mql_day(o["history"], o["is_won"]) is not None)
     sql = sum(1 for o in history_list if sql_day(o["history"], o["is_won"]) is not None)
-    return total, mql, sql
+    fechamentos = sum(1 for o in history_list if fechamento_day(o["history"]) is not None)
+    return total, mql, sql, fechamentos
 
-leads_total_cur, mql_cur, sql_cur = counts(SF_HISTORY_CUR)
-leads_total_prev, mql_prev, sql_prev = counts(SF_HISTORY_PREV)
+leads_total_cur, mql_cur, sql_cur, fechamentos_cur = counts(SF_HISTORY_CUR)
+leads_total_prev, mql_prev, sql_prev, fechamentos_prev = counts(SF_HISTORY_PREV)
 ```
 
 > **`leads_total` NÃO é a soma de `meta_cur_leads` + `google_cur_leads`.**
@@ -225,13 +226,17 @@ leads_total_prev, mql_prev, sql_prev = counts(SF_HISTORY_PREV)
 | `pct_mql_cur` | `round(mql_cur / leads_total_cur * 100)` — `"—"` se `leads_total_cur == 0` |
 | `sql_cur` | via `qualification.sql_day` sobre `SF_HISTORY_CUR` |
 | `pct_sql_cur` | `round(sql_cur / mql_cur * 100)` — `"—"` se `mql_cur == 0` (percentual é **sobre o MQL**, não sobre leads) |
+| `fechamentos_cur` | via `qualification.fechamento_day` sobre `SF_HISTORY_CUR` (gate cumulativo sobre `WON_STAGES` — WON_CLAUSE da fundação: `IsWon = true OR StageName = 'Ganho não Identificado'`) |
+| `pct_fechamentos_cur` | `round(fechamentos_cur / leads_total_cur * 100)` — `"—"` se `leads_total_cur == 0` (percentual é **sobre Leads Total**, não sobre SQL — decisão do cliente, quebra o padrão de cascata das outras % desta skill de propósito) |
+
+> **Fechamentos desta semana tende a estar subcontado** (right-censoring): é o mesmo efeito de defasagem do MQL/SQL, mas mais forte — um lead criado nos últimos dias do período tem pouquíssimo tempo de percorrer todo o funil até fechar. Não tratar `pct_fechamentos_cur` isolado como sinal de piora/melhora sem olhar a tendência de 2-3 semanas.
 
 ### Métricas equivalentes do período anterior (uso interno, Fase 3 apenas)
 
 Mesmas fórmulas com sufixo `_prev` (`investimento_total_prev`,
-`leads_total_prev`, `mql_prev`, `sql_prev`, `pct_mql_prev`, `pct_sql_prev`) —
-não entram na mensagem, só no briefing do agente para ele comentar tendência
-com dado real.
+`leads_total_prev`, `mql_prev`, `sql_prev`, `pct_mql_prev`, `pct_sql_prev`,
+`fechamentos_prev`, `pct_fechamentos_prev`) — não entram na mensagem, só no
+briefing do agente para ele comentar tendência com dado real.
 
 ### Formatação numérica (locale BR)
 
@@ -259,10 +264,12 @@ Impressões:          [impressoes_total_cur]
 Leads Total:         [leads_total_cur]
 MQL:                 [mql_cur]  (~[pct_mql_cur]% dos leads)
 SQL:                 [sql_cur]  (~[pct_sql_cur]% do MQL)
+Fechamentos:         [fechamentos_cur]  (~[pct_fechamentos_cur]% dos leads)
 
 === COMPARATIVO PERÍODO ANTERIOR (uso interno, não citar números crus — só tendência) ===
 Investimento Total: [investimento_total_prev] | Leads: [leads_total_prev]
 MQL: [mql_prev] (~[pct_mql_prev]%) | SQL: [sql_prev] (~[pct_sql_prev]%)
+Fechamentos: [fechamentos_prev] (~[pct_fechamentos_prev]% dos leads) — lembrar o agente do efeito de subcontagem (right-censoring) antes de comparar tendência
 
 === SECUNDÁRIAS POR PLATAFORMA (diagnóstico, não citar cru na mensagem) ===
 Meta — CPM: R$ [meta_cur_cpm] | CTR: [meta_cur_ctr]% | Frequência: [meta_cur_frequencia] | Alcance: [meta_cur_alcance]
@@ -276,7 +283,7 @@ Anterior: [funil_prev_por_estagio]
 ```
 
 **Instrução ao agente:**
-- Determinar o **KPI ofensor da semana** entre MQL e SQL — comparar `pct_mql_cur`/`pct_sql_cur` contra os benchmarks que você já conhece e contra a tendência do período anterior. SQL é avaliado sobre o MQL (não sobre leads); é comum SQL parecer "pior" nominalmente por ser a etapa mais funda do funil.
+- Determinar o **KPI ofensor da semana** entre MQL e SQL — comparar `pct_mql_cur`/`pct_sql_cur` contra os benchmarks que você já conhece e contra a tendência do período anterior. SQL é avaliado sobre o MQL (não sobre leads); é comum SQL parecer "pior" nominalmente por ser a etapa mais funda do funil. Fechamentos entra só como dado de contexto (não concorre a KPI ofensor) — está sujeito a forte subcontagem por defasagem (a maioria dos leads da semana não teve tempo de fechar ainda), então não tratar uma queda ou alta isolada de `pct_fechamentos_cur` como sinal confiável.
 - Produzir **1 análise consolidada** (não separar por plataforma) — 3 a 5 frases: o que mudou na semana (criativos, campanhas, tracking, funil) que explica a variação do KPI ofensor, com evidência das métricas secundárias.
 - Produzir **1 plano de ação** focado especificamente em destravar o KPI ofensor — passos concretos e acionáveis, endereçados ao time (interno ou comercial do cliente).
 - Produzir **1 a 2 perguntas de alinhamento** dirigidas ao cliente sobre o KPI ofensor — buscar contexto que só o time comercial do cliente tem (percepção sobre a etapa, motivo de objeção, gargalo de processo).
@@ -324,6 +331,10 @@ Estou enviando o relatório semanal referente aos últimos 7 dias: [CUR_START dd
 
 📊 % SQL: ~[pct_sql_cur]%
 
+🏆 Fechamentos: [fechamentos_cur]
+
+📊 % Fechamentos: ~[pct_fechamentos_cur]%
+
 
 
 📊 Análise sobre a performance dos dados
@@ -344,10 +355,10 @@ Estou enviando o relatório semanal referente aos últimos 7 dias: [CUR_START dd
 **Regras de formatação:**
 - Saudação fixa `Bom dia, pessoal, tudo bem?` — ajustar manualmente para `Boa tarde` se enviado à tarde.
 - Emoji + espaço simples antes do label (`💰 Investimento Google:`), **exceto** `⚡` que leva dois espaços (`⚡  Impressões:`) — replica o exemplo original literalmente.
-- `%MQL` sem espaço antes do `%`; `% SQL` **com** espaço — replica o exemplo original literalmente, não padronizar.
-- Linha em branco entre cada linha de Investimento por plataforma; duas linhas em branco antes de `Investimento Total`; linha em branco entre as métricas restantes (Impressões/Leads/MQL/%MQL/SQL/%SQL).
+- `%MQL` sem espaço antes do `%`; `% SQL` e `% Fechamentos` **com** espaço — replica o exemplo original literalmente, não padronizar.
+- Linha em branco entre cada linha de Investimento por plataforma; duas linhas em branco antes de `Investimento Total`; linha em branco entre as métricas restantes (Impressões/Leads/MQL/%MQL/SQL/%SQL/Fechamentos/%Fechamentos).
 - Duas linhas em branco antes de cada cabeçalho de seção (`📊 Análise...`, `🎯 Próximos passos...`, `🚩 Dúvidas...`); uma linha em branco entre o cabeçalho e o texto da seção.
-- Sem TikTok/Pinterest, sem CPL/CPO/Oportunidades/Fechamentos, sem variação % semana a semana — tudo isso ficou no formato antigo (interno). Se precisar do detalhe por plataforma, pedir a análise completa separadamente; não inflar esta mensagem.
+- Sem TikTok/Pinterest, sem CPL/CPO/Oportunidades, sem variação % semana a semana — tudo isso ficou no formato antigo (interno). Fechamentos/%Fechamentos voltaram a fazer parte do padrão (decisão do cliente, 2026-09-11) — ver nota abaixo. Se precisar do detalhe por plataforma, pedir a análise completa separadamente; não inflar esta mensagem.
 
 ---
 
@@ -356,10 +367,16 @@ Estou enviando o relatório semanal referente aos últimos 7 dias: [CUR_START dd
 - **Mudança de formato (2026-09-04):** esta skill deixou de gerar o reporte
   interno por plataforma (Investimento/CPL/CPO/Oportunidades/Fechamentos
   separados Google×Meta) e passou a gerar mensagem direta ao cliente com
-  métricas agregadas + funil MQL/SQL. A nota antiga sobre "Fechamentos usa só
-  `IsWon = true`" não se aplica mais — a query de Fechamentos foi removida
-  desta skill; MQL/SQL usa o `is_won` completo (`WON_CLAUSE` da fundação),
-  igual à `reporte-resultados-ka`.
+  métricas agregadas + funil MQL/SQL. MQL/SQL usa o `is_won` completo
+  (`WON_CLAUSE` da fundação), igual à `reporte-resultados-ka`.
+- **Fechamentos voltou ao padrão (2026-09-11), com metodologia nova — não é a
+  mesma conta do formato antigo.** A nota histórica "Fechamentos usa só
+  `IsWon = true`" **não se aplica**: o novo `fechamentos_cur`/`fechamentos_prev`
+  usa `qualification.fechamento_day` — gate cumulativo sobre `WON_STAGES`
+  (`Fechado` OU `Ganho não Identificado`, a mesma `WON_CLAUSE` da fundação),
+  não uma contagem de estágio atual nem só `IsWon = true`. `%Fechamentos` é
+  **sobre Leads Total** (decisão explícita do cliente), não sobre SQL — quebra
+  de propósito o padrão de cascata do `%MQL`/`%SQL`.
 - **Filtro `[LEADS]`:** aplicado localmente após o retorno da API Meta — não é filtro nativo. Interromper e alertar se nenhuma campanha bater no filtro.
 - **`cost_micros` Google:** sempre dividir por `1.000.000` antes de qualquer cálculo ou exibição.
 - **`conversions` Google:** o campo retorna float — somar tudo primeiro, arredondar só no total.

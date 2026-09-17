@@ -37,3 +37,11 @@ def mql_day(history, is_won):
 def sql_day(history, is_won):
     """Dia (YYYY-MM-DD) em que a opp virou SQL, ou None."""
     return _first_gate_day(history, SQL_REACHED, is_won)
+
+
+def fechamento_day(history):
+    """Dia (YYYY-MM-DD) em que a opp bateu o gate de Ganho (WON_CLAUSE da
+    fundação), ou None. Mesmo `history` cumulativo de mql_day/sql_day —
+    não precisa do parâmetro `is_won` porque o próprio gate já é WON_STAGES.
+    """
+    return _first_gate_day(history, WON_STAGES, True)
