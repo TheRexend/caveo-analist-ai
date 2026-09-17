@@ -9,6 +9,24 @@ nas colunas T:V. As mesmas 31 linhas são recicladas todo mês — não há
 lógica de "criar linha nova" aqui.
 """
 
+# Fragmentos cpc + cruzamento da fundação, OR-combinados e prefixados com
+# "Opportunity." (obrigatório em OpportunityHistory). Espelha
+# config/business-rules.ts CRUZAMENTO_RULES — se mudar lá, rodar
+# `npm run docs:rules` e atualizar aqui (não há import cross-runtime
+# TS/Python). fbc__c não conta (cookie also anexado em clique orgânico);
+# só fbclid__c é sinal válido do lado Meta. Google exclui quando há
+# fbclid__c (Meta tem prioridade em conflito).
+HIST_FRAG = {
+    'meta': ("((Opportunity.UtmMed__c LIKE '%cpc%' AND (NOT Opportunity.UtmSou__c LIKE '%google%')) "
+             "OR ((Opportunity.UtmMed__c = null OR (NOT Opportunity.UtmMed__c LIKE '%cpc%')) "
+             "AND Opportunity.fbclid__c != null))"),
+    'google': ("((Opportunity.UtmMed__c LIKE '%cpc%' AND Opportunity.UtmSou__c LIKE '%google%') "
+               "OR ((Opportunity.UtmMed__c = null OR (NOT Opportunity.UtmMed__c LIKE '%cpc%')) "
+               "AND (Opportunity.gclid__c != null OR Opportunity.gbraid__c != null "
+               "OR Opportunity.wbraid__c != null) "
+               "AND Opportunity.fbclid__c = null))"),
+}
+
 FIRST_ROW = {"meta": 3, "google": 38, "historico": 3}
 LAST_ROW = {"meta": 33, "google": 68, "historico": 33}
 

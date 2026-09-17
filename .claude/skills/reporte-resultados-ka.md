@@ -29,9 +29,18 @@ Canal pago (cpc + cruzamento), segmento (`TipCte__c`), MQL/SQL
 Modelo de **duas datas**: MQL/SQL por `CreatedDate`; Vendas/Faturamento por
 `LastStageChangeDate`. Fuso `-03:00`. NÃO reescrever listas.
 
-Fragmentos usados (verbatim):
+**Esta skill não tem módulo Python que importe a fundação** (o SOQL abaixo é
+escrito ad hoc a cada execução) — por isso os fragmentos abaixo são só uma
+cópia de leitura. **Antes de montar a query, releia `docs/fundacao-dados.md`
+§ "Fragmentos SOQL prontos" e use o valor de lá se divergir do que está
+aqui** — esta cópia pode ficar desatualizada se `config/business-rules.ts`
+mudar e ninguém lembrar de editar este arquivo (já aconteceu: até
+2026-09-17 o PAID abaixo incluía `fbc__c`, que não é sinal válido de
+cruzamento — ver `docs/fundacao-dados.md` § 2).
 
-- **PAID:** `((UtmMed__c LIKE '%cpc%') OR ((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null)))`
+Fragmentos usados (cópia de leitura, PODE estar desatualizada — ver acima):
+
+- **PAID:** `((UtmMed__c LIKE '%cpc%') OR ((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbclid__c != null OR gclid__c != null OR gbraid__c != null OR wbraid__c != null)))`
 - **WON_CLAUSE:** `(IsWon = true OR StageName = 'Ganho não Identificado')`
 - **TIPCTE_FORMANDO:** `TipCte__c IN ('Formando')`
 - **TIPCTE_MEDICO:** `TipCte__c IN ('Médico')`

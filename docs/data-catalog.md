@@ -36,9 +36,9 @@
 | `UrlUtm__c` | url | URL de entrada completa | ⬜ (trunca gclid) |
 | `gclid__c` | string | Google Click ID | ✅ (cruzamento) |
 | `gbraid__c` | string | Google GBRAID (iOS) | ✅ (cruzamento) |
-| `wbraid__c` | string | Google WBRAID (iOS) | ⬜ |
+| `wbraid__c` | string | Google WBRAID (iOS) | ✅ (cruzamento) |
 | `fbclid__c` | string | Meta Click ID | ✅ (cruzamento) |
-| `fbc__c` | string | Meta `_fbc` | ✅ (cruzamento) |
+| `fbc__c` | string | Meta `_fbc` | ⬜ (removido do cruzamento 2026-09-17 — cookie também anexado em clique orgânico, ver `fundacao-dados.md` §2) |
 | `fbp__c` | string | Meta `_fbp` | ⬜ |
 | `Consentimento_Marketing__c` | boolean | Consentimento LGPD | ✅ (conversões) |
 | `Email_Lead__c` | string | E-mail (enhanced conversions) | ✅ |

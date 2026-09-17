@@ -22,12 +22,17 @@ HEADER = [
 # Fragmento SOQL Ganho, docs/fundacao-dados.md § "Fragmentos SOQL prontos":
 # (IsWon = true OR StageName = 'Ganho não Identificado')
 # Fragmento de atribuição mídia paga (cpc direto OU cruzamento por click ID),
-# docs/fundacao-dados.md § "Fragmentos SOQL prontos", coluna "all":
+# docs/fundacao-dados.md § "Fragmentos SOQL prontos", coluna "all". Espelha
+# config/business-rules.ts CRUZAMENTO_RULES — se mudar lá, rodar
+# `npm run docs:rules` e atualizar aqui (não há import cross-runtime TS/Python).
+# fbc__c (cookie _fbc) NÃO conta: é anexado pelo Meta em qualquer clique de
+# saída, orgânico incluso (ver caso do link da bio) — só fbclid__c é sinal
+# válido do lado Meta. wbraid__c entrou no lado Google (faltava).
 PAID_MEDIA_CLAUSE = (
     "((UtmMed__c LIKE '%cpc%') OR "
     "((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) "
-    "AND (fbc__c != null OR fbclid__c != null "
-    "OR gclid__c != null OR gbraid__c != null)))"
+    "AND (fbclid__c != null "
+    "OR gclid__c != null OR gbraid__c != null OR wbraid__c != null)))"
 )
 
 # Canal — UTM source -> plataforma, docs/fundacao-dados.md § "1. Canal".
@@ -68,9 +73,9 @@ def canal_e_cruzamento(record):
         return "Meta Ads", False
     if sou.startswith(GOOGLE_PREFIXES) and is_cpc:
         return "Google/YouTube", False
-    if record.get("fbc__c") or record.get("fbclid__c"):
+    if record.get("fbclid__c"):
         return "Meta Ads", True
-    if record.get("gclid__c") or record.get("gbraid__c"):
+    if record.get("gclid__c") or record.get("gbraid__c") or record.get("wbraid__c"):
         return "Google/YouTube", True
     # Fallback defensivo: a query já filtra por PAID_MEDIA_CLAUSE, então só
     # cai aqui um registro com UtmSou__c preenchido mas cpc por outra via.
@@ -88,9 +93,13 @@ def build_row(record):
     descricao = ""
     if is_cruzamento:
         if canal == "Meta Ads":
-            sinal = "fbc__c" if record.get("fbc__c") else "fbclid__c"
+            sinal = "fbclid__c"
+        elif record.get("gclid__c"):
+            sinal = "gclid__c"
+        elif record.get("gbraid__c"):
+            sinal = "gbraid__c"
         else:
-            sinal = "gclid__c" if record.get("gclid__c") else "gbraid__c"
+            sinal = "wbraid__c"
         descricao = DESC_CRUZAMENTO.format(sinal=sinal)
 
     return [

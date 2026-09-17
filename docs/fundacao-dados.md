@@ -22,8 +22,8 @@ click ID. Meta tem prioridade sobre Google em caso de conflito.
 
 | Plataforma | Campos de click ID |
 |---|---|
-| Meta | `fbc__c`, `fbclid__c` |
-| Google | `gclid__c`, `gbraid__c` (excluído se houver click ID Meta) |
+| Meta | `fbclid__c` |
+| Google | `gclid__c`, `gbraid__c`, `wbraid__c` (excluído se houver click ID Meta) |
 
 ## 3. Estágios do funil
 
@@ -85,7 +85,7 @@ orçamento entre segmentos.
 | Filtro | all | meta | google |
 |---|---|---|---|
 | cpc (direto) | `UtmMed__c LIKE '%cpc%'` | `(UtmMed__c LIKE '%cpc%' AND (NOT UtmSou__c LIKE '%google%'))` | `(UtmMed__c LIKE '%cpc%' AND UtmSou__c LIKE '%google%')` |
-| cruzamento | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null OR gclid__c != null OR gbraid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbc__c != null OR fbclid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (gclid__c != null OR gbraid__c != null) AND fbc__c = null AND fbclid__c = null)` |
+| cruzamento | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbclid__c != null OR gclid__c != null OR gbraid__c != null OR wbraid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (fbclid__c != null))` | `((UtmMed__c = null OR (NOT UtmMed__c LIKE '%cpc%')) AND (gclid__c != null OR gbraid__c != null OR wbraid__c != null) AND fbclid__c = null)` |
 
 Contratante: all → `AND TipCte__c IN ('Formando','Médico','Revalida')` · formando → `AND TipCte__c IN ('Formando')` · medico → `AND TipCte__c IN ('Médico')` · revalida → `AND TipCte__c IN ('Revalida')`
 

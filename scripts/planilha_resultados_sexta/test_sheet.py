@@ -1,9 +1,24 @@
 import pytest
 
 from sheet import (BLOCK_METRIC_COLS, CLEAR_RANGES, COLS, DAY_COLS,
-                   cell_updates, day_label_updates, google_channel_bucket,
-                   month_changed, month_name, partial_days, pending_days,
-                   row_for_day, row_is_empty, write_updates)
+                   HIST_FRAG, cell_updates, day_label_updates,
+                   google_channel_bucket, month_changed, month_name,
+                   partial_days, pending_days, row_for_day, row_is_empty,
+                   write_updates)
+
+
+def test_hist_frag_meta_usa_so_fbclid_sem_fbc():
+    # Regressão do bug do link da bio: fbc__c não pode contar como cruzamento.
+    assert "fbclid__c != null" in HIST_FRAG["meta"]
+    assert "fbc__c" not in HIST_FRAG["meta"]
+
+
+def test_hist_frag_google_tem_wbraid_e_exclui_por_fbclid():
+    assert "gclid__c != null" in HIST_FRAG["google"]
+    assert "gbraid__c != null" in HIST_FRAG["google"]
+    assert "wbraid__c != null" in HIST_FRAG["google"]
+    assert "Opportunity.fbclid__c = null" in HIST_FRAG["google"]
+    assert "fbc__c" not in HIST_FRAG["google"]
 
 
 def test_row_for_day_bloco_meta_dia_1_e_dia_31():

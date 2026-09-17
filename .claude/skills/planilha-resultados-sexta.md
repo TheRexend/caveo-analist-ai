@@ -373,7 +373,7 @@ sys.path.insert(0, 'scripts/acompanhamento_diario')
 sys.path.insert(0, 'scripts/planilha_resultados_sexta')
 import salesforce_mcp_server as sf
 from qualification import mql_day, sql_day
-from sheet import UTMCAM_TO_GOOGLE_TYPE, google_channel_bucket
+from sheet import HIST_FRAG, UTMCAM_TO_GOOGLE_TYPE, google_channel_bucket
 
 BR = timezone(timedelta(hours=-3))
 YEAR_MONTH = f'{ANO:04d}-{MES:02d}'  # ANO/MES = mês corrente sendo processado
@@ -390,17 +390,9 @@ def dia_do_mes_se_no_periodo(iso_date):
         return int(iso_date[8:10])
     return None
 
-# Fragmentos cpc + cruzamento da fundação, OR-combinados e prefixados com
-# "Opportunity." (obrigatório em OpportunityHistory).
-HIST_FRAG = {
-    'meta': ("((Opportunity.UtmMed__c LIKE '%cpc%' AND (NOT Opportunity.UtmSou__c LIKE '%google%')) "
-             "OR ((Opportunity.UtmMed__c = null OR (NOT Opportunity.UtmMed__c LIKE '%cpc%')) "
-             "AND (Opportunity.fbc__c != null OR Opportunity.fbclid__c != null)))"),
-    'google': ("((Opportunity.UtmMed__c LIKE '%cpc%' AND Opportunity.UtmSou__c LIKE '%google%') "
-               "OR ((Opportunity.UtmMed__c = null OR (NOT Opportunity.UtmMed__c LIKE '%cpc%')) "
-               "AND (Opportunity.gclid__c != null OR Opportunity.gbraid__c != null) "
-               "AND Opportunity.fbc__c = null AND Opportunity.fbclid__c = null))"),
-}
+# HIST_FRAG (cpc + cruzamento, prefixado "Opportunity." p/ OpportunityHistory)
+# vem de sheet.py — fonte única do fragmento pra esta skill. NÃO reescrever a
+# lista de campos aqui; ver docs/fundacao-dados.md § "Fragmentos SOQL prontos".
 
 # acc[dia] = {"meta_mql": 0, "meta_sql": 0, "google_search_mql": 0, ...} —
 # zero explícito pré-carregado pra todo dia em dias_alvo antes de acumular.

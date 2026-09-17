@@ -30,8 +30,8 @@ export const CHANNEL_RULES = {
 // Oportunidades cujo medium NÃO é cpc mas tiveram interferência de mídia paga
 // via click ID. Meta tem prioridade sobre Google em caso de conflito.
 export const CRUZAMENTO_RULES = {
-  meta: { clickIdFields: ["fbc__c", "fbclid__c"] },
-  google: { clickIdFields: ["gclid__c", "gbraid__c"], excludeIfMetaClickId: true },
+  meta: { clickIdFields: ["fbclid__c"] },
+  google: { clickIdFields: ["gclid__c", "gbraid__c", "wbraid__c"], excludeIfMetaClickId: true },
 } as const;
 
 // ── 3. Estágios do funil (Salesforce) ───────────────────────────────────────

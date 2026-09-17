@@ -27,12 +27,15 @@ def test_canal_cpc_direto_google():
     assert canal_e_cruzamento(r) == ("Google/YouTube", False)
 
 
-def test_canal_cruzamento_meta_via_fbc():
+def test_canal_fbc_sozinho_nao_e_cruzamento_regressao_bug_link_da_bio():
+    # fbc__c (cookie _fbc) é anexado pelo Meta em qualquer clique de saída,
+    # orgânico incluso — o padrão exato do link da bio (fbc preenchido,
+    # fbclid nulo). Não deve mais contar como cruzamento (fix 2026-09-17).
     r = {"UtmSou__c": "bioinsta", "UtmMed__c": "social", "fbc__c": "fb.2.abc"}
-    assert canal_e_cruzamento(r) == ("Meta Ads", True)
+    assert canal_e_cruzamento(r) == ("Não Digital", False)
 
 
-def test_canal_cruzamento_meta_via_fbclid_quando_sem_fbc():
+def test_canal_cruzamento_meta_via_fbclid():
     r = {"UtmSou__c": None, "UtmMed__c": None, "fbclid__c": "xyz"}
     assert canal_e_cruzamento(r) == ("Meta Ads", True)
 
@@ -42,9 +45,14 @@ def test_canal_cruzamento_google_via_gclid():
     assert canal_e_cruzamento(r) == ("Google/YouTube", True)
 
 
+def test_canal_cruzamento_google_via_wbraid():
+    r = {"UtmSou__c": None, "UtmMed__c": None, "wbraid__c": "abc"}
+    assert canal_e_cruzamento(r) == ("Google/YouTube", True)
+
+
 def test_canal_cruzamento_meta_tem_prioridade_sobre_google_em_conflito():
     r = {"UtmSou__c": None, "UtmMed__c": None,
-         "fbc__c": "fb.2.abc", "gclid__c": "abc"}
+         "fbclid__c": "xyz", "gclid__c": "abc"}
     assert canal_e_cruzamento(r) == ("Meta Ads", True)
 
 
