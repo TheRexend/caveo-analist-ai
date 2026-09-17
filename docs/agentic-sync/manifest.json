@@ -1,14 +1,118 @@
 {
   "artifacts": {
+    "agent:analista-criativo": {
+      "claude": "6441ffe29ea493492baf70a8a99aabc43c023a1b1dffcd9865f7107c237df3f5",
+      "codex": "01264de18c8587ce7936db96c7ac24ffbbd93cb8cb4423122f89725961c1f346",
+      "gemini": "1c2891bc8bc5d24190e917562e85fd1b7795b929550e7211d591cca78d1d34de"
+    },
+    "agent:analista-midia-paga-crm": {
+      "claude": "1e6504e2584b882783303c864680fbb1c71a8a38564588e6eff86f247264b5cd",
+      "codex": "c96ebf96d2163444f49c5d22710d722e717222561dd471993c51b2b8609ba5f8",
+      "gemini": "1843824a5fa1b728888e1a64984a471d7fb9278d09a3125bde74fe2dddae4925"
+    },
+    "agent:criativos": {
+      "claude": "32db4ed2ba6b052ce3e2406b3826e7ed378de8fdb797c68aa1b5c9ecab9df5db",
+      "codex": "ab976cbcf92507697b90b20a5624371bfd62d9b6296b84875bea7ac718ac79c8",
+      "gemini": "566593dfab9d2d1f9f7e78edb791940d2b7a01d97548f8d6815d16e56c63e3cb"
+    },
     "agent:ga4-analise": {
       "claude": "94b3e3a188ba7e7e7b089c7689552a2528f3fc76bb06235314314b391a4e0b2e",
       "codex": "427ab41e770c70263aa72f2116ee5086e5d5d4d97acd11f8b9dad9dc15ab1547",
       "gemini": "9099b23cf2b6d91a615e6cebb4fa5774a9808e35f85d9b3a93b20be84cdbeecb"
     },
+    "agent:guardiao-multi-ia": {
+      "claude": "e2d02a545c50d9dd4efac2dacc7638acf725a81a9dc941cf859431d70116a3c6",
+      "codex": "7dbeaea9e175d79a4e5a8493f58e38e6c981ff6bdc3cee8f008e1f542c85f192",
+      "gemini": "1302d6bd2a49436b1934097cb191b6b1eb5e9bf517cb01f09bcdd9adf867b5b2"
+    },
+    "agent:tracking-conversoes": {
+      "claude": "fb9cab1990c489ce5c16241661d46f087ba62af9f3af35f0d1880feb348f0770",
+      "codex": "bf3a75771c65a488fb19b08f8676351d1b4c9fe44d6c824f1520213cfa7f0af2",
+      "gemini": "d4ec8ce5315c2d088e518243750437120c064735163b8891185fd452bb6eee89"
+    },
+    "root": {
+      "agents_shared": "754e482966865e83c782bdbb43dfce31bffb55fc7ac54b50d1a54881b277809f",
+      "claude": "0d2cad30b10a887ad5ef955b92586824a1ef7e7b95fdde9c36ccb78f36ae4d4e"
+    },
+    "skill:acompanhamento-diario-caveo": {
+      "claude": "9c070fac79b7094e55815b1c07c9b750ad4d1223c8f3e068265c212638c14810",
+      "codex_gemini": "9c070fac79b7094e55815b1c07c9b750ad4d1223c8f3e068265c212638c14810",
+      "hermes": "32d573738fafd3df0274699fc967e3bc4cbefc52b4fc2133ed2bd499238a3498"
+    },
+    "skill:auditoria-tracking-gtm": {
+      "claude": "eca353ed7495b0a2baaad566e12b66869a510bd9891107b198e0d9f0fabdda84",
+      "codex_gemini": "eca353ed7495b0a2baaad566e12b66869a510bd9891107b198e0d9f0fabdda84",
+      "hermes": "a5a1caa9653ed434eaf7de791e44a8576be5e202a3511e885167af929a740b1b"
+    },
+    "skill:conversoes-oportunidade": {
+      "claude": "298dd4d3323af936949fd8e799a1fa1a1923e408d2c257c7d5454525ec755f5d",
+      "codex_gemini": "298dd4d3323af936949fd8e799a1fa1a1923e408d2c257c7d5454525ec755f5d",
+      "hermes": "2c3b2115195553634571112713589310645bd9644d3cf5d50360550518d4806a"
+    },
+    "skill:criativos-campeoes": {
+      "claude": "7b3c20b877be12b1fb58680253b4d4fd46c8f7b541dcb9e54282491347becfca",
+      "codex_gemini": "7b3c20b877be12b1fb58680253b4d4fd46c8f7b541dcb9e54282491347becfca",
+      "hermes": "80f838e456dfb7027bd85c6206ee3261a04cf3a62755e1c74e3ab2f95686cf30"
+    },
+    "skill:criativos-semanal": {
+      "claude": "96d428cb0c317208bd8895def5b73e1683d55501dfc63f765d59eb3f61aec70c",
+      "codex_gemini": "96d428cb0c317208bd8895def5b73e1683d55501dfc63f765d59eb3f61aec70c",
+      "hermes": "5cf46f122adf60a9b2fe9bda9ff32e50d32cb55004930aeb1adfb8de3809b797"
+    },
+    "skill:dados-lp-caveo": {
+      "claude": "c0097010f3d330b58f9f7f07d859fd1df428a1278454542e7295adf01535d4c1",
+      "codex_gemini": "c0097010f3d330b58f9f7f07d859fd1df428a1278454542e7295adf01535d4c1",
+      "hermes": "282699d797c57200215ce93377db268a894eb899f69858a4c43bd68d4dc2fad6"
+    },
+    "skill:detector-defeitos": {
+      "claude": "58999a7612a87dfa7c7fa64e40ba14746c6e1bd70875e868cb29d8db20ce9dfc",
+      "codex_gemini": "58999a7612a87dfa7c7fa64e40ba14746c6e1bd70875e868cb29d8db20ce9dfc",
+      "hermes": "45109c05cd6aa1a2ea4d3367a7489146c9d72fc11aa4ddf73586c6fa193f43af"
+    },
+    "skill:fechamentos-midia-paga-boomer": {
+      "claude": "60f8f2f95376117b538c71268aef9a5ba045555fd1d024225859a5f3764c8b98",
+      "codex_gemini": "60f8f2f95376117b538c71268aef9a5ba045555fd1d024225859a5f3764c8b98",
+      "hermes": "e84ee021d363dfd75e541c1c0bfbb256eae7b1581a2bbd206ea2f2a54665c241"
+    },
+    "skill:planilha-resultados-sexta": {
+      "claude": "849bd53eca0c9f1563e7c7c064135897092fc72554b23d44d71fdc4267a63b34",
+      "codex_gemini": "849bd53eca0c9f1563e7c7c064135897092fc72554b23d44d71fdc4267a63b34",
+      "hermes": "c2cbd6906c0aa595e2a94719f7098ae5b9b475bda59b74fcad896d7a965c2a83"
+    },
+    "skill:reconciliacao-fechamentos-caveo": {
+      "claude": "91502fa4cef9b60c76a787e92924b62fd2a699c6bc245ef0aa2f89fc9508662b",
+      "codex_gemini": "91502fa4cef9b60c76a787e92924b62fd2a699c6bc245ef0aa2f89fc9508662b",
+      "hermes": "9f8bbe7a5c212d5ff3c80eba547e9c2cc7ff23d7bf0f648a5469239b28a4a7f1"
+    },
+    "skill:reporte-consolidado-mensal": {
+      "claude": "c2ca7cae34b002b769fe9adc5dc7e33ba89e651cda149eec7ab5a38a9a8f458c",
+      "codex_gemini": "c2ca7cae34b002b769fe9adc5dc7e33ba89e651cda149eec7ab5a38a9a8f458c",
+      "hermes": "b5ba3bf5e3fef9d1e01e0e35efc5ec83c1a07d89a6d4d92ce0411e050c3214f9"
+    },
+    "skill:reporte-coorte": {
+      "claude": "01a304d4ca6f6f4a2986d7b5d64ed4528c574186db74cf9e4c78423ce34293d6",
+      "codex_gemini": "01a304d4ca6f6f4a2986d7b5d64ed4528c574186db74cf9e4c78423ce34293d6",
+      "hermes": "a129bfbdeddabd1c164adc23bd1716a2ae572f1d68d4e29f620a72226c6f4a58"
+    },
     "skill:reporte-ga4": {
       "claude": "2ad7940d04f3ef226120969619ff99e3ef74f3d5292f5fe13358995cac6ff51c",
       "codex_gemini": "2ad7940d04f3ef226120969619ff99e3ef74f3d5292f5fe13358995cac6ff51c",
       "hermes": null
+    },
+    "skill:reporte-resultados-ka": {
+      "claude": "ce28cb1609de6ef7919c831f9f6fae58651ff8df84a545e71c92c4a3c5c29b74",
+      "codex_gemini": "ce28cb1609de6ef7919c831f9f6fae58651ff8df84a545e71c92c4a3c5c29b74",
+      "hermes": "8864aec9c8eb2ac372567d97552da1c0c19d9fefbd24a2e927642070f24ed393"
+    },
+    "skill:reporte-semanal-caveo": {
+      "claude": "384470107384f8c560dca92d6dc33cbdd33030090a9eff44fbfeeb3261a1e482",
+      "codex_gemini": "384470107384f8c560dca92d6dc33cbdd33030090a9eff44fbfeeb3261a1e482",
+      "hermes": "bbc23afb659662d515ad7bf9130880f534f85824a2c8d9972b64f7d7ff97a72f"
+    },
+    "skill:sync-agentes": {
+      "claude": "1b0a16949de2b430d9ee101419d9e93c075b1b44634ee8a0e76f3fef3f13022b",
+      "codex_gemini": "1b0a16949de2b430d9ee101419d9e93c075b1b44634ee8a0e76f3fef3f13022b",
+      "hermes": "e55aef6990a287613b4047f1b7eec4d72942d04cf991bfd53917b7371bac3007"
     }
   }
 }

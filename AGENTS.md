@@ -42,15 +42,19 @@ lê o bloco e aciona o agente destino com aquele contexto, depois sintetiza.
 Ao criar/mover arquivos ou mudar regras, o orquestrador zela por:
 1. **Estrutura** — specs em `docs/superpowers/specs/`, agentes em
    `.claude/agents/` (+ espelhos por ferramenta), skills em
-   `.claude/skills/` (+ espelhos em `.agents/skills/` e Hermes), regras em
-   `config/`.
+   `.claude/skills/` (+ espelhos em `.agents/skills/` e Hermes), comandos
+   em `.claude/commands/`, regras em `config/`. Sinalizar o que fugir do
+   padrão (ver árvore em `docs/projeto-mapa.md`).
 2. **Sincronia da fundação** — se `config/business-rules.ts` mudar, rodar
-   `npm run docs:check` (falha = rodar `npm run docs:rules`).
+   `npm run docs:check` (falha = rodar `npm run docs:rules`) e avisar
+   quais skills/agentes referenciam a regra alterada.
 3. **Sincronia multi-IA** — toda skill/agente/regra criado ou editado
    deve ser propagado às outras ferramentas via `/sync-agentes` antes de
    encerrar a sessão — nunca aplicado sozinho, sempre com aprovação.
 4. **Anti-duplicação** — antes de criar algo novo, checar
-   `docs/projeto-mapa.md`: "isso já existe em X?".
+   `docs/projeto-mapa.md`: "isso já existe em X?". Regras de negócio
+   vivem só na fundação; benchmarks só no agente analista.
+5. **Onboarding** — `docs/projeto-mapa.md` é o mapa de "onde está o quê".
 
 ## Skills e agentes disponíveis
 
